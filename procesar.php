@@ -3,10 +3,12 @@
 /**
  * Prisma — Procesador manual de un tema individual.
  *
- * Uso:
+ * Uso CLI:
  *   php procesar.php "Descripción del tema o noticia"
- *   php procesar.php --ambito europa "Debate sobre regulación de IA en la UE"
- *   php procesar.php --dry-run "Tema de prueba"
+ *   php procesar.php --ambito europa "Debate sobre regulación de IA"
+ *
+ * Uso desde web (env vars):
+ *   PRISMA_TEMA="..." PRISMA_AMBITO="españa" php procesar.php
  */
 
 require_once __DIR__ . '/config.php';
@@ -15,43 +17,54 @@ require_once __DIR__ . '/lib/common.php';
 require_once __DIR__ . '/lib/sintetizador.php';
 require_once __DIR__ . '/lib/auditor.php';
 
-// ── Args ─────────────────────────────────────────────────────────────
+// ── Args: job file (from panel) > env vars > CLI ─────────────────────
 
-$opts = getopt('', ['ambito:', 'dry-run', 'help']);
-$args = [];
+$tema = '';
+$ambito = '';
 
-// Extraer args posicionales (el tema)
-$skip_next = false;
-for ($i = 1; $i < $argc; $i++) {
-    if ($skip_next) { $skip_next = false; continue; }
-    if ($argv[$i] === '--help') { /* handled below */ }
-    elseif ($argv[$i] === '--ambito') { $skip_next = true; continue; }
-    elseif ($argv[$i] === '--dry-run') { continue; }
-    elseif (strpos($argv[$i], '--') === 0) { continue; }
-    else { $args[] = $argv[$i]; }
+// 1. Check for job file (written by panel.php)
+$job_path = __DIR__ . '/data/manual_job.json';
+if (file_exists($job_path)) {
+    $job = json_decode(file_get_contents($job_path), true);
+    if ($job) {
+        $tema = $job['tema'] ?? '';
+        $ambito = $job['ambito'] ?? '';
+    }
 }
 
-if (isset($opts['help']) || empty($args)) {
-    echo <<<HELP
-Prisma — Procesador manual
+// 2. Env vars
+if (!$tema) $tema = getenv('PRISMA_TEMA') ?: '';
+if (!$ambito) $ambito = getenv('PRISMA_AMBITO') ?: '';
 
-Uso:
-  php procesar.php "Descripción del tema"
-  php procesar.php --ambito europa "Tema europeo"
-  php procesar.php --dry-run "Tema de prueba"
+// 3. CLI args
+if (!$tema && isset($argv)) {
+    // CLI mode: parse args
+    $opts = getopt('', ['ambito:', 'dry-run', 'help']);
+    $args = [];
+    $skip_next = false;
+    for ($i = 1; $i < ($argc ?? 0); $i++) {
+        if ($skip_next) { $skip_next = false; continue; }
+        if ($argv[$i] === '--ambito') { $skip_next = true; continue; }
+        if ($argv[$i] === '--dry-run' || $argv[$i] === '--help') continue;
+        if (strpos($argv[$i], '--') === 0) continue;
+        $args[] = $argv[$i];
+    }
 
-Opciones:
-  --ambito    españa|europa|global (default: españa)
-  --dry-run   Genera y audita pero no publica
-  --help      Muestra esta ayuda
+    if (isset($opts['help']) || empty($args)) {
+        echo "Uso: php procesar.php [--ambito españa|europa|global] \"Tema\"\n";
+        exit(0);
+    }
 
-HELP;
-    exit(0);
+    $tema = implode(' ', $args);
+    if (!$ambito) $ambito = $opts['ambito'] ?? 'españa';
 }
 
-$tema = implode(' ', $args);
-$ambito = $opts['ambito'] ?? 'españa';
-$dry_run = isset($opts['dry-run']);
+if (!$ambito) $ambito = 'españa';
+
+if (!$tema) {
+    fprintf(STDERR, "Error: no se proporcionó tema.\n");
+    exit(1);
+}
 
 // ── Pipeline ─────────────────────────────────────────────────────────
 
@@ -62,37 +75,14 @@ prisma_log("MAIN", "Ámbito: $ambito");
 $article_id = prisma_gen_id((int)date('His'));
 
 try {
-    if ($dry_run) {
-        // En dry-run, sintetizar + auditar pero guardar en output/ en vez de DB
-        prisma_log("MAIN", "[DRY-RUN] No se publicará.");
+    $result = prisma_procesar_tema($tema, $article_id, $ambito, manual: true);
 
-        $artifact = sintetizar_manual($tema, $article_id, $ambito);
-        $audit = auditar($artifact, $ambito);
-
-        $artifact['auditoria_moralcore'] = [
-            'veredicto'       => $audit['veredicto'] ?? 'RECHAZO',
-            'puntuacion'      => $audit['puntuacion'] ?? 0,
-            'axiomas_detalle' => $audit['axiomas_detalle'] ?? [],
-            'version_estandar'=> $audit['version_estandar'] ?? 'MC-1.0',
-        ];
-
-        $out_dir = __DIR__ . '/output';
-        if (!is_dir($out_dir)) mkdir($out_dir, 0755, true);
-        $out_path = "$out_dir/{$artifact['id']}.json";
-        file_put_contents($out_path, json_encode($artifact, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
-        prisma_log("MAIN", "Guardado en $out_path");
-        echo json_encode($artifact, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
+    if ($result) {
+        prisma_log("MAIN", "═══ PUBLICADO ═══");
+        echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
     } else {
-        $result = prisma_procesar_tema($tema, $article_id, $ambito, manual: true);
-
-        if ($result) {
-            prisma_log("MAIN", "═══ PUBLICADO ═══");
-            echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
-        } else {
-            prisma_log("MAIN", "═══ DESCARTADO ═══");
-            exit(1);
-        }
+        prisma_log("MAIN", "═══ DESCARTADO ═══");
+        exit(1);
     }
 } catch (Throwable $e) {
     prisma_log("MAIN", "ERROR FATAL: " . $e->getMessage());

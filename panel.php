@@ -79,9 +79,12 @@ if ($authed && isset($_POST['action'])) {
         $tema = trim($_POST['tema'] ?? '');
         $ambito = $_POST['ambito'] ?? 'españa';
         if ($tema) {
-            passthru('cd ' . escapeshellarg(__DIR__)
-                . ' && php procesar.php --ambito ' . escapeshellarg($ambito)
-                . ' ' . escapeshellarg($tema) . ' 2>&1', $rc);
+            // Write a temp job file — avoids all shell escaping problems
+            $job = ['tema' => $tema, 'ambito' => $ambito];
+            $job_path = __DIR__ . '/data/manual_job.json';
+            file_put_contents($job_path, json_encode($job, JSON_UNESCAPED_UNICODE));
+            passthru("cd " . escapeshellarg(__DIR__) . " && php procesar.php 2>&1", $rc);
+            @unlink($job_path);
             $action_result = $rc === 0 ? 'ok' : 'error';
         }
     } elseif ($action === 'update-credit') {
@@ -577,6 +580,34 @@ function pct_color(float $pct): string {
           echo "$line\n";
       }
     ?></div>
+
+    <?php
+    // Extract topics from dry-run output for quick-process buttons
+    $detected_topics = [];
+    $detected_ambito = 'españa';
+    if (preg_match('/Ámbito:\s*(\S+)/', $action_output, $m_amb)) {
+        $detected_ambito = $m_amb[1];
+    }
+    // Match: Tema N/M: <title>
+    if (preg_match_all('/Tema \d+\/\d+:\s*(.+)/', $action_output, $matches)) {
+        $detected_topics = $matches[1];
+    }
+    ?>
+    <?php if (!empty($detected_topics) && isset($_POST['action']) && $_POST['action'] === 'dry-run'): ?>
+      <h2>Procesar temas detectados</h2>
+      <p style="font-size:0.82rem;color:#7a7a8a;margin-bottom:1rem">Lanza el pipeline completo para cualquiera de los temas del dry-run:</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <?php foreach ($detected_topics as $topic): ?>
+          <form method="post" style="display:flex;gap:8px;align-items:center">
+            <input type="hidden" name="action" value="manual">
+            <input type="hidden" name="ambito" value="<?= htmlspecialchars($detected_ambito) ?>">
+            <input type="hidden" name="tema" value="<?= htmlspecialchars(trim($topic)) ?>">
+            <button class="btn btn-y" style="flex-shrink:0;padding:6px 14px;font-size:0.78rem">Procesar</button>
+            <span style="font-size:0.85rem;color:var(--text-muted)"><?= htmlspecialchars(mb_substr(trim($topic), 0, 100)) ?></span>
+          </form>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
   <?php endif; ?>
 
 <?php endif; ?>

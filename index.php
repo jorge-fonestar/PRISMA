@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lib/theme.php';
 
 $db = prisma_db();
 $rows = $db->query('SELECT id, fecha_publicacion, ambito, titular_neutral, resumen, payload, veredicto FROM articulos ORDER BY fecha_publicacion DESC LIMIT 50')->fetchAll();
@@ -36,6 +37,8 @@ $B = prisma_base();
   <meta name="description" content="Las noticias políticas más relevantes del día, presentadas desde todas las posturas enfrentadas. Sin editorial, sin algoritmo, sin cámaras de eco.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
+  <?= theme_head_script() ?>
+  <?= theme_css() ?>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
@@ -44,8 +47,8 @@ $B = prisma_base();
       font-family: 'Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
       font-size: 18px;
       line-height: 1.65;
-      color: #e8e8ec;
-      background: #0a0a12;
+      color: var(--text);
+      background: var(--bg);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
@@ -67,16 +70,16 @@ $B = prisma_base();
     .eyebrow {
       font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
       font-size: 0.78rem; font-weight: 600; letter-spacing: 0.22em;
-      text-transform: uppercase; color: #9a9aaa; margin-bottom: 1.5rem;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.5rem;
     }
     .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
     /* Header */
     header[role="banner"] {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10, 10, 18, 0.85);
+      background: var(--bg-header);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border);
     }
     header nav {
       max-width: 1100px; margin: 0 auto; padding: 16px 24px;
@@ -105,11 +108,11 @@ $B = prisma_base();
     /* Hero block */
     .hero-intro {
       padding: 3.5rem 0 3rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--border);
       margin-bottom: 2.5rem;
     }
     .hero-intro h1 {
-      color: #fff; margin-bottom: 0.3em;
+      color: var(--text); margin-bottom: 0.3em;
       font-size: clamp(2.2rem, 5vw, 3.5rem);
     }
     .hero-intro h1 em {
@@ -118,101 +121,101 @@ $B = prisma_base();
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
     .hero-intro .lede {
-      color: #c8c8d4; font-size: 1.12rem; line-height: 1.6;
+      color: var(--text-muted); font-size: 1.12rem; line-height: 1.6;
       max-width: 720px; margin: 1rem 0 2rem 0;
     }
-    .hero-intro .lede strong { color: #fff; font-weight: 600; }
+    .hero-intro .lede strong { color: var(--text); font-weight: 600; }
     .hero-pillars {
       display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem;
     }
     .hero-pillar {
       flex: 1 1 200px; padding: 1.2rem 0; position: relative;
-      padding-left: 1rem; border-left: 2px solid rgba(255,255,255,0.1);
+      padding-left: 1rem; border-left: 2px solid var(--border-card);
     }
     .hero-pillar strong {
-      display: block; color: #fff;
+      display: block; color: var(--text);
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem;
       font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
       margin-bottom: 0.3rem;
     }
-    .hero-pillar span { color: #9a9aaa; font-size: 0.92rem; line-height: 1.45; }
+    .hero-pillar span { color: var(--text-muted); font-size: 0.92rem; line-height: 1.45; }
     .hero-cta {
       display: inline-flex; align-items: center; gap: 6px;
-      color: #f2f24a; text-decoration: none;
+      color: var(--accent); text-decoration: none;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.88rem; font-weight: 600;
       transition: color 0.15s;
     }
-    .hero-cta:hover { color: #fff; }
+    .hero-cta:hover { color: var(--text); }
 
     /* Section header */
     .section-header {
       padding: 0 0 1.5rem 0;
     }
     .section-header h2 {
-      color: #fff; font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: 0.2em;
+      color: var(--text); font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: 0.2em;
     }
-    .section-header p { color: #7a7a8a; font-size: 0.95rem; margin: 0; }
+    .section-header p { color: var(--text-faint); font-size: 0.95rem; margin: 0; }
 
     /* Filter tabs */
     .filters {
       display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem;
     }
     .filter-btn {
-      padding: 6px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px;
-      background: transparent; color: #9a9aaa; font-family: 'Inter', Arial, sans-serif;
+      padding: 6px 16px; border: 1px solid var(--border-card); border-radius: 999px;
+      background: transparent; color: var(--text-muted); font-family: 'Inter', Arial, sans-serif;
       font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer;
       transition: all 0.15s;
     }
-    .filter-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+    .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
     .filter-btn.active {
-      background: rgba(242, 242, 74, 0.12); border-color: rgba(242, 242, 74, 0.3);
-      color: #f2f24a;
+      background: var(--accent-bg); border-color: var(--accent-border);
+      color: var(--accent);
     }
     .filter-btn .count {
       display: inline-block; margin-left: 4px; padding: 1px 6px;
-      border-radius: 99px; background: rgba(255,255,255,0.06);
-      font-size: 0.68rem; font-weight: 700; color: #7a7a8a;
+      border-radius: 99px; background: var(--chip-bg);
+      font-size: 0.68rem; font-weight: 700; color: var(--text-faint);
     }
-    .filter-btn.active .count { background: rgba(242, 242, 74, 0.15); color: #f2f24a; }
+    .filter-btn.active .count { background: var(--accent-bg); color: var(--accent); }
     .article-card.hidden { display: none; }
 
     /* Article cards */
     .articles-list { display: flex; flex-direction: column; gap: 24px; padding-bottom: 5rem; }
     .article-card {
       display: block; padding: 2rem; text-decoration: none; color: inherit;
-      border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
-      background: rgba(255,255,255,0.015); transition: border-color 0.2s, background 0.2s;
+      border: 1px solid var(--border-card); border-radius: 6px;
+      background: var(--bg-card); transition: border-color 0.2s, background 0.2s;
     }
     .article-card:hover {
-      border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.03);
+      border-color: var(--border-hover); background: var(--bg-card-hover);
     }
     .article-meta {
       display: flex; align-items: center; gap: 16px; margin-bottom: 1rem; flex-wrap: wrap;
     }
     .article-date {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem;
-      letter-spacing: 0.1em; text-transform: uppercase; color: #7a7a8a;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint);
     }
     .badge-ambito {
       display: inline-block; padding: 3px 10px;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase;
-      border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); color: #c8c8d0;
+      border-radius: 999px; border: 1px solid var(--border-card); color: var(--text-muted);
     }
     .badge-apto {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 3px 10px; background: rgba(74, 222, 128, 0.12); color: #4ade80;
-      border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 999px;
+      padding: 3px 10px; background: var(--green-bg); color: var(--green);
+      border: 1px solid var(--green-border); border-radius: 999px;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
       letter-spacing: 0.05em;
     }
     .badge-apto::before {
       content: ""; width: 6px; height: 6px; border-radius: 50%;
-      background: #4ade80; box-shadow: 0 0 8px #4ade80;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
     }
-    .article-card h2 { color: #fff; margin-bottom: 0.5em; }
+    .article-card h2 { color: var(--text); margin-bottom: 0.5em; }
     .article-card .resumen {
-      color: #9a9aaa; font-size: 0.95rem; line-height: 1.55; margin: 0;
+      color: var(--text-muted); font-size: 0.95rem; line-height: 1.55; margin: 0;
       display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
     }
     .posturas-preview {
@@ -221,35 +224,35 @@ $B = prisma_base();
     .postura-chip {
       padding: 4px 12px; font-family: 'Inter', Arial, sans-serif;
       font-size: 0.72rem; font-weight: 500; letter-spacing: 0.03em;
-      border-radius: 999px; background: rgba(255,255,255,0.06); color: #b8b8c4;
+      border-radius: 999px; background: var(--chip-bg); color: var(--text-muted);
     }
 
     /* Empty state */
     .empty-state {
-      text-align: center; padding: 6rem 2rem; color: #7a7a8a;
+      text-align: center; padding: 6rem 2rem; color: var(--text-faint);
     }
-    .empty-state h2 { color: #fff; }
+    .empty-state h2 { color: var(--text); }
 
     /* Footer */
     footer[role="contentinfo"] {
       padding: 3rem 0 2rem 0;
-      border-top: 1px solid rgba(255,255,255,0.06); background: #050509;
+      border-top: 1px solid var(--border); background: var(--bg-footer);
     }
     .footer-bottom {
       display: flex; justify-content: space-between; align-items: center;
       flex-wrap: wrap; gap: 16px;
     }
-    .footer-bottom p { color: #5a5a6a; font-size: 0.85rem; margin: 0; }
+    .footer-bottom p { color: var(--text-faintest); font-size: 0.85rem; margin: 0; }
     .ai-notice {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 14px; background: rgba(242, 242, 74, 0.08);
-      border: 1px solid rgba(242, 242, 74, 0.2); border-radius: 999px;
-      color: #f2f24a; font-family: 'Inter', Arial, sans-serif;
+      padding: 6px 14px; background: var(--accent-bg);
+      border: 1px solid var(--accent-border); border-radius: 999px;
+      color: var(--accent); font-family: 'Inter', Arial, sans-serif;
       font-size: 0.78rem; font-weight: 500; letter-spacing: 0.05em;
     }
     .ai-notice::before {
       content: ""; width: 6px; height: 6px; border-radius: 50%;
-      background: #f2f24a; box-shadow: 0 0 6px #f2f24a;
+      background: var(--accent); box-shadow: 0 0 6px var(--accent);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -284,6 +287,7 @@ $B = prisma_base();
         <li><a href="<?= $B ?>" class="active">Hoy</a></li>
         <li><a href="<?= $B ?>manifiesto.php">El proyecto</a></li>
       </ul>
+      <?= theme_toggle() ?>
     </nav>
   </header>
 
@@ -372,9 +376,45 @@ $B = prisma_base();
   </main>
 
   <footer role="contentinfo">
-    <div class="container">
+    <div class="container" style="max-width:1100px">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:2rem">
+        <div>
+          <div class="logo" style="pointer-events:none">
+            <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+            <span>Prisma</span>
+          </div>
+          <p style="color:var(--text-faint);font-size:0.9rem;margin-top:0.8rem;max-width:280px">Servicio público de información neutral. Sin editorial, sin algoritmo, sin cámaras de eco.</p>
+        </div>
+        <div>
+          <h4 style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.8rem 0">Proyecto</h4>
+          <ul style="list-style:none;padding:0;margin:0">
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>" style="color:var(--text-faint);font-size:0.88rem">Hoy</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>manifiesto.php" style="color:var(--text-faint);font-size:0.88rem">El proyecto</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>archivo.php" style="color:var(--text-faint);font-size:0.88rem">Archivo</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>ia.php" style="color:var(--text-faint);font-size:0.88rem">Aviso de IA</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.8rem 0">Estándar</h4>
+          <ul style="list-style:none;padding:0;margin:0">
+            <li style="margin-bottom:0.5rem"><a href="https://moralcore.org" target="_blank" rel="noopener" style="color:var(--text-faint);font-size:0.88rem">Moral Core</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>axiomas.php" style="color:var(--text-faint);font-size:0.88rem">Los 11 axiomas</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>fuentes.php" style="color:var(--text-faint);font-size:0.88rem">Fuentes consultadas</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);margin:0 0 0.8rem 0">Legal</h4>
+          <ul style="list-style:none;padding:0;margin:0">
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>aviso-legal.php" style="color:var(--text-faint);font-size:0.88rem">Aviso legal</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>privacidad.php" style="color:var(--text-faint);font-size:0.88rem">Privacidad</a></li>
+            <li style="margin-bottom:0.5rem"><a href="<?= $B ?>cookies.php" style="color:var(--text-faint);font-size:0.88rem">Cookies</a></li>
+          </ul>
+        </div>
+      </div>
       <div class="footer-bottom">
-        <p>&copy; 2026 Prisma · Proyecto independiente · CC BY-SA 4.0</p>
+        <p>&copy; <?= date('Y') ?> Prisma · Proyecto independiente · CC BY-SA 4.0</p>
         <span class="ai-notice">Contenido generado y auditado por IA</span>
       </div>
     </div>
@@ -391,5 +431,6 @@ $B = prisma_base();
     });
   });
   </script>
+  <?= theme_js() ?>
 </body>
 </html>

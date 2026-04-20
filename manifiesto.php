@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lib/theme.php';
 $B = prisma_base();
 ?>
 <!DOCTYPE html>
@@ -15,6 +16,8 @@ $B = prisma_base();
   <meta name="robots" content="index, follow">
   <meta name="author" content="Equipo Prisma">
   <meta name="theme-color" content="#0a0a12">
+  <?= theme_head_script() ?>
+  <?= theme_css() ?>
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
@@ -135,8 +138,8 @@ $B = prisma_base();
       font-family: 'Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
       font-size: 18px;
       line-height: 1.65;
-      color: #e8e8ec;
-      background: #0a0a12;
+      color: var(--text);
+      background: var(--bg);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
@@ -184,7 +187,7 @@ $B = prisma_base();
       font-weight: 600;
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: #9a9aaa;
+      color: var(--text-muted);
       margin-bottom: 1.5rem;
     }
 
@@ -208,7 +211,7 @@ $B = prisma_base();
       left: 0;
       right: 0;
       z-index: 100;
-      background: rgba(10, 10, 18, 0.85);
+      background: var(--bg-header);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -225,7 +228,7 @@ $B = prisma_base();
       display: flex;
       align-items: center;
       gap: 10px;
-      color: #fff;
+      color: var(--text);
       text-decoration: none;
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
       font-size: 1.35rem;
@@ -245,14 +248,14 @@ $B = prisma_base();
       padding: 0;
     }
     header .nav-links a {
-      color: #c8c8d0;
+      color: var(--text-muted);
       text-decoration: none;
       font-family: 'Inter', Arial, sans-serif;
       font-size: 0.92rem;
       transition: color 0.15s;
     }
-    header .nav-links a:hover { color: #fff; }
-    header .nav-links a.active { color: #f2f24a; }
+    header .nav-links a:hover { color: var(--text); }
+    header .nav-links a.active { color: var(--accent); }
     @media (max-width: 640px) {
       header .nav-links { display: none; }
     }
@@ -316,7 +319,7 @@ $B = prisma_base();
       max-width: 820px;
     }
     .hero-content h1 {
-      color: #fff;
+      color: var(--text);
     }
     .hero-content h1 em {
       font-style: italic;
@@ -328,7 +331,7 @@ $B = prisma_base();
     }
     .hero-lede {
       font-size: clamp(1.15rem, 1.8vw, 1.4rem);
-      color: #b8b8c4;
+      color: var(--text-muted);
       max-width: 640px;
       margin: 1.5rem 0 2.5rem 0;
       line-height: 1.55;
@@ -365,27 +368,27 @@ $B = prisma_base();
     }
     .btn-secondary {
       background: transparent;
-      color: #fff;
+      color: var(--text);
       border-color: rgba(255,255,255,0.25);
     }
     .btn-secondary:hover {
-      border-color: #fff;
+      border-color: var(--text);
       background: rgba(255,255,255,0.06);
     }
 
     /* ============ PROBLEM SECTION ============ */
     #problem {
-      background: #070710;
+      background: var(--bg-alt);
       border-top: 1px solid rgba(255, 255, 255, 0.05);
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     #problem h2 {
-      color: #fff;
+      color: var(--text);
       max-width: 900px;
     }
     .problem-lede {
       font-size: 1.25rem;
-      color: #c8c8d4;
+      color: var(--text-muted);
       max-width: 720px;
       margin-bottom: 4rem;
     }
@@ -412,27 +415,27 @@ $B = prisma_base();
       letter-spacing: -0.02em;
     }
     .problem-card h3 {
-      color: #fff;
+      color: var(--text);
       font-size: 1.25rem;
       margin-bottom: 0.5rem;
     }
     .problem-card p {
-      color: #9a9aaa;
+      color: var(--text-muted);
       font-size: 0.98rem;
       margin: 0;
     }
 
     /* ============ SOLUTION SECTION ============ */
     #solution {
-      background: #0a0a12;
+      background: var(--bg);
     }
     #solution h2 {
-      color: #fff;
+      color: var(--text);
       max-width: 880px;
     }
     .solution-lede {
       font-size: 1.2rem;
-      color: #c8c8d4;
+      color: var(--text-muted);
       max-width: 720px;
       margin-bottom: 5rem;
     }
@@ -462,7 +465,7 @@ $B = prisma_base();
       font-size: 0.82rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #7a7a8a;
+      color: var(--text-faint);
     }
     .badge-apto {
       display: inline-flex;
@@ -489,7 +492,7 @@ $B = prisma_base();
     .artifact-title {
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
       font-size: 1.6rem;
-      color: #fff;
+      color: var(--text);
       line-height: 1.25;
       margin-bottom: 1.5rem;
     }
@@ -499,7 +502,7 @@ $B = prisma_base();
       font-weight: 600;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #7a7a8a;
+      color: var(--text-faint);
       margin: 2rem 0 1rem 0;
     }
     .positions-grid {
@@ -514,7 +517,7 @@ $B = prisma_base();
       border-radius: 0 4px 4px 0;
     }
     .position.a { border-left-color: #ff4d6d; }
-    .position.b { border-left-color: #f2f24a; }
+    .position.b { border-left-color: var(--accent); }
     .position.c { border-left-color: #4dc3ff; }
     .position-label {
       font-family: 'Inter', Arial, sans-serif;
@@ -522,13 +525,13 @@ $B = prisma_base();
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #c8c8d4;
+      color: var(--text-muted);
       margin-bottom: 0.5rem;
     }
     .position p {
       margin: 0;
       font-size: 0.95rem;
-      color: #a8a8b4;
+      color: var(--text-muted);
       line-height: 1.55;
     }
 
@@ -552,23 +555,23 @@ $B = prisma_base();
       font-weight: 300;
     }
     .pillar h3 {
-      color: #fff;
+      color: var(--text);
       font-size: 1.35rem;
       margin-bottom: 0.8rem;
     }
     .pillar p {
-      color: #9a9aaa;
+      color: var(--text-muted);
       font-size: 1rem;
       margin: 0;
     }
 
     /* ============ HOW IT WORKS ============ */
     #how {
-      background: #070710;
+      background: var(--bg-alt);
       border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
     #how h2 {
-      color: #fff;
+      color: var(--text);
     }
     .steps {
       display: grid;
@@ -588,25 +591,25 @@ $B = prisma_base();
       font-size: 0.82rem;
       font-weight: 700;
       letter-spacing: 0.2em;
-      color: #f2f24a;
+      color: var(--accent);
       position: absolute;
       top: 0;
       left: 0;
     }
     .step h3 {
-      color: #fff;
+      color: var(--text);
       font-size: 1.2rem;
       margin-top: 0;
     }
     .step p {
-      color: #9a9aaa;
+      color: var(--text-muted);
       font-size: 0.98rem;
       margin: 0;
     }
 
     /* ============ FAQ ============ */
-    #faq { background: #0a0a12; }
-    #faq h2 { color: #fff; }
+    #faq { background: var(--bg); }
+    #faq h2 { color: var(--text); }
     .faq-list {
       margin-top: 3rem;
       max-width: 820px;
@@ -615,12 +618,12 @@ $B = prisma_base();
       border-bottom: 1px solid rgba(255,255,255,0.08);
       padding: 1.5rem 0;
     }
-    details[open] summary { color: #fff; }
+    details[open] summary { color: var(--text); }
     summary {
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
       font-size: 1.35rem;
       font-weight: 500;
-      color: #d4d4e0;
+      color: var(--text);
       cursor: pointer;
       list-style: none;
       display: flex;
@@ -635,7 +638,7 @@ $B = prisma_base();
       font-family: 'Inter', Arial, sans-serif;
       font-size: 1.6rem;
       font-weight: 300;
-      color: #f2f24a;
+      color: var(--accent);
       transition: transform 0.2s;
       flex-shrink: 0;
     }
@@ -643,12 +646,12 @@ $B = prisma_base();
       transform: rotate(45deg);
     }
     details p {
-      color: #a8a8b4;
+      color: var(--text-muted);
       margin: 1rem 0 0 0;
       font-size: 1rem;
       line-height: 1.65;
     }
-    summary:hover { color: #fff; }
+    summary:hover { color: var(--text); }
 
     /* ============ CTA ============ */
     #cta {
@@ -660,7 +663,7 @@ $B = prisma_base();
       max-width: 820px;
     }
     #cta h2 {
-      color: #fff;
+      color: var(--text);
       font-size: clamp(2.2rem, 5vw, 3.8rem);
     }
     #cta h2 em {
@@ -671,7 +674,7 @@ $B = prisma_base();
       color: transparent;
     }
     #cta p {
-      color: #b8b8c4;
+      color: var(--text-muted);
       font-size: 1.15rem;
       margin: 1.5rem auto 3rem auto;
       max-width: 620px;
@@ -682,7 +685,7 @@ $B = prisma_base();
     footer[role="contentinfo"] {
       padding: 4rem 0 3rem 0;
       border-top: 1px solid rgba(255,255,255,0.06);
-      background: #050509;
+      background: var(--bg-footer);
     }
     footer .footer-grid {
       display: grid;
@@ -697,7 +700,7 @@ $B = prisma_base();
       }
     }
     .footer-brand p {
-      color: #7a7a8a;
+      color: var(--text-faint);
       font-size: 0.95rem;
       margin-top: 1rem;
       max-width: 320px;
@@ -708,7 +711,7 @@ $B = prisma_base();
       font-weight: 600;
       letter-spacing: 0.16em;
       text-transform: uppercase;
-      color: #c8c8d4;
+      color: var(--text-muted);
       margin: 0 0 1rem 0;
     }
     footer ul {
@@ -718,12 +721,12 @@ $B = prisma_base();
     }
     footer li { margin-bottom: 0.6rem; }
     footer a {
-      color: #8a8a9a;
+      color: var(--text-faint);
       text-decoration: none;
       font-size: 0.92rem;
       transition: color 0.15s;
     }
-    footer a:hover { color: #fff; }
+    footer a:hover { color: var(--text); }
     .footer-bottom {
       padding-top: 2rem;
       border-top: 1px solid rgba(255,255,255,0.05);
@@ -734,7 +737,7 @@ $B = prisma_base();
       gap: 16px;
     }
     .footer-bottom p {
-      color: #5a5a6a;
+      color: var(--text-faintest);
       font-size: 0.85rem;
       margin: 0;
     }
@@ -746,7 +749,7 @@ $B = prisma_base();
       background: rgba(242, 242, 74, 0.08);
       border: 1px solid rgba(242, 242, 74, 0.2);
       border-radius: 999px;
-      color: #f2f24a;
+      color: var(--accent);
       font-family: 'Inter', Arial, sans-serif;
       font-size: 0.78rem;
       font-weight: 500;
@@ -796,6 +799,7 @@ $B = prisma_base();
         <li><a href="<?= $B ?>">Hoy</a></li>
         <li><a href="<?= $B ?>manifiesto.php" class="active">El proyecto</a></li>
       </ul>
+      <?= theme_toggle() ?>
     </nav>
   </header>
 
@@ -1048,22 +1052,29 @@ $B = prisma_base();
     <!-- ============ CTA ============ -->
     <section id="cta" aria-labelledby="cta-heading">
       <div class="container">
-        <p class="eyebrow">El primer paso</p>
+        <p class="eyebrow">Democracia real</p>
         <h2 id="cta-heading">
-          La polarización no se cura<br>
-          con más ruido. Se cura con <em>contexto</em>.
+          La democracia no es votar<br>
+          cada cuatro años. Es <em>entenderse</em>.
         </h2>
         <p>
-          Empieza hoy. Lee una noticia desde todas sus caras. Nota cómo cambian
-          tus certezas. Comparte con alguien que piense distinto. Así se desmonta
-          una cámara de eco, una noticia a la vez.
+          Democracia es dialogar, escuchar, compartir y buscar puntos de
+          entendimiento. La polarización destruye todo eso. Cuando dejas de
+          entender al que piensa distinto, dejas de poder convivir con él.
+          Y una sociedad que no convive no se gobierna: se somete.
+        </p>
+        <p>
+          Prisma existe para eso. Para que leas una noticia desde todas sus
+          caras. Para que notes cómo cambian tus certezas. Para que compartas
+          con alguien que piense distinto. Así se desmonta una cámara de eco,
+          una noticia a la vez.
         </p>
         <div class="btn-group">
           <a href="<?= $B ?>" class="btn btn-primary">
             Leer las noticias de hoy
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </a>
-          <a href="<?= $B ?>como-funciona" class="btn btn-secondary">Conocer el estándar Moral Core</a>
+          <a href="<?= $B ?>axiomas.php" class="btn btn-secondary">Conocer los 11 axiomas</a>
         </div>
       </div>
     </section>
@@ -1096,8 +1107,8 @@ $B = prisma_base();
           <h4>Estándar</h4>
           <ul>
             <li><a href="https://moralcore.org">Moral Core</a></li>
-            <li><a href="<?= $B ?>como-funciona#axiomas">Los 11 axiomas</a></li>
-            <li><a href="<?= $B ?>como-funciona#fuentes">Fuentes consultadas</a></li>
+            <li><a href="<?= $B ?>axiomas.php">Los 11 axiomas</a></li>
+            <li><a href="<?= $B ?>fuentes.php">Fuentes consultadas</a></li>
           </ul>
         </div>
         <div>
@@ -1116,5 +1127,6 @@ $B = prisma_base();
     </div>
   </footer>
 
+  <?= theme_js() ?>
 </body>
 </html>

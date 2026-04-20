@@ -139,7 +139,7 @@ function theme_js(): string {
   }
 
   function getStored() {
-    try { return localStorage.getItem(STORAGE_KEY) || 'dark'; } catch(e) { return 'dark'; }
+    try { return localStorage.getItem(STORAGE_KEY) || 'system'; } catch(e) { return 'system'; }
   }
 
   function store(mode) {
@@ -193,7 +193,7 @@ JS;
 function theme_head_script(): string {
     return <<<'JS'
 <script>
-(function(){try{var t=localStorage.getItem('prisma-theme')||'dark';if(t==='system'){t=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+(function(){try{var t=localStorage.getItem('prisma-theme')||'system';if(t==='system'){t=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
 </script>
 JS;
 }

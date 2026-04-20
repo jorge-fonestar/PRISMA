@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lib/theme.php';
 
 $id = $_GET['id'] ?? '';
 $art = null;
@@ -60,13 +61,15 @@ $axiom_names = [
   <?php endif; ?>
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
+  <?= theme_head_script() ?>
+  <?= theme_css() ?>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
       font-family: 'Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-      font-size: 18px; line-height: 1.65; color: #e8e8ec; background: #0a0a12;
+      font-size: 18px; line-height: 1.65; color: var(--text); background: var(--bg);
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
@@ -85,28 +88,28 @@ $axiom_names = [
     h2 { font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
     h3 { font-size: clamp(1.1rem, 2vw, 1.4rem); }
     p { margin: 0 0 1.2em 0; }
-    a { color: #4dc3ff; }
-    a:hover { color: #fff; }
+    a { color: var(--link); }
+    a:hover { color: var(--text); }
     .eyebrow {
       font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
       font-size: 0.72rem; font-weight: 600; letter-spacing: 0.18em;
-      text-transform: uppercase; color: #7a7a8a; margin-bottom: 1rem;
+      text-transform: uppercase; color: var(--text-faint); margin-bottom: 1rem;
     }
     .container { width: 100%; max-width: 820px; margin: 0 auto; padding: 0 24px; }
 
     /* Header */
     header[role="banner"] {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10, 10, 18, 0.85);
+      background: var(--bg-header);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border);
     }
     header nav {
       max-width: 1100px; margin: 0 auto; padding: 16px 24px;
       display: flex; align-items: center; justify-content: space-between;
     }
     .logo {
-      display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none;
+      display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
       font-size: 1.35rem; font-weight: 500; letter-spacing: -0.01em;
     }
@@ -115,31 +118,31 @@ $axiom_names = [
       display: flex; gap: 28px; list-style: none; margin: 0; padding: 0;
     }
     header .nav-links a {
-      color: #c8c8d0; text-decoration: none;
+      color: var(--text-muted); text-decoration: none;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.92rem; transition: color 0.15s;
     }
-    header .nav-links a:hover { color: #fff; }
+    header .nav-links a:hover { color: var(--text); }
     @media (max-width: 640px) { header .nav-links { display: none; } }
 
     /* Article */
     main { padding-top: 5rem; min-height: 100vh; }
-    .article-header { padding: 3rem 0 2rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 2.5rem; }
+    .article-header { padding: 3rem 0 2rem 0; border-bottom: 1px solid var(--border-card); margin-bottom: 2.5rem; }
     .article-meta {
       display: flex; align-items: center; gap: 16px; margin-bottom: 1.5rem; flex-wrap: wrap;
     }
     .article-date {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem;
-      letter-spacing: 0.1em; text-transform: uppercase; color: #7a7a8a;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint);
     }
     .badge-ambito {
       display: inline-block; padding: 3px 10px;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase;
-      border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); color: #c8c8d0;
+      border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted);
     }
     .badge-apto {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 3px 10px; background: rgba(74, 222, 128, 0.12); color: #4ade80;
+      padding: 3px 10px; background: rgba(74, 222, 128, 0.12); color: var(--green);
       border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 999px;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
     }
@@ -147,31 +150,31 @@ $axiom_names = [
       content: ""; width: 6px; height: 6px; border-radius: 50%;
       background: #4ade80; box-shadow: 0 0 8px #4ade80;
     }
-    .article-header h1 { color: #fff; }
+    .article-header h1 { color: var(--text); }
 
     /* Resumen */
     .section-label {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
-      letter-spacing: 0.18em; text-transform: uppercase; color: #f2f24a;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent);
       margin: 3rem 0 1rem 0; padding-bottom: 0.5rem;
       border-bottom: 1px solid rgba(242, 242, 74, 0.2);
     }
-    .resumen { color: #c8c8d4; font-size: 1.05rem; line-height: 1.7; }
+    .resumen { color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; }
 
     /* Posturas */
     .posturas-grid { display: flex; flex-direction: column; gap: 12px; }
     .postura-etiqueta {
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
-      font-size: 1.15rem; font-weight: 500; color: #fff; margin-bottom: 0.3rem;
+      font-size: 1.15rem; font-weight: 500; color: var(--text); margin-bottom: 0.3rem;
     }
     .postura-defensores {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem;
-      color: #9a9aaa; margin-bottom: 0; line-height: 1.5;
+      color: var(--text-muted); margin-bottom: 0; line-height: 1.5;
     }
     .postura-argumentos { list-style: none; padding: 0; margin: 0 0 1.2rem 0; }
     .postura-argumentos li {
       padding: 0.4rem 0 0.4rem 1.2rem; position: relative;
-      color: #c8c8d4; font-size: 0.95rem; line-height: 1.55;
+      color: var(--text-muted); font-size: 0.95rem; line-height: 1.55;
     }
     .postura-argumentos li::before {
       content: ""; position: absolute; left: 0; top: 0.85rem;
@@ -180,24 +183,24 @@ $axiom_names = [
     .postura-fuentes { display: flex; flex-direction: column; gap: 6px; }
     .fuente-link {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem;
-      color: #4dc3ff; text-decoration: none; transition: color 0.15s;
+      color: var(--link); text-decoration: none; transition: color 0.15s;
       display: flex; align-items: baseline; gap: 6px;
     }
-    .fuente-link:hover { color: #fff; }
+    .fuente-link:hover { color: var(--text); }
     .fuente-medio {
-      color: #7a7a8a; font-size: 0.75rem; flex-shrink: 0;
+      color: var(--text-faint); font-size: 0.75rem; flex-shrink: 0;
     }
     .fuente-cuadrante {
       display: inline-block; padding: 1px 6px; margin-left: 4px;
       font-size: 0.68rem; border-radius: 3px;
-      background: rgba(255,255,255,0.06); color: #9a9aaa;
+      background: rgba(255,255,255,0.06); color: var(--text-muted);
     }
 
     /* Ausencias */
     .ausencias-list { list-style: none; padding: 0; margin: 0; }
     .ausencias-list li {
-      padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-      color: #c8c8d4; font-size: 0.95rem; line-height: 1.6;
+      padding: 1rem 0; border-bottom: 1px solid var(--border);
+      color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;
     }
     .ausencias-list li:last-child { border-bottom: none; }
 
@@ -205,8 +208,8 @@ $axiom_names = [
     .preguntas-list { list-style: none; padding: 0; margin: 0; counter-reset: pregunta; }
     .preguntas-list li {
       padding: 1.2rem 0 1.2rem 3rem; position: relative;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      color: #e8e8ec; font-size: 1.05rem; line-height: 1.6;
+      border-bottom: 1px solid var(--border);
+      color: var(--text); font-size: 1.05rem; line-height: 1.6;
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
     }
     .preguntas-list li:last-child { border-bottom: none; }
@@ -215,7 +218,7 @@ $axiom_names = [
       content: counter(pregunta);
       position: absolute; left: 0; top: 1.2rem;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 700;
-      color: #f2f24a; letter-spacing: 0.1em;
+      color: var(--accent); letter-spacing: 0.1em;
     }
 
     /* Audit bar (compact, top of article) */
@@ -231,16 +234,16 @@ $axiom_names = [
     }
     .audit-bar .audit-score {
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
-      font-size: 2.2rem; font-weight: 500; color: #4ade80;
+      font-size: 2.2rem; font-weight: 500; color: var(--green);
       line-height: 1; letter-spacing: -0.02em;
     }
-    .audit-bar.audit-fail .audit-score { color: #ff4d6d; }
+    .audit-bar.audit-fail .audit-score { color: var(--red); }
     .audit-bar .audit-info {
       display: flex; flex-direction: column; gap: 2px;
     }
     .audit-bar .audit-label {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
-      letter-spacing: 0.12em; text-transform: uppercase; color: #7a7a8a;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint);
     }
     .audit-bar .audit-axioms {
       display: flex; flex-wrap: wrap; gap: 5px;
@@ -251,14 +254,14 @@ $axiom_names = [
       font-family: 'Inter', Arial, sans-serif; font-size: 0.58rem; font-weight: 700;
       position: relative; cursor: help;
     }
-    .axiom-dot.pass { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
-    .axiom-dot.fail { background: rgba(255, 77, 109, 0.15); color: #ff4d6d; }
+    .axiom-dot.pass { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+    .axiom-dot.fail { background: rgba(255, 77, 109, 0.15); color: var(--red); }
     .axiom-dot .axiom-tip {
       display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
       transform: translateX(-50%); white-space: nowrap;
       padding: 6px 12px; border-radius: 4px;
       background: #1a1a2e; border: 1px solid rgba(255,255,255,0.12);
-      color: #e8e8ec; font-size: 0.72rem; font-weight: 500;
+      color: var(--text); font-size: 0.72rem; font-weight: 500;
       letter-spacing: 0; text-transform: none;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4); z-index: 10;
       pointer-events: none;
@@ -275,12 +278,12 @@ $axiom_names = [
     }
     .audit-bar .audit-meta {
       margin-left: auto;
-      font-family: 'Inter', Arial, sans-serif; font-size: 0.75rem; color: #7a7a8a;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.75rem; color: var(--text-faint);
       display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
     }
 
     /* Posturas collapsible */
-    .postura-card { border-left: 4px solid; border-radius: 0 4px 4px 0; background: rgba(255,255,255,0.02); }
+    .postura-card { border-left: 4px solid; border-radius: 0 4px 4px 0; background: var(--bg-card); }
     .postura-summary {
       padding: 1.2rem 1.5rem; cursor: pointer; list-style: none;
       display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
@@ -291,40 +294,40 @@ $axiom_names = [
       font-family: 'Inter', Arial, sans-serif; font-size: 1.2rem; font-weight: 300;
       color: rgba(255,255,255,0.3); transition: transform 0.2s;
     }
-    details.postura-card[open] .postura-summary::after { transform: rotate(45deg); color: #f2f24a; }
-    .postura-summary:hover::after { color: #fff; }
+    details.postura-card[open] .postura-summary::after { transform: rotate(45deg); color: var(--accent); }
+    .postura-summary:hover::after { color: var(--text); }
     .postura-body { padding: 0 1.5rem 1.5rem 1.5rem; }
 
     /* Back link */
     .back-link {
       display: inline-flex; align-items: center; gap: 6px;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.88rem;
-      color: #9a9aaa; text-decoration: none; transition: color 0.15s;
+      color: var(--text-muted); text-decoration: none; transition: color 0.15s;
       margin-bottom: 1rem;
     }
-    .back-link:hover { color: #fff; }
+    .back-link:hover { color: var(--text); }
 
     /* Fuentes total */
     .fuentes-total {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.85rem;
-      color: #7a7a8a; margin-top: 1rem;
+      color: var(--text-faint); margin-top: 1rem;
     }
 
     /* Footer */
     footer[role="contentinfo"] {
       padding: 3rem 0 2rem 0; margin-top: 4rem;
-      border-top: 1px solid rgba(255,255,255,0.06); background: #050509;
+      border-top: 1px solid var(--border); background: var(--bg-footer);
     }
     .footer-bottom {
       display: flex; justify-content: space-between; align-items: center;
       flex-wrap: wrap; gap: 16px;
     }
-    .footer-bottom p { color: #5a5a6a; font-size: 0.85rem; margin: 0; }
+    .footer-bottom p { color: var(--text-faintest); font-size: 0.85rem; margin: 0; }
     .ai-notice {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 6px 14px; background: rgba(242, 242, 74, 0.08);
       border: 1px solid rgba(242, 242, 74, 0.2); border-radius: 999px;
-      color: #f2f24a; font-family: 'Inter', Arial, sans-serif;
+      color: var(--accent); font-family: 'Inter', Arial, sans-serif;
       font-size: 0.78rem; font-weight: 500;
     }
     .ai-notice::before {
@@ -334,8 +337,8 @@ $axiom_names = [
 
     /* 404 */
     .not-found { text-align: center; padding: 6rem 2rem; }
-    .not-found h1 { color: #fff; }
-    .not-found p { color: #9a9aaa; }
+    .not-found h1 { color: var(--text); }
+    .not-found p { color: var(--text-muted); }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -369,6 +372,7 @@ $axiom_names = [
         <li><a href="<?= $B ?>">Hoy</a></li>
         <li><a href="<?= $B ?>manifiesto.php">El proyecto</a></li>
       </ul>
+      <?= theme_toggle() ?>
     </nav>
   </header>
 
@@ -496,12 +500,13 @@ $axiom_names = [
   </main>
 
   <footer role="contentinfo">
-    <div class="container">
+    <div class="container" style="max-width:1100px">
       <div class="footer-bottom">
-        <p>&copy; 2026 Prisma · Proyecto independiente · CC BY-SA 4.0</p>
+        <p>&copy; <?= date('Y') ?> Prisma · Proyecto independiente · CC BY-SA 4.0</p>
         <span class="ai-notice">Contenido generado y auditado por IA</span>
       </div>
     </div>
   </footer>
+  <?= theme_js() ?>
 </body>
 </html>
