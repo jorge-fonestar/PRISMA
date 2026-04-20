@@ -1,0 +1,124 @@
+{
+  "id": "2026-04-19-001",
+  "fecha_publicacion": "2026-04-19T12:00:00+02:00",
+  "ambito": "españa",
+  "titular_neutral": "Miles de personas marchan en Madrid de Atocha a Sol para exigir al Gobierno regional mayor inversión, reducción de ratios y mejora de condiciones laborales en la educación pública.",
+  "resumen": "El 19 de abril de 2026 se celebró en Madrid una manifestación convocada por la red docente Menos Lectivas junto a CGT y CNT, con el apoyo del Sindicato de Estudiantes, UCM por la Pública y la Plataforma de Escuelas Infantiles (PLEI). El recorrido fue de Atocha a la Puerta del Sol. Los sindicatos mayoritarios CCOO, UGT, CSIF y ANPE no convocaron y han programado sus propias movilizaciones para octubre. La asistencia no fue verificada oficialmente; los medios hablan de 'miles de personas'. La protesta llega tras 12 días de huelga indefinida de educadoras de infantil 0-3, un referéndum consultivo en la UCM contra el Plan de Financiación Universitaria 2026-2031 (14.800 M€) y el relevo en la Consejería de Educación (Viciana → Zarzalejo) en febrero de 2026. El debate de fondo enfrenta el modelo mixto público-concertado de Madrid —que combina el menor gasto por alumno de España con resultados PISA superiores a la media OCDE— con las demandas de una inversión del 7 % del PIB y la reversión de los recortes de 2011.",
+  "mapa_posturas": [
+    {
+      "etiqueta": "Denuncia del desmantelamiento de la educación pública",
+      "defensores": [
+        "Menos Lectivas",
+        "CGT",
+        "CNT",
+        "Sindicato de Estudiantes",
+        "Marea Verde Madrid",
+        "UCM por la Pública",
+        "PLEI",
+        "Podemos",
+        "Más Madrid",
+        "PSOE-M",
+        "Sumar",
+        "IU"
+      ],
+      "argumentos": [
+        "Madrid tiene el menor gasto por alumno de España (~5.400 € vs. media estatal ~6.400 €) con una proporción creciente destinada a conciertos privados.",
+        "Las 20 horas lectivas en Secundaria se implantaron con los recortes de Aguirre-Figar en 2011 y no se han revertido.",
+        "El Plan universitario de 14.800 M€ aporta solo ~1.280 M€ adicionales y mantiene la inversión universitaria en 0,45 % del PIB regional, frente al 1 % que exige la LOSU.",
+        "Exigen inversión del 7 % del PIB en educación, reducción de ratios, retirada de la LESUC y universalización del tramo 0-3."
+      ],
+      "fuentes": [
+        {"titulo": "La marea verde desafía a Ayuso con una gran manifestación para salvar la educación pública", "medio": "Público", "url": "https://www.publico.es/sociedad/educacion/marea-verde-desafia-ayuso-gran-manifestacion-salvar-educacion-publica.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "Miles de personas recorren el centro de Madrid al grito de 'Salvemos la educación pública'", "medio": "elDiario.es", "url": "https://www.eldiario.es/sociedad/miles-personas-recorren-centro-madrid-grito-salvemos-educacion-publica_1_13154879.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "La comunidad educativa se moviliza para defender una enseñanza pública de calidad", "medio": "El Salto", "url": "https://www.elsaltodiario.com/comunidad-madrid/comunidad-educativa-se-moviliza-defender-una-ensenanza-publica-calidad-todos-niveles", "cuadrante": "izquierda"},
+        {"titulo": "Defendamos la educación pública. Manifestación 19 de abril en Madrid", "medio": "Sindicato de Estudiantes", "url": "https://www.sindicatodeestudiantes.net/index.php/noticias/movimiento-estudiantil/defendamos-la-educacion-publica-manifestacion-19-de-abril-en-madrid", "cuadrante": "izquierda"}
+      ]
+    },
+    {
+      "etiqueta": "Defensa del modelo mixto y los resultados educativos",
+      "defensores": [
+        "Gobierno Comunidad de Madrid (Isabel Díaz Ayuso, Mercedes Zarzalejo)",
+        "Partido Popular de Madrid",
+        "Escuelas Católicas",
+        "CECE",
+        "CONCAPA",
+        "COFAPA"
+      ],
+      "argumentos": [
+        "Madrid defiende la libertad de elección de centro y la coexistencia de redes pública, concertada y privada como modelo de éxito.",
+        "Los resultados PISA 2022 (494 puntos en Matemáticas, por encima de la media OCDE y de la UE) avalan el modelo educativo regional.",
+        "La concertada ahorra ~6.000 M€/año al erario porque el coste por alumno es inferior al de la red pública.",
+        "El plan universitario firmado con los seis rectores públicos es 'histórico' e implica un compromiso real de financiación."
+      ],
+      "fuentes": [
+        {"titulo": "Zarzalejo advierte que 'dará la batalla' educativa a Sánchez", "medio": "Magisnet", "url": "https://www.magisnet.com/2026/03/zarzalejo-advierte-que-dara-la-batalla-educativa-a-sanchez-que-solo-perjudica-a-madrid/", "cuadrante": "centro-derecha"},
+        {"titulo": "Los resultados de PISA 2022 por Comunidades Autónomas", "medio": "El Debate", "url": "https://www.eldebate.com/educacion/20240514/resultados-pisa-2022-comunidades-autonomas_196523.html", "cuadrante": "derecha"},
+        {"titulo": "Manifestación en Madrid este domingo en defensa de la educación pública", "medio": "Telemadrid", "url": "https://www.telemadrid.es/noticias/madrid/Manifestacion-en-Madrid-este-domingo-en-defensa-de-la-educacion-publica-0-2881211851--20260419075922.html", "cuadrante": "centro-derecha"}
+      ]
+    },
+    {
+      "etiqueta": "Solución estructural estatal y negociación institucional",
+      "defensores": [
+        "CCOO",
+        "UGT",
+        "CSIF",
+        "ANPE",
+        "Ministerio de Educación (ministra Milagros Tolón, PSOE)"
+      ],
+      "argumentos": [
+        "Las condiciones laborales docentes requieren una solución estructural estatal vía estatuto docente con bajada de ratios y horas lectivas de alcance nacional.",
+        "La negociación institucional en la mesa sectorial es el cauce adecuado; las movilizaciones aisladas sin los sindicatos mayoritarios fragmentan la fuerza del colectivo.",
+        "Los sindicatos mayoritarios preparan sus propias movilizaciones para octubre, con mayor capacidad de convocatoria."
+      ],
+      "fuentes": [
+        {"titulo": "La marea verde redobla la presión contra Ayuso en una semana clave", "medio": "Público", "url": "https://www.publico.es/sociedad/educacion/marea-verde-redobla-presion-ayuso-semana-clave-protestas-gran-marcha.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "Calendario de movilizaciones", "medio": "CCOO Madrid Educación", "url": "https://feccoo-madrid.org/noticia:705533--Calendario_de_movilizaciones", "cuadrante": "centro-izquierda"}
+      ]
+    },
+    {
+      "etiqueta": "Instrumentalización política e ideológica de la escuela",
+      "defensores": [
+        "Sectores del PP",
+        "Vox",
+        "Libertad Digital",
+        "OKDiario",
+        "The Objective",
+        "Parte de la patronal concertada"
+      ],
+      "argumentos": [
+        "La protesta la lideran sindicatos minoritarios ideologizados (CGT, CNT, Sindicato de Estudiantes) con agenda anti-PP explícita ('Fuera Ayuso').",
+        "El 46 % del alumnado madrileño está en concertada o privada por elección familiar, lo que acredita el respaldo social al modelo actual.",
+        "Los sindicatos mayoritarios no convocan, lo que evidencia el carácter minoritario de la protesta y su motivación política más que laboral."
+      ],
+      "fuentes": [
+        {"titulo": "CECE | Presentación de la Plataforma 'Concertados'", "medio": "CECE", "url": "https://www.cece.es/noticias-en/presentacion-de-la-plataforma-concertados-en.html", "cuadrante": "derecha"}
+      ]
+    }
+  ],
+  "ausencias": [
+    "La fractura interna del movimiento sindical —CCOO, UGT, CSIF y ANPE no convocaron— apenas aparece en los titulares, que presentan una 'marea verde' unitaria.",
+    "Los buenos resultados PISA de Madrid correlacionan con el alto nivel socioeconómico medio de la región y con ser la comunidad más segregadora escolarmente de España (solo Turquía la supera en la OCDE), pero ambos datos raramente se analizan juntos.",
+    "Ningún medio cuantifica el coste real de las demandas: reducir ratios, eliminar 2 horas lectivas o alcanzar el 7 % del PIB en educación implicaría miles de millones adicionales.",
+    "La voz de las familias que eligen la concertada (44 % del alumnado madrileño) está ausente del debate, así como el análisis de las cuotas medias de ~1.156 €/año en centros 'gratuitos' como copago encubierto (Esade, 2024).",
+    "El antecedente histórico de los recortes de Aguirre-Figar de 2011 —que implantaron las 20 h lectivas y vincularon con la causa Púnica— rara vez se contextualiza.",
+    "La perspectiva europea comparada está ausente: Francia, Portugal y Reino Unido han vivido conflictos similares y España gasta el 4,4 % del PIB en educación, por debajo de la media OCDE (~5 %)."
+  ],
+  "preguntas": [
+    "Si Madrid combina la menor inversión por alumno de España con resultados PISA superiores a la media OCDE, ¿qué factor pesa más en el desempeño educativo: el gasto público directo, el modelo mixto público-concertado o el nivel socioeconómico de las familias?",
+    "¿Dónde está la frontera entre una reivindicación laboral legítima del profesorado y un pulso político partidista, cuando los convocantes piden explícitamente 'Fuera Ayuso' y el Gobierno regional responde calificándolos de 'activistas'?",
+    "En un sistema con libertad constitucional de elección de centro (art. 27 CE) pero con la comunidad más segregadora escolarmente del entorno desarrollado, ¿cómo se concilia la libertad de las familias con la equidad del sistema, y quién debería decidir ese equilibrio?"
+  ],
+  "auditoria_moralcore": {
+    "veredicto": "APTO",
+    "puntuacion": 0.89,
+    "axiomas_detalle": {
+      "A1": true,
+      "A2": true,
+      "A3": true,
+      "A4": true,
+      "A5": true
+    },
+    "version_estandar": "MC-1.0"
+  },
+  "fuentes_consultadas_total": 14
+}

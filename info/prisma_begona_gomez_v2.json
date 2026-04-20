@@ -1,0 +1,151 @@
+{
+  "id": "2026-04-19-002",
+  "fecha_publicacion": "2026-04-19T18:00:00+02:00",
+  "ambito": "españa",
+  "titular_neutral": "El juez Peinado cierra la instrucción y acuerda continuar el procedimiento ante un Tribunal del Jurado por cuatro delitos; Manos Limpias pide 10 años y 3 meses de prisión mientras la Fiscalía mantiene su petición de archivo.",
+  "resumen": "El 11 de abril de 2026 el juez Juan Carlos Peinado (Juzgado de Instrucción nº 41, Madrid) dictó auto cerrando la instrucción iniciada en abril de 2024 y acordando continuar por los trámites del Tribunal del Jurado. Procesa a Begoña Gómez por tráfico de influencias, corrupción en los negocios, malversación y apropiación indebida, así como a su asesora Cristina Álvarez y al empresario Juan Carlos Barrabés. La causa se articula en torno a la Cátedra UCM, contratos de Red.es (8,4 M€ según la IGAE) y la apropiación de un software valorado en más de 108.000 €. El Ministerio Fiscal ha pedido el archivo en tres ocasiones formales. La Audiencia Provincial ha corregido al juez entre 13 y 18 veces. Manos Limpias presentó el 17 de abril escrito de acusación pidiendo 10 años y 3 meses para Gómez, desmarcándose del bloque Hazte Oír-Vox al pedir el archivo para Álvarez. El caso se encuentra en fase intermedia: no se ha dictado todavía auto de apertura de juicio oral. Peinado se jubila obligatoriamente el 27 de septiembre de 2026.",
+  "mapa_posturas": [
+    {
+      "etiqueta": "Acusación popular: hay delitos graves de corrupción acreditados",
+      "defensores": [
+        "Manos Limpias (Miguel Bernad)",
+        "Hazte Oír (Ignacio Arsuaga)",
+        "Vox",
+        "Iustitia Europa",
+        "Movimiento de Regeneración Política"
+      ],
+      "argumentos": [
+        "Gómez se prevaleció de su posición como esposa del presidente para beneficiar a Barrabés en contratos públicos y construir una cátedra 'a su medida'.",
+        "Manos Limpias pide 10 años y 3 meses (8 años por malversación + 2 años y 3 meses por tráfico de influencias) y —ruptura interna— pide archivar para Álvarez, desmarcándose del bloque Hazte Oír-Vox.",
+        "El informe de la IGAE acreditó trato 'injusto e ilegal' a Barrabés en contratos de Red.es por 8,4 M€."
+      ],
+      "fuentes": [
+        {"titulo": "Manos Limpias pide más de 10 años de cárcel para Begoña Gómez por malversación y tráfico de influencias", "medio": "Libertad Digital", "url": "https://www.libertaddigital.com/espana/2026-04-18/manos-limpias-pide-mas-de-10-anos-de-carcel-para-begona-gomez-por-malversacion-y-trafico-de-influencias-7390495/", "cuadrante": "derecha"},
+        {"titulo": "Manos Limpias se desmarca del resto de acusaciones populares y pide más de 10 años de prisión para Begoña Gómez", "medio": "El Español", "url": "https://www.elespanol.com/espana/tribunales/20260417/manos-limpias-va-libre-resto-acusaciones-populares-pide-anos-prision-begona-gomez/1003744212148_0.html", "cuadrante": "centro-derecha"},
+        {"titulo": "Manos Limpias pide más de 10 años de cárcel para Begoña Gómez por tráfico de influencias y malversación", "medio": "OKDiario", "url": "https://okdiario.com/espana/manos-limpias-pide-mas-10-anos-carcel-begona-gomez-trafico-influencias-malversacion-16629268", "cuadrante": "derecha"}
+      ]
+    },
+    {
+      "etiqueta": "Defensa: instrucción acelerada que vulnera la tutela judicial efectiva",
+      "defensores": [
+        "Begoña Gómez",
+        "Antonio Camacho (abogado defensor, exministro del Interior socialista)"
+      ],
+      "argumentos": [
+        "No hay enriquecimiento personal: saldo de 21.000 € en cuentas propias y patrocinios ingresados en cuentas de la UCM, no en las de Gómez.",
+        "La instrucción es 'anormalmente acelerada' y viola el artículo 24.1 CE al no resolver recursos pendientes antes de continuar hacia el jurado.",
+        "Los dos informes de la UCO concluyeron que los contratos de Innova Next se tramitaron 'con normalidad'."
+      ],
+      "fuentes": [
+        {"titulo": "Begoña Gómez recrimina a Peinado una instrucción 'anormalmente acelerada' que 'vulnera' su derecho de defensa", "medio": "Deia", "url": "https://www.deia.eus/politica/2026/04/17/begona-gomez-recrimina-peinado-instruccion-10953435.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "Begoña Gómez acusa al juez Peinado de vulnerar su derecho de defensa", "medio": "El Progreso", "url": "https://www.elprogreso.es/articulo/espana/begona-gomez-acusa-juez-peinado-vulnerar-derecho-defensa/202604171947221962895.html", "cuadrante": "centro"},
+        {"titulo": "Begoña Gómez a la desesperada: acusa a Peinado de 'saltarse trámites' para sentarla en el banquillo", "medio": "OKDiario", "url": "https://okdiario.com/espana/begona-gomez-desesperada-acusa-peinado-saltarse-tramites-sentarla-banquillo-16625944", "cuadrante": "derecha"}
+      ]
+    },
+    {
+      "etiqueta": "Gobierno y PSOE: lawfare con agenda política contra el Ejecutivo",
+      "defensores": [
+        "Pedro Sánchez",
+        "Félix Bolaños (ministro de Presidencia y Justicia)",
+        "Patxi López",
+        "Elma Saiz",
+        "Sumar",
+        "ERC (con matices)",
+        "Podemos (con matices)"
+      ],
+      "argumentos": [
+        "El auto ha 'avergonzado a muchos ciudadanos y jueces'; la instrucción es 'anormal' y el daño al buen nombre de la justicia 'será irreparable' (Bolaños).",
+        "El Gobierno atribuye la causa a 'la derecha y sus terminales mediáticas' y ha presentado queja ante el CGPJ.",
+        "ERC reprocha al PSOE quejarse del CGPJ tras haberlo pactado con el PP; Podemos señala que el PSOE no ha 'democratizado la justicia'."
+      ],
+      "fuentes": [
+        {"titulo": "El Gobierno estalla contra Peinado tras el auto contra Begoña Gómez: '¿El CGPJ no va a hacer nada?'", "medio": "Público", "url": "https://www.publico.es/politica/gobierno/gobierno-estalla-peinado-auto-begona-gomez-cgpj.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "Sánchez sale al rescate de su mujer: 'El tiempo pondrá a todos en su sitio'", "medio": "Deia", "url": "https://www.deia.eus/politica/2026/04/14/sanchez-sale-rescate-mujer-tiempo-10939512.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "El Gobierno, indignado por la 'salvajada' del procesamiento de Begoña Gómez", "medio": "El Independiente", "url": "https://www.elindependiente.com/espana/2026/04/14/gobierno-indignado-salvajada-procesamiento-begona-gomez-locura-pp-auto/", "cuadrante": "centro"}
+      ]
+    },
+    {
+      "etiqueta": "Oposición (PP/Vox): confirma la corrupción del Gobierno; Sánchez debe dimitir",
+      "defensores": [
+        "Alberto Núñez Feijóo (PP)",
+        "Cuca Gamarra (PP)",
+        "Ester Muñoz (PP)",
+        "Santiago Abascal (Vox)",
+        "Pepa Millán (Vox)"
+      ],
+      "argumentos": [
+        "Es inadmisible sostener 'a un presidente con su mujer cuatro veces imputada y procesada por delitos graves de corrupción' (Feijóo).",
+        "El PP pide la dimisión de Bolaños por 'acoso a la justicia' al combatir la resolución por vía pública en lugar del sistema de recursos.",
+        "Vox, como acusación popular, tacha España de 'república bananera' y pide 'oposición total al Gobierno más corrupto de Europa' (Abascal)."
+      ],
+      "fuentes": [
+        {"titulo": "El PP pide la dimisión de Bolaños por el 'acoso' al juez Peinado tras el procesamiento de Gómez", "medio": "The Objective", "url": "https://theobjective.com/espana/politica/2026-04-13/pp-dimision-bolanos-juez-peinado-begona-gomez/", "cuadrante": "centro-derecha"},
+        {"titulo": "Abascal, tras el procesamiento de Begoña: 'Queda menos para poner fin a la carrera criminal del sátrapa y su entorno'", "medio": "El Debate", "url": "https://www.eldebate.com/espana/20260414/abascal-procesamiento-begona-queda-menos-poner-fin-carrera-criminal-satrapa-entorno_406665.html", "cuadrante": "derecha"}
+      ]
+    },
+    {
+      "etiqueta": "Fiscalía: no hay delito; procede el archivo",
+      "defensores": [
+        "Ministerio Fiscal",
+        "Pilar Rodríguez Fernández (fiscal jefe provincial Madrid)",
+        "Teresa Peramato (fiscal general del Estado desde dic. 2025)"
+      ],
+      "argumentos": [
+        "Tres peticiones formales de archivo desde abril de 2024; en abril de 2026 no modifica el criterio pese a admitir que existe un relato fáctico articulado.",
+        "No se han hallado pagos sospechosos en las cuentas personales de Gómez.",
+        "Previsiblemente pedirá sobreseimiento en conclusiones provisionales, activando el debate doctrinal Botín vs. Atutxa."
+      ],
+      "fuentes": [
+        {"titulo": "El juez Peinado propone llevar a juicio a Begoña Gómez por cuatro delitos", "medio": "elDiario.es", "url": "https://www.eldiario.es/politica/juez-peinado-propone-llevar-juicio-begona-gomez-cuatro-delitos_1_13138198.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "Golpe de efecto del juez Peinado para acercar a Begoña Gómez al banquillo a los dos años de abrir la causa", "medio": "Público", "url": "https://www.publico.es/politica/tribunales/golpe-efecto-juez-peinado-acercar-begona-gomez-banquillo-dos-anos-polemica-instruccion.html", "cuadrante": "centro-izquierda"}
+      ]
+    },
+    {
+      "etiqueta": "Juristas independientes: debate dividido sobre la solidez jurídica",
+      "defensores": [
+        "José Antonio Martín Pallín (magistrado emérito TS)",
+        "Javier Pérez Royo (catedrático Derecho Constitucional)",
+        "Joaquín Urías (ex letrado TC)",
+        "Elisa de la Nuez (Hay Derecho)",
+        "APM, Asociación Judicial Francisco de Vitoria, Foro Judicial Independiente (en sentido contrario)"
+      ],
+      "argumentos": [
+        "Martín Pallín: la causa debió archivarse por el art. 313 LECrim al no ser los hechos constitutivos de delito.",
+        "Pérez Royo: instrucción de un juez con 'formación jurídica limitadísima'; Urías la califica de 'sainete judicial'.",
+        "De la Nuez (Hay Derecho): 'capitalismo clientelar éticamente reprobable' pero 'creo que no hay caso penal'.",
+        "Las cuatro asociaciones judiciales piden 'respeto' a Peinado y reprochan a Bolaños usar la vía pública en lugar del sistema de recursos."
+      ],
+      "fuentes": [
+        {"titulo": "El juez Peinado puede ser 'peculiar', pero su auto tiene base para sentar en el banquillo a Begoña Gómez", "medio": "El Independiente", "url": "https://www.elindependiente.com/opinion/2026/04/13/peinado-peculiar-banquillo-begona-gomez/", "cuadrante": "centro"},
+        {"titulo": "'El juez Peinado tiene una formación jurídica limitadísima'", "medio": "Diario16", "url": "https://diario16plus.com/politica/el-juez-peinado-tiene-una-formacion-juridica-limitadisima_416287_102.html", "cuadrante": "centro-izquierda"},
+        {"titulo": "Las dos asociaciones mayoritarias de jueces piden a Bolaños 'respeto' al juez Peinado", "medio": "Infobae", "url": "https://www.infobae.com/espana/agencias/2026/04/14/las-dos-asociaciones-mayoritarias-de-jueces-piden-a-bolanos-respeto-a-peinado-tras-procesar-a-begona-gomez/", "cuadrante": "centro"}
+      ]
+    }
+  ],
+  "ausencias": [
+    "Manos Limpias se presenta como 'sindicato' sin contextualizar que solo tiene dos miembros públicamente conocidos pese a declarar 5.000 afiliados, no publica sus cuentas, y su secretario general Miguel Bernad proviene del Frente Nacional de Blas Piñar. La absolución del TS en 2024 fue por atipicidad, no por inocencia: los hechos fueron calificados de 'éticamente censurables'.",
+    "El titular 'quiere procesar' borra una distinción procesal clave: el auto del 11 de abril cierra la instrucción y abre la fase de escritos, pero no es el auto de apertura de juicio oral. Entre medias debe resolverse si la acusación popular puede sostener sola el juicio (doctrina Botín vs. Atutxa), lo que determinará si el caso llega efectivamente al banquillo.",
+    "El récord de 13-18 correcciones de la Audiencia Provincial al juez Peinado raramente se cuantifica en los titulares ni se compara con otros instructores, lo que impide al lector calibrar si es un patrón inusual.",
+    "La jubilación obligatoria de Peinado el 27 de septiembre de 2026 y su posible influencia en el ritmo acelerado de la instrucción apenas se menciona como variable relevante.",
+    "La reforma de la LECrim para limitar la acusación popular —remitida al Congreso en octubre de 2025 y actualmente paralizada— es el marco legislativo de fondo del debate pero se cubre como noticia puntual, no como contexto estructural del caso.",
+    "El cambio en la Fiscalía General del Estado (Teresa Peramato sustituye a García Ortiz, condenado por revelación de secretos en noviembre de 2025) rara vez se contextualiza como variable institucional relevante para el desarrollo del caso."
+  ],
+  "preguntas": [
+    "¿Qué estándar probatorio debería exigirse para que un juez instructor mantenga una causa cuando el Ministerio Fiscal ha pedido el archivo en tres ocasiones formales y el superior jerárquico ha corregido la instrucción entre 13 y 18 veces? ¿Dónde está la frontera entre independencia judicial y activismo judicial?",
+    "La acusación popular fue diseñada para garantizar la participación ciudadana en la persecución de delitos públicos. ¿Sigue cumpliendo esa función cuando quienes la ejercen son organizaciones con estructura opaca, financiación no auditada y agenda ideológica declarada? ¿Puede reformarse sin que la reforma beneficie a quien legisla?",
+    "¿Cómo distinguir, en un debate tan polarizado, entre la crítica legítima a resoluciones judiciales concretas —que el propio TC avala— y la deslegitimación sistémica del poder judicial, cuando ambos discursos provienen simultáneamente de actores con intereses procesales directos en la causa?"
+  ],
+  "auditoria_moralcore": {
+    "veredicto": "APTO",
+    "puntuacion": 0.91,
+    "axiomas_detalle": {
+      "A1": true,
+      "A2": true,
+      "A3": true,
+      "A4": true,
+      "A5": true
+    },
+    "version_estandar": "MC-1.0"
+  },
+  "fuentes_consultadas_total": 18
+}

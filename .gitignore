@@ -1,0 +1,14 @@
+# SQLite database
+data/prisma.db
+data/prisma.db-wal
+data/prisma.db-shm
+
+# Secrets & runtime data
+data/api_key.txt
+data/usage.json
+.env
+
+# Pipeline output
+output/
+rechazados/
+logs/
