@@ -57,6 +57,8 @@ asimetria = abs(izq_n - der_n) / total    // [0.0, 1.0]
 
 Respaldada por investigación del MIT Media Lab y Harvard (proyecto Media Cloud): la selección de cobertura es la señal más fiable de sesgo editorial.
 
+**Nota sobre ámbitos Europa/Global**: Estos ámbitos tienen menos cuadrantes configurados (solo centro-izquierda, centro, centro-derecha). La fórmula funciona igual — centro-izquierda cuenta como izq, centro-derecha como der — pero con solo 2-3 fuentes por lado, la señal es más ruidosa. Esto es aceptable: el triage Haiku filtra falsos positivos, y la menor diversidad de fuentes en estos ámbitos refleja una realidad (menos polarización mediática disponible para medir).
+
 ### 1.3 Señal B — Divergencia Léxica (peso 40%)
 
 Mide si cada lado usa vocabulario distinto para describir el mismo hecho.
@@ -70,6 +72,7 @@ divergencia = 1.0 - jaccard_similarity(keywords_izq, keywords_der)    // [0.0, 1
 
 - Reutiliza `extraer_keywords()` y `keywords_similarity()` existentes en `curador.php`
 - Si solo hay artículos de un lado: divergencia = 0 (no hay contra qué comparar)
+- **Limitación cross-language**: Para Europa/Global, las fuentes son en inglés/francés/alemán. `extraer_keywords()` tiene stopwords solo en español. Titulares en distintos idiomas tendrán divergencia léxica alta por diferencia de idioma, no de framing. Esto es aceptable por ahora: (a) la divergencia tiene peso 40%, no 100%; (b) Haiku filtra falsos positivos; (c) una mejora futura podría añadir stopwords multi-idioma a `extraer_keywords()`.
 
 ### 1.4 Señal C — Varianza del Espectro (peso 15%)
 
@@ -87,8 +90,10 @@ Mapa de posiciones:
 
 posiciones = [posición numérica de cada cuadrante que cubre el tema]
 varianza = var(posiciones)    // varianza estadística
-varianza_normalizada = min(varianza / 4.5, 1.0)    // 4.5 = varianza máxima teórica (-3 a +3)
+varianza_normalizada = min(varianza / 9.0, 1.0)    // 9.0 = varianza máxima (solo extremos {-3,+3})
 ```
+
+Nota: La varianza máxima teórica ocurre cuando solo los dos extremos cubren el tema ({-3, +3}), dando var = 9.0. La varianza de todo el espectro completo ({-3..+3}) es 4.0. Se usa 9.0 como denominador para normalizar al peor caso real.
 
 ### 1.5 Implementación
 
@@ -110,16 +115,24 @@ Haiku no puntúa — el score es la fórmula matemática. Haiku **confirma** que
 ```
 20+ temas detectados por RSS
   → Heurísticas calculan H para todos
-  → Todos van a tabla radar
+  → INSERT todos en tabla radar (haiku_frase = NULL)
   → Filtro: H >= umbral_tension (configurable, default 0.60)
   → Los que pasan: 1 batch call a Haiku
-  → Haiku confirma/descarta + genera frase
+  → UPDATE radar: haiku_frase para cada candidato evaluado
+  → Haiku confirma → UPDATE radar: analizado = 1
   → Top articulos_dia (configurable, default 5) → Pipeline Sonnet
+  → Tras publicar: UPDATE radar: articulo_id = id del artículo creado
 ```
+
+**Escritura en dos fases**: Todos los temas se insertan en `radar` con `haiku_frase = NULL` antes de la llamada a Haiku. Tras el triage, se actualizan los registros con la frase y el estado.
+
+**Fallback si Haiku falla** (error de red, respuesta inválida, presupuesto agotado): se salta el triage y se seleccionan los top `articulos_dia` temas por H score bruto. Se loguea el error. Los registros de radar quedan con `haiku_frase = NULL`, y la UI muestra solo el score numérico sin frase explicativa. El pipeline no se detiene.
 
 ### 2.3 Prompt de Haiku
 
 Una sola llamada batch. Input: los N temas candidatos con sus titulares agrupados por cuadrante y el score H. Output: para cada tema, confirmación (sí/no) + frase explicativa de una línea.
+
+El prompt numera los temas secuencialmente (1, 2, 3...) y pide al modelo que use esos mismos números en la respuesta. El caller mapea por índice posicional al `radar.id` correspondiente.
 
 Ejemplo de output esperado:
 ```json
@@ -133,6 +146,8 @@ Ejemplo de output esperado:
 Los temas donde `confirma: false` se marcan en el radar pero no entran al pipeline. Su frase explica por qué.
 
 Los temas donde `confirma: true` también reciben su frase, que se muestra en la web.
+
+**Temas bajo el umbral** (H < umbral_tension) nunca se envían a Haiku. Su `haiku_frase` queda NULL. En la UI se muestra una frase genérica derivada del sub-score dominante: si la asimetría es baja → "Cobertura equilibrada entre cuadrantes"; si la divergencia es baja → "Las fuentes coinciden en vocabulario y enfoque".
 
 ### 2.4 Config
 
@@ -198,6 +213,19 @@ CREATE INDEX IF NOT EXISTS idx_radar_score ON radar(h_score DESC);
 
 - `radar.articulo_id` → `articulos.id` (nullable, solo si fue analizado)
 - Un registro en `radar` con `analizado = 1` siempre tiene `articulo_id` apuntando a un artículo existente
+- No se declara FOREIGN KEY en DDL: el registro radar se crea antes que el artículo (INSERT radar → pipeline Sonnet → INSERT artículo → UPDATE radar.articulo_id). Un FK impediría el INSERT inicial.
+
+### 3.4 Aislamiento por ámbito
+
+El pipeline se ejecuta por ámbito (españa, europa, global) de forma independiente. Cada ejecución genera sus propios clusters y registros de radar. Un mismo tema real (ej. "relaciones UE-España") puede aparecer como dos registros de radar con ámbitos distintos — esto es intencional y correcto, ya que las fuentes y cuadrantes son distintos en cada ámbito.
+
+### 3.5 Retención
+
+Los registros de `radar` se limpian automáticamente tras 90 días (alineado con la vida útil del archivo). Se ejecuta un `DELETE FROM radar WHERE fecha < date('now', '-90 days')` al inicio de cada pipeline diario.
+
+### 3.6 Filtros de cluster para radar
+
+El curador actual exige `count(cluster) >= 2` y `count(cuadrantes) >= min_cuadrantes`. Para la población del radar se **relajan estos filtros**: cualquier cluster con >= 2 artículos entra en radar (sin mínimo de cuadrantes). El filtro de cuadrantes mínimos sigue aplicándose solo para determinar qué temas son candidatos al pipeline Sonnet.
 
 ---
 
@@ -205,13 +233,30 @@ CREATE INDEX IF NOT EXISTS idx_radar_score ON radar(h_score DESC);
 
 ### 4.1 Index (`index.php`)
 
+El index.php pasa a leer de la tabla `radar` en lugar de `articulos`. Muestra `SELECT * FROM radar WHERE fecha = :today ORDER BY h_score DESC`. Si no hay registros para hoy (pipeline aún no ha corrido), muestra el último día con datos disponibles con una nota "Última actualización: [fecha]".
+
+Los artículos analizados se siguen accediendo via `articulo.php?id=X` (tabla `articulos`). El index solo usa `radar` como índice/listado.
+
+La página `archivo.php` sigue leyendo de `articulos` (solo artículos analizados) — no se modifica.
+
 Listado único de todos los temas del día, ordenado por `h_score` descendente. Cada tema muestra:
 
 - **Círculo SVG progresivo** a la izquierda: anillo que se rellena proporcionalmente al % de tensión, coloreado por nivel (rojo >75%, naranja 50-75%, amarillo 25-50%, gris <25%). Número del % dentro del círculo.
 - **Título del tema**: link a `articulo.php?id=X` si analizado, link a `articulo.php?radar=N` si no.
 - **Badge ANALIZADO** (verde) si pasó el pipeline completo.
 - **Frase de Haiku** como subtítulo en gris.
-- **Links a fuentes** coloreados por cuadrante ideológico (tonos cálidos = izquierda, fríos = derecha, amarillo = centro).
+- **Links a fuentes** coloreados por cuadrante ideológico según este mapa:
+
+```
+Mapa de colores por cuadrante:
+  izquierda-populista  → #ff4d6d (rojo)
+  izquierda            → #ff6b81 (rojo claro)
+  centro-izquierda     → #ff9e4d (naranja)
+  centro               → #f2f24a (amarillo)
+  centro-derecha       → #4dc3ff (azul claro)
+  derecha              → #4d9eff (azul)
+  derecha-populista    → #a855f7 (púrpura)
+```
 
 ### 4.2 Artículo (`articulo.php`) — Modo dual
 
@@ -234,6 +279,11 @@ Listado único de todos los temas del día, ordenado por `h_score` descendente. 
 - **Listado de fuentes**: cada una con medio, título del artículo, URL clickeable, y badge de cuadrante
 - **Párrafo de cierre**: "Prisma analiza en profundidad los temas con mayor tensión informativa. Este tema no cruza ese umbral — puedes consultar las fuentes directamente para formarte tu propia opinión."
 
+**SEO para modo radar**:
+- `<title>`: `[titulo_tema] — Radar Prisma`
+- `<meta name="description">`: `Tema detectado el [fecha] con [XX]% de tensión informativa. [N] fuentes de [N] cuadrantes. [haiku_frase o frase genérica].`
+- `<meta name="robots" content="noindex, follow">` — las páginas de radar no se indexan (contenido efímero sin análisis propio), pero los links a fuentes sí se siguen.
+
 ### 4.3 Círculo SVG — Especificación
 
 Generado server-side con PHP inline (sin JS):
@@ -250,7 +300,21 @@ Colores:
   score <  0.25 → rgba(255,255,255,0.3) (gris)
 ```
 
-Número del porcentaje centrado dentro del círculo con `position: absolute`.
+Estructura HTML del wrapper:
+```html
+<div style="position:relative; width:36px; height:36px;">
+  <svg width="36" height="36" viewBox="0 0 36 36">
+    <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+    <circle cx="18" cy="18" r="15" fill="none" stroke="COLOR" stroke-width="3"
+            stroke-dasharray="94.2" stroke-dashoffset="OFFSET"
+            transform="rotate(-90 18 18)" stroke-linecap="round"/>
+  </svg>
+  <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+               font-size:0.65em;font-weight:700;color:COLOR;">XX</span>
+</div>
+```
+
+Se genera con una función PHP helper `render_circulo_tension($score)` en `lib/layout.php`.
 
 ### 4.4 Barras de desglose — Especificación
 
