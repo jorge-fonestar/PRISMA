@@ -7,23 +7,36 @@
  */
 
 /**
- * Lee todos los RSS configurados y devuelve artículos de las últimas 24h.
+ * Lee los RSS del ámbito indicado y devuelve artículos de las últimas 24h.
  *
+ * @param string $ambito "españa"|"europa"|"global" — si vacío, lee todos
  * @return array [ ['titulo'=>..., 'url'=>..., 'fecha'=>..., 'medio'=>..., 'cuadrante'=>..., 'descripcion'=>...], ... ]
  */
-function rss_fetch_all(): array {
+function rss_fetch_all(string $ambito = ''): array {
     $cfg = PRISMA_CONFIG;
-    $fuentes = $cfg['fuentes'];
+    $all_fuentes = $cfg['fuentes'];
     $timeout = $cfg['rss_timeout'] ?? 15;
     $rate_limit = $cfg['rss_rate_limit'] ?? 1;
     $cutoff = time() - 86400; // últimas 24h
+
+    // Seleccionar ámbitos a leer
+    if ($ambito && isset($all_fuentes[$ambito])) {
+        $ambitos = [$ambito => $all_fuentes[$ambito]];
+    } elseif ($ambito) {
+        prisma_log("RSS", "Ámbito '$ambito' no encontrado en config. Leyendo todos.");
+        $ambitos = $all_fuentes;
+    } else {
+        $ambitos = $all_fuentes;
+    }
 
     $articles = [];
     $last_domain = '';
     $last_time = 0;
 
-    foreach ($fuentes as $cuadrante => $medios) {
-        foreach ($medios as [$nombre, $rss_url]) {
+    foreach ($ambitos as $amb => $cuadrantes) {
+        prisma_log("RSS", "═ Ámbito: $amb ═");
+        foreach ($cuadrantes as $cuadrante => $medios) {
+            foreach ($medios as [$nombre, $rss_url]) {
             // Rate limit por dominio
             $domain = parse_url($rss_url, PHP_URL_HOST);
             if ($domain === $last_domain) {
@@ -59,10 +72,13 @@ function rss_fetch_all(): array {
             }
 
             prisma_log("RSS", "  $nombre: $count artículos (24h)");
+            }
         }
     }
 
-    prisma_log("RSS", "Total: " . count($articles) . " artículos de " . count($fuentes) . " cuadrantes");
+    $n_cuadrantes = 0;
+    foreach ($ambitos as $cs) { $n_cuadrantes += count($cs); }
+    prisma_log("RSS", "Total: " . count($articles) . " artículos de $n_cuadrantes cuadrantes");
     return $articles;
 }
 

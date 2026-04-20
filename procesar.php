@@ -67,7 +67,7 @@ try {
         prisma_log("MAIN", "[DRY-RUN] No se publicará.");
 
         $artifact = sintetizar_manual($tema, $article_id, $ambito);
-        $audit = auditar($artifact);
+        $audit = auditar($artifact, $ambito);
 
         $artifact['auditoria_moralcore'] = [
             'veredicto'       => $audit['veredicto'] ?? 'RECHAZO',

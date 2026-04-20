@@ -4,7 +4,7 @@
  * Prisma — Pipeline automático diario (entry point para cron).
  *
  * Lee RSS de todas las fuentes, selecciona los 5 temas más relevantes
- * con cobertura ≥3 cuadrantes, y ejecuta el pipeline completo por cada uno.
+ * con cobertura en múltiples cuadrantes, y ejecuta el pipeline completo por cada uno.
  *
  * Uso:
  *   php pipeline.php
@@ -25,14 +25,15 @@ require_once __DIR__ . '/lib/auditor.php';
 
 // ── Args ─────────────────────────────────────────────────────────────
 
-$opts = getopt('', ['temas:', 'dry-run', 'help']);
+$opts = getopt('', ['temas:', 'ambito:', 'dry-run', 'help']);
 
 if (isset($opts['help'])) {
-    echo "Uso: php pipeline.php [--temas N] [--dry-run]\n";
+    echo "Uso: php pipeline.php [--ambito españa|europa|global] [--temas N] [--dry-run]\n";
     exit(0);
 }
 
 $max_temas = (int)($opts['temas'] ?? PRISMA_CONFIG['articulos_dia']);
+$ambito = $opts['ambito'] ?? 'españa';
 $dry_run = isset($opts['dry-run']);
 
 // ── Log dir ──────────────────────────────────────────────────────────
@@ -44,12 +45,12 @@ if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
 
 prisma_log("MAIN", "═══════════════════════════════════════════════");
 prisma_log("MAIN", "Prisma — Pipeline automático");
-prisma_log("MAIN", "Temas: $max_temas | Dry-run: " . ($dry_run ? 'sí' : 'no'));
+prisma_log("MAIN", "Ámbito: $ambito | Temas: $max_temas | Dry-run: " . ($dry_run ? 'sí' : 'no'));
 prisma_log("MAIN", "═══════════════════════════════════════════════");
 
 // 1. Leer RSS
-prisma_log("MAIN", "Paso 1: Leyendo RSS...");
-$articles = rss_fetch_all();
+prisma_log("MAIN", "Paso 1: Leyendo RSS ($ambito)...");
+$articles = rss_fetch_all($ambito);
 
 if (empty($articles)) {
     prisma_log("MAIN", "No se obtuvieron artículos de ningún RSS. Abortando.");
@@ -61,7 +62,7 @@ prisma_log("MAIN", "Paso 2: Seleccionando temas...");
 $temas = curador_seleccionar($articles, $max_temas);
 
 if (empty($temas)) {
-    prisma_log("MAIN", "No hay temas con ≥3 cuadrantes. Abortando.");
+    prisma_log("MAIN", "No hay temas con suficiente diversidad de cuadrantes. Abortando.");
     exit(1);
 }
 
@@ -89,7 +90,7 @@ foreach ($temas as $i => $tema) {
     }
 
     try {
-        $result = prisma_procesar_tema($contexto, $article_id, 'españa');
+        $result = prisma_procesar_tema($contexto, $article_id, $ambito);
         if ($result) {
             $publicados++;
         } else {

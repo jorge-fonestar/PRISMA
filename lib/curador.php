@@ -13,8 +13,17 @@
  * @param int $max_temas Número de temas a seleccionar
  * @return array [ ['titulo_tema'=>..., 'articulos'=>[...], 'cuadrantes'=>[...], 'score'=>...], ... ]
  */
-function curador_seleccionar(array $articles, int $max_temas = 5): array {
+function curador_seleccionar(array $articles, int $max_temas = 5, int $min_cuadrantes = 0): array {
     if (empty($articles)) return [];
+
+    // Auto-detectar mínimo de cuadrantes si no se especifica:
+    // Cuenta cuántos cuadrantes distintos hay en los artículos disponibles
+    if ($min_cuadrantes <= 0) {
+        $available = count(array_unique(array_column($articles, 'cuadrante')));
+        // España (6 cuadrantes) → exigir 3; Europa/Global (2-3) → exigir 2
+        $min_cuadrantes = $available >= 4 ? 3 : 2;
+        prisma_log("CURADOR", "Cuadrantes disponibles: $available → mínimo exigido: $min_cuadrantes");
+    }
 
     // 1. Extraer palabras clave de cada titular
     $indexed = [];
@@ -55,8 +64,8 @@ function curador_seleccionar(array $articles, int $max_temas = 5): array {
         $arts = array_map(fn($i) => $indexed[$i]['article'], $cluster);
         $cuadrantes = array_unique(array_column($arts, 'cuadrante'));
 
-        // Mínimo 3 cuadrantes distintos
-        if (count($cuadrantes) < 3) continue;
+        // Mínimo de cuadrantes exigido
+        if (count($cuadrantes) < $min_cuadrantes) continue;
 
         // Título representativo: el más corto (suele ser el más factual)
         usort($arts, fn($a, $b) => mb_strlen($a['titulo']) - mb_strlen($b['titulo']));

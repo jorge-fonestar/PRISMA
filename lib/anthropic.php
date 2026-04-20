@@ -9,10 +9,11 @@
 // Precios por millón de tokens (USD) — actualizar si cambian
 // https://docs.anthropic.com/en/docs/about-claude/models
 define('ANTHROPIC_PRICING', [
-    'claude-sonnet-4-6-20250514' => ['input' => 3.00, 'output' => 15.00],
-    'claude-opus-4-6-20250514'   => ['input' => 15.00, 'output' => 75.00],
-    // Fallback genérico
-    'default'                     => ['input' => 3.00, 'output' => 15.00],
+    'claude-sonnet-4-6'          => ['input' => 3.00,  'output' => 15.00],
+    'claude-opus-4-7'            => ['input' => 15.00, 'output' => 75.00],
+    'claude-sonnet-4-20250514'   => ['input' => 3.00,  'output' => 15.00],
+    'claude-opus-4-20250514'     => ['input' => 15.00, 'output' => 75.00],
+    'default'                    => ['input' => 3.00,  'output' => 15.00],
 ]);
 
 /**

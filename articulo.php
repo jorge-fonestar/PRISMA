@@ -37,7 +37,7 @@ $B = prisma_base();
 
 $axiom_names = [
     'A1'  => 'Pluralidad de posturas — ≥3 posturas distintas',
-    'A2'  => 'Pluralidad de fuentes — ≥3 cuadrantes ideológicos',
+    'A2'  => 'Pluralidad de fuentes — múltiples cuadrantes ideológicos',
     'A3'  => 'Simetría de extensión — ninguna postura >50% ni <15%',
     'A4'  => 'Simetría léxica — mismo registro emocional en todas',
     'A5'  => 'Atribución verificable — fuente concreta para cada dato',

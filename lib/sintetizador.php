@@ -67,7 +67,7 @@ Responde ÚNICAMENTE con JSON válido (sin markdown, sin ```), con esta estructu
 IMPORTANTE:
 - Mínimo 3 posturas, idealmente 4-6.
 - Cada postura debe tener al menos 1 fuente con URL del contexto proporcionado.
-- Las fuentes deben cubrir al menos 3 cuadrantes ideológicos distintos.
+- Las fuentes deben cubrir el mayor número posible de cuadrantes ideológicos distintos (≥3 en España, ≥2 en Europa/Global).
 - Las ausencias deben ser genuinas, no relleno.
 - Las preguntas deben ser abiertas, sin respuesta implícita.
 - NO inventes URLs. Usa solo las proporcionadas en el contexto.
@@ -77,9 +77,12 @@ SYSTEM;
 function sintetizador_fuentes_ref(): string {
     $cfg = PRISMA_CONFIG;
     $lines = [];
-    foreach ($cfg['fuentes'] as $cuadrante => $medios) {
-        $nombres = array_column($medios, 0);
-        $lines[] = "- $cuadrante: " . implode(', ', $nombres);
+    foreach ($cfg['fuentes'] as $ambito => $cuadrantes) {
+        $lines[] = "\n## $ambito";
+        foreach ($cuadrantes as $cuadrante => $medios) {
+            $nombres = array_column($medios, 0);
+            $lines[] = "- $cuadrante: " . implode(', ', $nombres);
+        }
     }
     return implode("\n", $lines);
 }

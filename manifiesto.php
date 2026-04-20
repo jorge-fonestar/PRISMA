@@ -963,7 +963,7 @@ $B = prisma_base();
           </article>
           <article class="step">
             <h3>Selección neutral</h3>
-            <p>Se seleccionan los temas que aparecen en al menos tres cuadrantes
+            <p>Se seleccionan los temas que aparecen en múltiples cuadrantes
             ideológicos distintos. No los más virales. Los más transversales.</p>
           </article>
           <article class="step">
@@ -997,7 +997,7 @@ $B = prisma_base();
           <details>
             <summary>¿Cómo garantizáis que no tenéis sesgo propio?</summary>
             <p>Cada publicación se audita contra 11 criterios verificables: pluralidad
-            de posturas (mínimo 3), pluralidad de fuentes (mínimo 3 cuadrantes
+            de posturas (mínimo 3), pluralidad de fuentes (múltiples cuadrantes
             ideológicos), simetría de extensión, simetría léxica, atribución
             verificable, separación hecho/opinión, ausencia de conclusión prescriptiva,
             transparencia de límites y más. Si un tema no supera el umbral, no se
@@ -1016,7 +1016,7 @@ $B = prisma_base();
             <summary>¿Cómo elegís qué noticias cubrir?</summary>
             <p>No las elegimos en el sentido tradicional. Nuestro sistema detecta
             los temas que están siendo cubiertos simultáneamente por medios de
-            al menos tres cuadrantes ideológicos distintos. Son los temas sobre
+            múltiples cuadrantes ideológicos distintos. Son los temas sobre
             los que realmente hay debate público, no los que se viralizan en
             una sola burbuja.</p>
           </details>

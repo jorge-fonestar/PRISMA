@@ -5,10 +5,13 @@ $db = prisma_db();
 $rows = $db->query('SELECT id, fecha_publicacion, ambito, titular_neutral, resumen, payload, veredicto FROM articulos ORDER BY fecha_publicacion DESC LIMIT 50')->fetchAll();
 
 $articles = [];
+$ambitos_count = [];
 foreach ($rows as $row) {
     $art = json_decode($row['payload'], true);
     $art['_id'] = $row['id'];
     $articles[] = $art;
+    $a = $art['ambito'] ?? '';
+    $ambitos_count[$a] = ($ambitos_count[$a] ?? 0) + 1;
 }
 
 function format_fecha($iso) {
@@ -149,6 +152,29 @@ $B = prisma_base();
       color: #fff; font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: 0.2em;
     }
     .section-header p { color: #7a7a8a; font-size: 0.95rem; margin: 0; }
+
+    /* Filter tabs */
+    .filters {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .filter-btn {
+      padding: 6px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px;
+      background: transparent; color: #9a9aaa; font-family: 'Inter', Arial, sans-serif;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+    .filter-btn.active {
+      background: rgba(242, 242, 74, 0.12); border-color: rgba(242, 242, 74, 0.3);
+      color: #f2f24a;
+    }
+    .filter-btn .count {
+      display: inline-block; margin-left: 4px; padding: 1px 6px;
+      border-radius: 99px; background: rgba(255,255,255,0.06);
+      font-size: 0.68rem; font-weight: 700; color: #7a7a8a;
+    }
+    .filter-btn.active .count { background: rgba(242, 242, 74, 0.15); color: #f2f24a; }
+    .article-card.hidden { display: none; }
 
     /* Article cards */
     .articles-list { display: flex; flex-direction: column; gap: 24px; padding-bottom: 5rem; }
@@ -304,6 +330,15 @@ $B = prisma_base();
         <h2>Hoy en Prisma</h2>
       </div>
 
+      <?php if (!empty($articles) && count($ambitos_count) > 1): ?>
+        <div class="filters">
+          <button class="filter-btn active" data-filter="all">Todos <span class="count"><?= count($articles) ?></span></button>
+          <?php foreach ($ambitos_count as $amb => $cnt): ?>
+            <button class="filter-btn" data-filter="<?= htmlspecialchars($amb) ?>"><?= htmlspecialchars(ambito_label($amb)) ?> <span class="count"><?= $cnt ?></span></button>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
       <?php if (empty($articles)): ?>
         <div class="empty-state">
           <h2>No hay noticias disponibles</h2>
@@ -312,7 +347,7 @@ $B = prisma_base();
       <?php else: ?>
         <div class="articles-list">
           <?php foreach ($articles as $art): ?>
-            <a href="<?= $B ?>articulo.php?id=<?= urlencode($art['_id']) ?>" class="article-card">
+            <a href="<?= $B ?>articulo.php?id=<?= urlencode($art['_id']) ?>" class="article-card" data-ambito="<?= htmlspecialchars($art['ambito'] ?? '') ?>">
               <div class="article-meta">
                 <span class="article-date"><?= format_fecha($art['fecha_publicacion']) ?></span>
                 <span class="badge-ambito"><?= htmlspecialchars(ambito_label($art['ambito'])) ?></span>
@@ -344,5 +379,17 @@ $B = prisma_base();
       </div>
     </div>
   </footer>
+  <script>
+  document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var filter = this.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      document.querySelectorAll('.article-card').forEach(function(card) {
+        card.classList.toggle('hidden', filter !== 'all' && card.dataset.ambito !== filter);
+      });
+    });
+  });
+  </script>
 </body>
 </html>

@@ -6,6 +6,7 @@ data/prisma.db-shm
 # Secrets & runtime data
 data/api_key.txt
 data/usage.json
+data/panel_bans.json
 .env
 
 # Pipeline output

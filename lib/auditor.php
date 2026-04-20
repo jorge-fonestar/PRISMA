@@ -15,7 +15,7 @@ Eres completamente independiente del Sintetizador. Tu único compromiso es con l
 ## Los 11 axiomas
 
 A1 — Pluralidad de posturas: ¿El artefacto identifica ≥3 posturas distintas de forma explícita?
-A2 — Pluralidad de fuentes: ¿Se citan fuentes de al menos 3 cuadrantes ideológicos distintos?
+A2 — Pluralidad de fuentes: ¿Se citan fuentes de múltiples cuadrantes ideológicos distintos (≥3 en España, ≥2 en Europa/Global)?
 A3 — Simetría de extensión: ¿Ninguna postura ocupa >50% del espacio total ni <15%?
 A4 — Simetría léxica: ¿El lenguaje usado para cada postura es equivalente en carga emocional?
 A5 — Atribución verificable: ¿Toda afirmación fáctica disputada tiene fuente concreta enlazada?
@@ -60,14 +60,33 @@ SYSTEM);
  * Audita un artefacto contra los 11 axiomas Moral Core.
  *
  * @param array $artifact Artefacto JSON generado por el Sintetizador
+ * @param string $ambito Ámbito para contextualizar la evaluación
  * @return array Resultado de la auditoría
  */
-function auditar(array $artifact): array {
+function auditar(array $artifact, string $ambito = ''): array {
     $cfg = PRISMA_CONFIG;
 
     prisma_log("AUDIT", "Llamando al Auditor ({$cfg['model_audit']})...");
 
-    $user_msg = "Evalúa el siguiente artefacto Prisma:\n\n" . json_encode($artifact, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    // Contexto sobre limitaciones de fuentes según ámbito
+    $context = '';
+    if ($ambito && $ambito !== 'españa') {
+        $cuadrantes = array_keys($cfg['fuentes'][$ambito] ?? []);
+        $medios = [];
+        foreach ($cfg['fuentes'][$ambito] ?? [] as $ms) {
+            foreach ($ms as $m) $medios[] = $m[0];
+        }
+        $context = "\n\nCONTEXTO IMPORTANTE: Este artefacto es del ámbito '$ambito'. "
+            . "Las fuentes RSS disponibles para este ámbito son limitadas: "
+            . implode(', ', $medios) . " (cuadrantes: " . implode(', ', $cuadrantes) . "). "
+            . "Evalúa A2 y A11 en proporción a las fuentes disponibles, no exijas cuadrantes "
+            . "que no existen en la matriz. El criterio es: ¿se ha aprovechado la diversidad "
+            . "disponible al máximo?";
+    }
+
+    $user_msg = "Evalúa el siguiente artefacto Prisma:\n\n"
+        . json_encode($artifact, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+        . $context;
 
     $raw = anthropic_call($cfg['model_audit'], AUDITOR_SYSTEM, $user_msg, 4096);
     $audit = parse_json_response($raw);

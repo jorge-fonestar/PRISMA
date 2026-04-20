@@ -90,7 +90,7 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
         }
 
         // ── Auditar ──
-        $audit = auditar($artifact);
+        $audit = auditar($artifact, $ambito);
         $veredicto = $audit['veredicto'] ?? 'RECHAZO';
 
         // Inyectar auditoría en el artefacto
@@ -110,9 +110,11 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
 
         if ($veredicto === 'REVISIÓN') {
             if ($attempt > $max_retries) {
-                prisma_log("PIPE", "REVISIÓN tras $attempt intentos — descartando.");
-                prisma_guardar_rechazado($artifact, $audit);
-                return null;
+                // Tras agotar reintentos, publicar marcado como REVISIÓN
+                // Mejor publicar contenido imperfecto pero útil que descartarlo
+                prisma_log("PIPE", "REVISIÓN tras $attempt intentos — publicando con marca de revisión.");
+                prisma_publicar($artifact);
+                return $artifact;
             }
             $feedback = auditor_build_feedback($audit);
             prisma_log("PIPE", "REVISIÓN — reintentando con feedback...");
