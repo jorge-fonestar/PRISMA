@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 /**
  * Prisma — Pipeline automático diario (entry point para cron).
@@ -32,7 +31,7 @@ if (isset($opts['help'])) {
     exit(0);
 }
 
-$max_temas = (int)($opts['temas'] ?? PRISMA_CONFIG['articulos_dia']);
+$max_temas = (int)($opts['temas'] ?? prisma_cfg()['articulos_dia']);
 $ambito = $opts['ambito'] ?? 'españa';
 $dry_run = isset($opts['dry-run']);
 

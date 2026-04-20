@@ -13,7 +13,7 @@
  * @return array [ ['titulo'=>..., 'url'=>..., 'fecha'=>..., 'medio'=>..., 'cuadrante'=>..., 'descripcion'=>...], ... ]
  */
 function rss_fetch_all(string $ambito = ''): array {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $all_fuentes = $cfg['fuentes'];
     $timeout = $cfg['rss_timeout'] ?? 15;
     $rate_limit = $cfg['rss_rate_limit'] ?? 1;

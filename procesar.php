@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 /**
  * Prisma — Procesador manual de un tema individual.
@@ -62,7 +61,7 @@ if (!$tema && isset($argv)) {
 if (!$ambito) $ambito = 'españa';
 
 if (!$tema) {
-    fprintf(STDERR, "Error: no se proporcionó tema.\n");
+    echo "Error: no se proporcionó tema.\n";
     exit(1);
 }
 
@@ -75,7 +74,7 @@ prisma_log("MAIN", "Ámbito: $ambito");
 $article_id = prisma_gen_id((int)date('His'));
 
 try {
-    $result = prisma_procesar_tema($tema, $article_id, $ambito, manual: true);
+    $result = prisma_procesar_tema($tema, $article_id, $ambito, true);
 
     if ($result) {
         prisma_log("MAIN", "═══ PUBLICADO ═══");

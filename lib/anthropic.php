@@ -30,7 +30,7 @@ function anthropic_daily_spend(): float {
  * Lanza excepción si se supera.
  */
 function anthropic_check_budget(): void {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $budget = $cfg['daily_budget_usd'] ?? 999;
     $spent = anthropic_daily_spend();
 
@@ -46,7 +46,7 @@ function anthropic_check_budget(): void {
  * Llama a la API de Anthropic y registra el coste.
  */
 function anthropic_call(string $model, string $system, string $user_msg, int $max_tokens = 8192): string {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $api_key = $cfg['anthropic_api_key'];
 
     if (!$api_key) {

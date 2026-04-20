@@ -10,8 +10,6 @@ page_header('Aviso legal');
 <div class="content">
   <h2>Identificación</h2>
   <p>Prisma es un proyecto personal e independiente sin ánimo de lucro, publicado bajo el nombre colectivo "Equipo Prisma". No constituye actividad económica ni sociedad mercantil. Se desarrolla al amparo del derecho a la libertad de expresión e información (art. 20 CE) como ejercicio de ciudadanía digital.</p>
-  <p>Contacto: <strong>contacto@prisma.example</strong></p>
-
   <h2>Naturaleza del contenido</h2>
   <p>Todo el contenido es generado por agentes de inteligencia artificial y auditado automáticamente contra el estándar Moral Core. No constituye asesoramiento profesional de ningún tipo. Para más información, consulta el <a href="<?= prisma_base() ?>ia.php">aviso de IA</a>.</p>
 

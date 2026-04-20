@@ -64,7 +64,7 @@ SYSTEM);
  * @return array Resultado de la auditoría
  */
 function auditar(array $artifact, string $ambito = ''): array {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
 
     prisma_log("AUDIT", "Llamando al Auditor ({$cfg['model_audit']})...");
 

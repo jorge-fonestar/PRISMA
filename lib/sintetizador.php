@@ -75,7 +75,7 @@ SYSTEM;
 }
 
 function sintetizador_fuentes_ref(): string {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $lines = [];
     foreach ($cfg['fuentes'] as $ambito => $cuadrantes) {
         $lines[] = "\n## $ambito";
@@ -97,7 +97,7 @@ function sintetizador_fuentes_ref(): string {
  * @return array Artefacto JSON parseado
  */
 function sintetizar(string $contexto, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $tz = new DateTimeZone($cfg['timezone']);
     $now = new DateTime('now', $tz);
     $fecha_iso = $now->format('Y-m-d\TH:i:sP');
@@ -125,7 +125,7 @@ function sintetizar(string $contexto, string $article_id, string $ambito = 'espa
  * Sintetiza un tema manualmente (sin contexto RSS, el modelo investiga).
  */
 function sintetizar_manual(string $tema, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $tz = new DateTimeZone($cfg['timezone']);
     $now = new DateTime('now', $tz);
     $fecha_iso = $now->format('Y-m-d\TH:i:sP');
@@ -134,16 +134,16 @@ function sintetizar_manual(string $tema, string $article_id, string $ambito = 'e
     $system = sintetizador_system($article_id, $fecha_iso, $ambito);
     $system = str_replace(
         'Usa solo las proporcionadas en el contexto.',
-        'Proporciona URLs reales verificables de medios conocidos.',
+        'Usa URLs reales de medios conocidos. Si no conoces la URL exacta de un artículo, usa la URL de la portada o sección del medio (ej: https://elpais.com/espana/).',
         $system
     );
     $system = str_replace(
         'NO inventes URLs. Usa solo las proporcionadas en el contexto.',
-        'Proporciona URLs reales verificables de medios conocidos. Si no puedes verificar una URL exacta, usa la URL de portada del medio.',
+        'Usa URLs de medios reales. Nunca respondas con texto explicativo. Tu respuesta DEBE ser SOLO el JSON, nada más.',
         $system
     );
 
-    $user_msg = "Tema a sintetizar:\n\n$tema";
+    $user_msg = "Tema a sintetizar:\n\n$tema\n\nIMPORTANTE: Responde EXCLUSIVAMENTE con el JSON. Sin explicaciones, sin comentarios previos, sin texto adicional. Solo el JSON.";
     if ($feedback) {
         $user_msg .= "\n\n--- FEEDBACK DEL AUDITOR (corrige estos problemas) ---\n$feedback";
     }

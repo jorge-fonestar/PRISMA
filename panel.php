@@ -10,7 +10,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 
 $B = prisma_base();
-$cfg = PRISMA_CONFIG;
+$cfg = prisma_cfg();
 
 // ── Fail2ban básico ──────────────────────────────────────────────────
 
@@ -67,13 +67,15 @@ if ($authed && isset($_POST['action'])) {
     $action = $_POST['action'];
 
     $safe_ambito = escapeshellarg($_POST['ambito'] ?? 'españa');
+    $php = PHP_BINARY ?: 'php';
+    $cd = 'cd ' . escapeshellarg(__DIR__);
 
     if ($action === 'dry-run') {
-        passthru('cd ' . escapeshellarg(__DIR__) . " && php pipeline.php --ambito $safe_ambito --dry-run 2>&1", $rc);
+        passthru("$cd && $php pipeline.php --ambito $safe_ambito --dry-run 2>&1", $rc);
         $action_result = $rc === 0 ? 'ok' : 'error';
     } elseif ($action === 'pipeline') {
         $n = max(1, min(5, (int)($_POST['temas'] ?? 5)));
-        passthru('cd ' . escapeshellarg(__DIR__) . " && php pipeline.php --ambito $safe_ambito --temas $n 2>&1", $rc);
+        passthru("$cd && $php pipeline.php --ambito $safe_ambito --temas $n 2>&1", $rc);
         $action_result = $rc === 0 ? 'ok' : 'error';
     } elseif ($action === 'manual') {
         $tema = trim($_POST['tema'] ?? '');
@@ -81,11 +83,18 @@ if ($authed && isset($_POST['action'])) {
         if ($tema) {
             // Write a temp job file — avoids all shell escaping problems
             $job = ['tema' => $tema, 'ambito' => $ambito];
-            $job_path = __DIR__ . '/data/manual_job.json';
+            $job_dir = __DIR__ . '/data';
+            if (!is_dir($job_dir)) mkdir($job_dir, 0755, true);
+            $job_path = "$job_dir/manual_job.json";
             file_put_contents($job_path, json_encode($job, JSON_UNESCAPED_UNICODE));
-            passthru("cd " . escapeshellarg(__DIR__) . " && php procesar.php 2>&1", $rc);
+            echo "Tema: $tema\nÁmbito: $ambito\n\n";
+            $php = PHP_BINARY ?: 'php';
+            passthru("cd " . escapeshellarg(__DIR__) . " && $php procesar.php 2>&1", $rc);
             @unlink($job_path);
             $action_result = $rc === 0 ? 'ok' : 'error';
+        } else {
+            echo "Error: no se proporcionó tema.\n";
+            $action_result = 'error';
         }
     } elseif ($action === 'update-credit') {
         $new_credit = (float)($_POST['credit'] ?? 0);

@@ -6,16 +6,24 @@
 /**
  * Log con timestamp y categoría.
  */
-function prisma_log(string $cat, string $msg): void {
+function prisma_log($cat, $msg) {
     $ts = date('H:i:s');
-    fprintf(STDERR, "[%s] [%s] %s\n", $ts, $cat, $msg);
+    $line = "[$ts] [$cat] $msg\n";
+    // STDERR solo existe en CLI real; en CGI/web usamos stdout
+    if (defined('STDERR') && is_resource(STDERR)) {
+        fwrite(STDERR, $line);
+    } else {
+        echo $line;
+        if (ob_get_level()) ob_flush();
+        flush();
+    }
 }
 
 /**
  * Genera un ID de artículo: YYYY-MM-DD-NNN
  */
 function prisma_gen_id(int $seq = 1): string {
-    $cfg = PRISMA_CONFIG;
+    $cfg = prisma_cfg();
     $tz = new DateTimeZone($cfg['timezone']);
     $today = (new DateTime('now', $tz))->format('Y-m-d');
     return sprintf('%s-%03d', $today, $seq);

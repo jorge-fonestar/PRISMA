@@ -28,9 +28,6 @@ page_header('Política de privacidad');
   <h2>Base legal</h2>
   <p>Al no recoger datos personales, no aplica la necesidad de consentimiento bajo el RGPD (Reglamento UE 2016/679). Si en el futuro se añadiera cualquier tratamiento de datos, se actualizaría esta política y se solicitaría consentimiento previo.</p>
 
-  <h2>Contacto</h2>
-  <p>Cualquier consulta sobre privacidad: <strong>contacto@prisma.example</strong></p>
-
   <p style="color:var(--text-faintest);font-size:0.85rem;margin-top:2rem">Última actualización: <?= date('j \d\e F \d\e Y') ?></p>
 </div>
 

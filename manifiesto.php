@@ -1099,8 +1099,8 @@ $B = prisma_base();
           <ul>
             <li><a href="<?= $B ?>">Hoy</a></li>
             <li><a href="<?= $B ?>manifiesto.php">El proyecto</a></li>
-            <li><a href="<?= $B ?>archivo">Archivo</a></li>
-            <li><a href="<?= $B ?>ia">Aviso de IA</a></li>
+            <li><a href="<?= $B ?>archivo.php">Archivo</a></li>
+            <li><a href="<?= $B ?>ia.php">Aviso de IA</a></li>
           </ul>
         </div>
         <div>
@@ -1114,9 +1114,9 @@ $B = prisma_base();
         <div>
           <h4>Legal</h4>
           <ul>
-            <li><a href="<?= $B ?>aviso-legal">Aviso legal</a></li>
-            <li><a href="<?= $B ?>privacidad">Privacidad</a></li>
-            <li><a href="<?= $B ?>cookies">Cookies</a></li>
+            <li><a href="<?= $B ?>aviso-legal.php">Aviso legal</a></li>
+            <li><a href="<?= $B ?>privacidad.php">Privacidad</a></li>
+            <li><a href="<?= $B ?>cookies.php">Cookies</a></li>
           </ul>
         </div>
       </div>
