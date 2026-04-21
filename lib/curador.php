@@ -6,14 +6,29 @@
  * los N temas más relevantes que cumplan el criterio de diversidad.
  */
 
+// Ideological spectrum positions for tension calculation
+define('PRISMA_CUADRANTE_POS', [
+    'izquierda-populista' => -3,
+    'izquierda'           => -2,
+    'centro-izquierda'    => -1,
+    'centro'              =>  0,
+    'centro-derecha'      =>  1,
+    'derecha'             =>  2,
+    'derecha-populista'   =>  3,
+]);
+
+define('PRISMA_GRUPO_IZQ', ['izquierda-populista', 'izquierda', 'centro-izquierda']);
+define('PRISMA_GRUPO_DER', ['centro-derecha', 'derecha', 'derecha-populista']);
+define('PRISMA_GRUPO_CENTRO', ['centro']);
+
 /**
  * Selecciona los temas del día a partir de artículos RSS.
+ * Returns ALL scored topics (no slicing); pipeline handles filtering.
  *
  * @param array $articles Artículos de rss_fetch_all()
- * @param int $max_temas Número de temas a seleccionar
- * @return array [ ['titulo_tema'=>..., 'articulos'=>[...], 'cuadrantes'=>[...], 'score'=>...], ... ]
+ * @return array [ ['titulo_tema'=>..., 'articulos'=>[...], 'h_score'=>...], ... ]
  */
-function curador_seleccionar(array $articles, int $max_temas = 5, int $min_cuadrantes = 0): array {
+function curador_seleccionar(array $articles): array {
     if (empty($articles)) return [];
 
     // Auto-detectar mínimo de cuadrantes si no se especifica:
@@ -58,46 +73,120 @@ function curador_seleccionar(array $articles, int $max_temas = 5, int $min_cuadr
         }
     }
 
-    // 3. Puntuar cada cluster: diversidad de cuadrantes × frecuencia
+    // 3. Score each cluster with tension formula — no min_cuadrantes filter (all go to radar)
     $scored = [];
     foreach ($clusters as $cluster) {
         $arts = array_map(fn($i) => $indexed[$i]['article'], $cluster);
         $cuadrantes = array_unique(array_column($arts, 'cuadrante'));
 
-        // Mínimo de cuadrantes exigido
-        if (count($cuadrantes) < $min_cuadrantes) continue;
-
         // Título representativo: el más corto (suele ser el más factual)
         usort($arts, fn($a, $b) => mb_strlen($a['titulo']) - mb_strlen($b['titulo']));
         $titulo_tema = $arts[0]['titulo'];
 
-        $score = count($cluster) * count($cuadrantes);
+        $tension = calcular_tension($arts);
 
         $scored[] = [
-            'titulo_tema' => $titulo_tema,
-            'articulos'   => $arts,
-            'cuadrantes'  => array_values($cuadrantes),
-            'score'       => $score,
-            'n_articulos' => count($cluster),
-            'n_cuadrantes'=> count($cuadrantes),
+            'titulo_tema'   => $titulo_tema,
+            'articulos'     => $arts,
+            'cuadrantes'    => array_values($cuadrantes),
+            'n_articulos'   => count($cluster),
+            'n_cuadrantes'  => count($cuadrantes),
+            'score'         => $tension['h_score'],
+            'h_score'       => $tension['h_score'],
+            'h_asimetria'   => $tension['h_asimetria'],
+            'h_divergencia' => $tension['h_divergencia'],
+            'h_varianza'    => $tension['h_varianza'],
         ];
     }
 
-    // 4. Ordenar por score descendente y tomar los N mejores
-    usort($scored, fn($a, $b) => $b['score'] - $a['score']);
-    $selected = array_slice($scored, 0, $max_temas);
+    // 4. Sort by tension score descending
+    usort($scored, fn($a, $b) => $b['h_score'] <=> $a['h_score']);
 
-    foreach ($selected as $tema) {
+    foreach ($scored as $tema) {
         prisma_log("CURADOR", sprintf(
-            "Tema: \"%s\" — %d artículos, %d cuadrantes (score: %d)",
-            mb_substr($tema['titulo_tema'], 0, 80),
+            "Tema: \"%s\" — %d arts, %d cuad, H=%.0f%% (A=%.0f%% D=%.0f%% V=%.0f%%)",
+            mb_substr($tema['titulo_tema'], 0, 60),
             $tema['n_articulos'],
             $tema['n_cuadrantes'],
-            $tema['score']
+            $tema['h_score'] * 100,
+            $tema['h_asimetria'] * 100,
+            $tema['h_divergencia'] * 100,
+            $tema['h_varianza'] * 100
         ));
     }
 
-    return $selected;
+    return $scored;
+}
+
+/**
+ * Calcula el índice de tensión informativa de un cluster.
+ *
+ * @param array $articles Artículos del cluster (cada uno con 'cuadrante')
+ * @return array ['h_score'=>float, 'h_asimetria'=>float, 'h_divergencia'=>float, 'h_varianza'=>float]
+ */
+function calcular_tension(array $articles): array {
+    // --- Signal A: Coverage Asymmetry (45%) ---
+    $izq_n = 0;
+    $der_n = 0;
+    $centro_n = 0;
+    foreach ($articles as $art) {
+        $c = $art['cuadrante'];
+        if (in_array($c, PRISMA_GRUPO_IZQ)) $izq_n++;
+        elseif (in_array($c, PRISMA_GRUPO_DER)) $der_n++;
+        else $centro_n++;
+    }
+    $total = $izq_n + $der_n + $centro_n;
+    $asimetria = ($total > 0) ? abs($izq_n - $der_n) / $total : 0.0;
+
+    // --- Signal B: Lexical Divergence (40%) ---
+    $kw_izq = [];
+    $kw_der = [];
+    foreach ($articles as $art) {
+        $kw = extraer_keywords($art['titulo']);
+        $c = $art['cuadrante'];
+        if (in_array($c, PRISMA_GRUPO_IZQ)) {
+            $kw_izq = array_merge($kw_izq, array_keys($kw));
+        } elseif (in_array($c, PRISMA_GRUPO_DER)) {
+            $kw_der = array_merge($kw_der, array_keys($kw));
+        }
+    }
+    $kw_izq = array_flip(array_unique($kw_izq));
+    $kw_der = array_flip(array_unique($kw_der));
+
+    if (empty($kw_izq) || empty($kw_der)) {
+        $divergencia = 0.0;
+    } else {
+        $divergencia = 1.0 - keywords_similarity($kw_izq, $kw_der);
+    }
+
+    // --- Signal C: Spectrum Variance (15%) ---
+    $cuadrantes = array_unique(array_column($articles, 'cuadrante'));
+    $posiciones = [];
+    foreach ($cuadrantes as $c) {
+        if (isset(PRISMA_CUADRANTE_POS[$c])) {
+            $posiciones[] = PRISMA_CUADRANTE_POS[$c];
+        }
+    }
+    $varianza_norm = 0.0;
+    if (count($posiciones) >= 2) {
+        $mean = array_sum($posiciones) / count($posiciones);
+        $sq_diff = 0.0;
+        foreach ($posiciones as $p) {
+            $sq_diff += ($p - $mean) * ($p - $mean);
+        }
+        $variance = $sq_diff / count($posiciones);
+        $varianza_norm = min($variance / 9.0, 1.0);
+    }
+
+    // --- Composite Score ---
+    $h = 0.45 * $asimetria + 0.40 * $divergencia + 0.15 * $varianza_norm;
+
+    return [
+        'h_score'       => round($h, 4),
+        'h_asimetria'   => round($asimetria, 4),
+        'h_divergencia' => round($divergencia, 4),
+        'h_varianza'    => round($varianza_norm, 4),
+    ];
 }
 
 /**
