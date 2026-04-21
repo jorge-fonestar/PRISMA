@@ -149,7 +149,8 @@ lib/
 
 | Página | Contenido |
 |--------|-----------|
-| manifiesto.php | Qué es Prisma, por qué, cómo funciona (2 fases) |
+| presentacion.php | Qué es Prisma, por qué, cómo funciona (2 fases) |
+| manifiesto.php | Manifiesto completo (renderiza info/manifiesto-prisma.md) |
 | ia.php | Aviso de IA: proceso, limitaciones, modelos |
 | axiomas.php | Los 11 axiomas Moral Core |
 | fuentes.php | Matriz de medios + explicación algoritmo tensión |

@@ -10,8 +10,7 @@
  *   php escanear.php                       # Todos los ámbitos
  *   php escanear.php --ambito españa       # Solo un ámbito
  *
- * Cron (cada 4h, por ejemplo):
- *   0 */4 * * * cd /ruta/a/prisma && php escanear.php >> logs/escaneo.log 2>&1
+ * Cron (cada 4h): 0 0,4,8,12,16,20 * * * cd /ruta/a/prisma && php escanear.php >> logs/escaneo.log 2>&1
  */
 
 require_once __DIR__ . '/config.php';

@@ -17,6 +17,7 @@
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lib/anthropic.php';
 require_once __DIR__ . '/lib/common.php';
 require_once __DIR__ . '/lib/curador.php';

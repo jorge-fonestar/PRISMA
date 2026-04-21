@@ -133,7 +133,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       display: flex; align-items: center; justify-content: space-between;
     }
     .logo {
-      display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none;
+      display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
       font-family: 'Canela', 'Playfair Display', Georgia, serif;
       font-size: 1.35rem; font-weight: 500; letter-spacing: -0.01em;
     }
@@ -142,11 +142,11 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       display: flex; gap: 28px; list-style: none; margin: 0; padding: 0;
     }
     header .nav-links a {
-      color: #c8c8d0; text-decoration: none;
+      color: var(--text-muted); text-decoration: none;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.92rem; transition: color 0.15s;
     }
-    header .nav-links a:hover { color: #fff; }
-    header .nav-links a.active { color: #f2f24a; }
+    header .nav-links a:hover { color: var(--text); }
+    header .nav-links a.active { color: var(--accent); }
     @media (max-width: 640px) { header .nav-links { display: none; } }
 
     /* Main content */
@@ -339,19 +339,11 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       padding: 2rem 0 1.5rem 0;
       border-top: 1px solid var(--border); background: var(--bg-footer);
     }
-    .footer-compact {
+    .footer-bottom {
       display: flex; justify-content: space-between; align-items: center;
       flex-wrap: wrap; gap: 12px;
     }
-    .footer-compact p { color: var(--text-faintest); font-size: 0.82rem; margin: 0; }
-    .footer-links {
-      display: flex; gap: 16px; list-style: none; margin: 0; padding: 0;
-    }
-    .footer-links a {
-      color: var(--text-faint); font-size: 0.78rem; text-decoration: none;
-      font-family: 'Inter', Arial, sans-serif;
-    }
-    .footer-links a:hover { color: var(--text); }
+    .footer-bottom p { color: var(--text-faintest); font-size: 0.82rem; margin: 0; }
     .ai-notice {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 4px 12px; background: var(--accent-bg);
@@ -380,30 +372,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
 <body>
   <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
-  <header role="banner">
-    <nav aria-label="Navegacion principal">
-      <a href="<?= $B ?>" class="logo" aria-label="Prisma - Inicio">
-        <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#ff4d6d"/>
-              <stop offset="25%" stop-color="#f2f24a"/>
-              <stop offset="50%" stop-color="#4ade80"/>
-              <stop offset="75%" stop-color="#4dc3ff"/>
-              <stop offset="100%" stop-color="#a855f7"/>
-            </linearGradient>
-          </defs>
-          <polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>
-        </svg>
-        <span>Prisma</span>
-      </a>
-      <ul class="nav-links">
-        <li><a href="<?= $B ?>" class="active">Radar</a></li>
-        <li><a href="<?= $B ?>manifiesto.php">El proyecto</a></li>
-      </ul>
-      <?= theme_toggle() ?>
-    </nav>
-  </header>
+  <?= render_nav('', array('' => 'Radar')) ?>
 
   <main id="main-content" role="main">
     <div class="container">
@@ -414,7 +383,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
           <h1>Tu algoritmo te encierra. Prisma te da el <em>contexto</em>.</h1>
           <p>Las redes te muestran lo que ya crees. Aquí, cada noticia se analiza desde todas las posturas enfrentadas
             y se audita contra 11 criterios de neutralidad. Sin editorial. Sin personalización. Sin decirte qué pensar.
-            <a href="<?= $B ?>manifiesto.php">Cómo funciona &rarr;</a>
+            <a href="<?= $B ?>presentacion.php">Cómo funciona &rarr;</a>
           </p>
         </div>
       </div>
@@ -578,17 +547,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
 
   <footer role="contentinfo">
     <div class="container">
-      <div class="footer-compact">
-        <p>&copy; <?= date('Y') ?> Prisma · CC BY-SA 4.0 · <span class="ai-notice">IA auditada</span></p>
-        <ul class="footer-links">
-          <li><a href="<?= $B ?>manifiesto.php">Proyecto</a></li>
-          <li><a href="<?= $B ?>fuentes.php">Fuentes</a></li>
-          <li><a href="<?= $B ?>axiomas.php">Axiomas</a></li>
-          <li><a href="<?= $B ?>ia.php">IA</a></li>
-          <li><a href="<?= $B ?>aviso-legal.php">Legal</a></li>
-          <li><a href="<?= $B ?>privacidad.php">Privacidad</a></li>
-        </ul>
-      </div>
+      <?= render_footer_bottom() ?>
     </div>
   </footer>
 

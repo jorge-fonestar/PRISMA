@@ -157,6 +157,7 @@ $axiom_names = [
       font-family: 'Inter', Arial, sans-serif; font-size: 0.92rem; transition: color 0.15s;
     }
     header .nav-links a:hover { color: var(--text); }
+    header .nav-links a.active { color: var(--accent); }
     @media (max-width: 640px) { header .nav-links { display: none; } }
 
     /* Article */
@@ -386,30 +387,7 @@ $axiom_names = [
 <body>
   <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
-  <header role="banner">
-    <nav aria-label="Navegacion principal">
-      <a href="<?= $B ?>" class="logo" aria-label="Prisma - Inicio">
-        <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#ff4d6d"/>
-              <stop offset="25%" stop-color="#f2f24a"/>
-              <stop offset="50%" stop-color="#4ade80"/>
-              <stop offset="75%" stop-color="#4dc3ff"/>
-              <stop offset="100%" stop-color="#a855f7"/>
-            </linearGradient>
-          </defs>
-          <polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>
-        </svg>
-        <span>Prisma</span>
-      </a>
-      <ul class="nav-links">
-        <li><a href="<?= $B ?>">Hoy</a></li>
-        <li><a href="<?= $B ?>manifiesto.php">El proyecto</a></li>
-      </ul>
-      <?= theme_toggle() ?>
-    </nav>
-  </header>
+  <?= render_nav() ?>
 
   <main id="main-content" role="main">
     <div class="container">
@@ -611,10 +589,7 @@ $axiom_names = [
 
   <footer role="contentinfo">
     <div class="container" style="max-width:1100px">
-      <div class="footer-bottom">
-        <p>&copy; <?= date('Y') ?> Prisma · Proyecto independiente · CC BY-SA 4.0</p>
-        <span class="ai-notice">Contenido generado y auditado por IA</span>
-      </div>
+      <?= render_footer_bottom() ?>
     </div>
   </footer>
   <?= theme_js() ?>

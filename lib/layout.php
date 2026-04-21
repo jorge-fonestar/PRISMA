@@ -8,12 +8,97 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/theme.php';
 require_once __DIR__ . '/../db.php';
 
-function page_header(string $title, string $description = '', string $active_nav = ''): void {
+// ── Reusable nav/footer primitives ────────────────────────────────────
+
+/**
+ * Renders the <header> navigation bar.
+ *
+ * @param string $active_nav  Key of active nav item ('' for home, 'presentacion', 'manifiesto')
+ * @param array  $overrides   Override labels, e.g. ['' => 'Radar'] renames "Hoy"
+ * @return string HTML
+ */
+function render_nav($active_nav = '', $overrides = array()) {
     $B = prisma_base();
-    $nav_items = [
-        ''              => ['Hoy', $B],
-        'manifiesto'    => ['El proyecto', $B . 'manifiesto.php'],
-    ];
+    $nav_items = array(
+        ''             => array('Hoy', $B),
+        'presentacion' => array('El proyecto', $B . 'presentacion.php'),
+        'manifiesto'   => array('Manifiesto', $B . 'manifiesto.php'),
+    );
+    foreach ($overrides as $key => $label) {
+        if (isset($nav_items[$key])) {
+            $nav_items[$key][0] = $label;
+        }
+    }
+
+    $html = '<header role="banner">'
+        . '<nav aria-label="Navegación principal">'
+        . '<a href="' . $B . '" class="logo" aria-label="Prisma - Inicio">'
+        . '<svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        . '<defs><linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">'
+        . '<stop offset="0%" stop-color="#ff4d6d"/><stop offset="25%" stop-color="#f2f24a"/>'
+        . '<stop offset="50%" stop-color="#4ade80"/><stop offset="75%" stop-color="#4dc3ff"/>'
+        . '<stop offset="100%" stop-color="#a855f7"/>'
+        . '</linearGradient></defs>'
+        . '<polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>'
+        . '</svg>'
+        . '<span>Prisma</span></a>'
+        . '<ul class="nav-links">';
+    foreach ($nav_items as $key => $item) {
+        $label = $item[0];
+        $href  = $item[1];
+        $cls = ($active_nav === $key) ? ' class="active"' : '';
+        $html .= '<li><a href="' . $href . '"' . $cls . '>' . $label . '</a></li>';
+    }
+    $html .= '</ul>' . theme_toggle() . '</nav></header>';
+    return $html;
+}
+
+/**
+ * Renders the 4-column footer grid (brand + proyecto + estándar + legal).
+ * @return string HTML
+ */
+function render_footer_grid() {
+    $B = prisma_base();
+    return '<div class="footer-grid">'
+        . '<div class="footer-brand">'
+        . '<div class="logo" style="pointer-events:none">'
+        . '<svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        . '<polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>'
+        . '</svg><span>Prisma</span></div>'
+        . '<p>Servicio público de información neutral. Sin editorial, sin algoritmo, sin cámaras de eco.</p>'
+        . '</div>'
+        . '<div><h4>Proyecto</h4><ul>'
+        . '<li><a href="' . $B . '">Hoy</a></li>'
+        . '<li><a href="' . $B . 'presentacion.php">El proyecto</a></li>'
+        . '<li><a href="' . $B . 'manifiesto.php">Manifiesto</a></li>'
+        . '<li><a href="' . $B . 'ia.php">Aviso de IA</a></li>'
+        . '</ul></div>'
+        . '<div><h4>Estándar</h4><ul>'
+        . '<li><a href="' . $B . 'axiomas.php">Los 11 axiomas</a></li>'
+        . '<li><a href="' . $B . 'fuentes.php">Fuentes consultadas</a></li>'
+        . '</ul></div>'
+        . '<div><h4>Legal</h4><ul>'
+        . '<li><a href="' . $B . 'aviso-legal.php">Aviso legal</a></li>'
+        . '<li><a href="' . $B . 'privacidad.php">Privacidad</a></li>'
+        . '<li><a href="' . $B . 'cookies.php">Cookies</a></li>'
+        . '</ul></div>'
+        . '</div>';
+}
+
+/**
+ * Renders the footer bottom bar (copyright + AI notice).
+ * @return string HTML
+ */
+function render_footer_bottom() {
+    return '<div class="footer-bottom">'
+        . '<p>&copy; ' . date('Y') . ' Prisma &middot; Proyecto independiente &middot; CC BY-SA 4.0</p>'
+        . '<span class="ai-notice">Contenido generado y auditado por IA</span>'
+        . '</div>';
+}
+
+// ── Composite page layout (used by simple content pages) ─────────────
+
+function page_header($title, $description = '', $active_nav = '') {
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -122,79 +207,20 @@ function page_header(string $title, string $description = '', string $active_nav
   </style>
 </head>
 <body>
-  <header role="banner">
-    <nav>
-      <a href="<?= $B ?>" class="logo">
-        <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs><linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ff4d6d"/><stop offset="25%" stop-color="#f2f24a"/>
-            <stop offset="50%" stop-color="#4ade80"/><stop offset="75%" stop-color="#4dc3ff"/>
-            <stop offset="100%" stop-color="#a855f7"/>
-          </linearGradient></defs>
-          <polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>
-        </svg>
-        <span>Prisma</span>
-      </a>
-      <ul class="nav-links">
-        <?php foreach ($nav_items as $key => [$label, $href]): ?>
-          <li><a href="<?= $href ?>"<?= $active_nav === $key ? ' class="active"' : '' ?>><?= $label ?></a></li>
-        <?php endforeach; ?>
-      </ul>
-      <?= theme_toggle() ?>
-    </nav>
-  </header>
+  <?= render_nav($active_nav) ?>
   <main>
     <div class="container">
 <?php
 }
 
-function page_footer(): void {
-    $B = prisma_base();
+function page_footer() {
 ?>
     </div>
   </main>
   <footer role="contentinfo">
     <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="logo" style="pointer-events:none">
-            <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>
-            </svg>
-            <span>Prisma</span>
-          </div>
-          <p>Servicio público de información neutral. Sin editorial, sin algoritmo, sin cámaras de eco.</p>
-        </div>
-        <div>
-          <h4>Proyecto</h4>
-          <ul>
-            <li><a href="<?= $B ?>">Hoy</a></li>
-            <li><a href="<?= $B ?>manifiesto.php">El proyecto</a></li>
-            <li><a href="<?= $B ?>archivo.php">Archivo</a></li>
-            <li><a href="<?= $B ?>ia.php">Aviso de IA</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4>Estándar</h4>
-          <ul>
-            <li><a href="https://moralcore.org" target="_blank" rel="noopener">Moral Core</a></li>
-            <li><a href="<?= $B ?>axiomas.php">Los 11 axiomas</a></li>
-            <li><a href="<?= $B ?>fuentes.php">Fuentes consultadas</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4>Legal</h4>
-          <ul>
-            <li><a href="<?= $B ?>aviso-legal.php">Aviso legal</a></li>
-            <li><a href="<?= $B ?>privacidad.php">Privacidad</a></li>
-            <li><a href="<?= $B ?>cookies.php">Cookies</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; <?= date('Y') ?> Prisma · Proyecto independiente · CC BY-SA 4.0</p>
-        <span class="ai-notice">Contenido generado y auditado por IA</span>
-      </div>
+      <?= render_footer_grid() ?>
+      <?= render_footer_bottom() ?>
     </div>
   </footer>
   <?= theme_js() ?>
