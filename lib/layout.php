@@ -202,3 +202,102 @@ function page_footer(): void {
 </html>
 <?php
 }
+
+// ── Tension UI Helpers ───────────────────────────────────────────────
+
+define('PRISMA_CUADRANTE_COLORES', [
+    'izquierda-populista' => '#ff4d6d',
+    'izquierda'           => '#ff6b81',
+    'centro-izquierda'    => '#ff9e4d',
+    'centro'              => '#f2f24a',
+    'centro-derecha'      => '#4dc3ff',
+    'derecha'             => '#4d9eff',
+    'derecha-populista'   => '#a855f7',
+]);
+
+/**
+ * Returns the color for a tension score.
+ */
+function tension_color(float $score): string {
+    if ($score >= 0.75) return '#ff4d6d';
+    if ($score >= 0.50) return '#ff9e4d';
+    if ($score >= 0.25) return '#f2f24a';
+    return 'rgba(255,255,255,0.3)';
+}
+
+/**
+ * Renders the SVG tension circle.
+ *
+ * @param float $score 0.0 to 1.0
+ * @param int $size Pixel size (default 36)
+ * @return string HTML
+ */
+function render_circulo_tension(float $score, int $size = 36): string {
+    $pct = round($score * 100);
+    $color = tension_color($score);
+    $r = round($size * 15 / 36);
+    $circum = round(2 * 3.14159 * $r, 1);
+    $offset = round($circum * (1 - $score), 1);
+    $sw = round($size * 3 / 36, 1);
+    $cx = round($size / 2);
+    $fs = round($size * 0.018, 3);
+
+    return '<div style="position:relative;width:' . $size . 'px;height:' . $size . 'px;flex-shrink:0">'
+        . '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 ' . $size . ' ' . $size . '">'
+        . '<circle cx="' . $cx . '" cy="' . $cx . '" r="' . $r . '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="' . $sw . '"/>'
+        . '<circle cx="' . $cx . '" cy="' . $cx . '" r="' . $r . '" fill="none" stroke="' . $color . '" stroke-width="' . $sw . '"'
+        . ' stroke-dasharray="' . $circum . '" stroke-dashoffset="' . $offset . '"'
+        . ' transform="rotate(-90 ' . $cx . ' ' . $cx . ')" stroke-linecap="round"/>'
+        . '</svg>'
+        . '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;'
+        . 'font-family:Inter,Arial,sans-serif;font-size:' . $fs . 'em;font-weight:700;color:' . $color . '">'
+        . $pct . '</span></div>';
+}
+
+/**
+ * Renders the three tension breakdown bars.
+ *
+ * @param float $asimetria 0.0 to 1.0
+ * @param float $divergencia 0.0 to 1.0
+ * @param float $varianza 0.0 to 1.0
+ * @param float $h_score For color selection
+ * @return string HTML
+ */
+function render_barras_tension(float $asimetria, float $divergencia, float $varianza, float $h_score): string {
+    $color = tension_color($h_score);
+    $signals = [
+        ['Asimetría cobertura', $asimetria],
+        ['Divergencia léxica', $divergencia],
+        ['Varianza espectro', $varianza],
+    ];
+
+    $html = '<div style="display:flex;flex-direction:column;gap:6px">';
+    foreach ($signals as list($label, $val)) {
+        $pct = round($val * 100);
+        $html .= '<div style="display:flex;align-items:center;gap:8px">'
+            . '<span style="font-family:Inter,Arial,sans-serif;font-size:0.72em;color:var(--text-faint);width:130px;flex-shrink:0">' . $label . '</span>'
+            . '<div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">'
+            . '<div style="width:' . $pct . '%;height:100%;background:' . $color . ';border-radius:3px"></div></div>'
+            . '<span style="font-family:Inter,Arial,sans-serif;font-size:0.68em;color:var(--text-faint);width:32px;text-align:right">' . $pct . '%</span>'
+            . '</div>';
+    }
+    $html .= '</div>';
+    return $html;
+}
+
+/**
+ * Generates a generic tension phrase for topics below threshold (no Haiku frase).
+ */
+function tension_frase_generica(float $asimetria, float $divergencia): string {
+    if ($asimetria <= $divergencia) {
+        return 'Cobertura equilibrada entre cuadrantes';
+    }
+    return 'Las fuentes coinciden en vocabulario y enfoque';
+}
+
+/**
+ * Returns color for a quadrant.
+ */
+function cuadrante_color(string $cuadrante): string {
+    return PRISMA_CUADRANTE_COLORES[$cuadrante] ?? 'var(--text-faint)';
+}
