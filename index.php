@@ -90,7 +90,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prisma — Radar informativo</title>
-  <meta name="description" content="Radar informativo: todos los temas políticos del día puntuados por tensión informativa. Sin editorial, sin cámaras de eco.">
+  <meta name="description" content="Radar informativo: todos los temas políticos del día puntuados por polarización informativa. Sin editorial, sin cámaras de eco.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
   <?= theme_head_script() ?>
@@ -456,14 +456,13 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
 
           <div class="toolbar-group">
             <span class="toolbar-label">Polarización</span>
-            <button class="filter-btn polar-btn active" data-min="0" data-max="100">Todas</button>
-            <button class="filter-btn polar-btn" data-min="75" data-max="100" style="border-color:var(--red, #ff4d6d)">Alta &ge;75%</button>
-            <button class="filter-btn polar-btn" data-min="50" data-max="74">Media 50-74%</button>
-            <button class="filter-btn polar-btn" data-min="0" data-max="49">Baja &lt;50%</button>
+            <button class="filter-btn polar-btn" data-min="0" data-max="100">Todas</button>
+            <button class="filter-btn polar-btn active" data-min="50" data-max="100">&ge;50%</button>
+            <button class="filter-btn polar-btn" data-min="0" data-max="49">&lt;50%</button>
           </div>
 
           <div class="sort-toggle">
-            <button class="sort-btn active" data-sort="tension" title="Ordenar por tensión">Tensión</button>
+            <button class="sort-btn active" data-sort="tension" title="Ordenar por polarización">Polarización</button>
             <button class="sort-btn" data-sort="alpha" title="Ordenar alfabéticamente">A-Z</button>
           </div>
         </div>
@@ -594,8 +593,8 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
   </footer>
 
   <script>
-  // Polarization filter state
-  var polarMin = 0, polarMax = 100;
+  // Polarization filter state — default: show >=50% only
+  var polarMin = 50, polarMax = 100;
 
   function applyPolarFilter() {
     var list = document.getElementById('articles-list');
@@ -622,6 +621,9 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       applyPolarFilter();
     });
   });
+
+  // Apply default filter on load
+  applyPolarFilter();
 
   // Client-side sort (tension vs alphabetical)
   document.querySelectorAll('.sort-btn').forEach(function(btn) {

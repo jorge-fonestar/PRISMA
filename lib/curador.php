@@ -121,7 +121,7 @@ function curador_seleccionar(array $articles): array {
 }
 
 /**
- * Calcula el índice de tensión informativa de un cluster.
+ * Calcula el índice de polarización informativa de un cluster.
  *
  * @param array $articles Artículos del cluster (cada uno con 'cuadrante')
  * @return array ['h_score'=>float, 'h_asimetria'=>float, 'h_divergencia'=>float, 'h_varianza'=>float]

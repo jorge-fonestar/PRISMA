@@ -130,7 +130,7 @@ $B = prisma_base();
         "name": "¿Cómo elegís qué noticias cubrir?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No las elegimos editorialmente. Un algoritmo calcula un índice de tensión informativa para cada tema detectado, midiendo la divergencia entre cómo lo cubren medios de distintos cuadrantes ideológicos. Los temas con mayor tensión se analizan automáticamente. El índice es público y verificable en cada tema."
+          "text": "No las elegimos editorialmente. Un algoritmo calcula un índice de polarización informativa para cada tema detectado, midiendo la divergencia entre cómo lo cubren medios de distintos cuadrantes ideológicos. Los temas con mayor polarización se analizan automáticamente. El índice es público y verificable en cada tema."
         }
       }
     ]
@@ -978,14 +978,14 @@ $B = prisma_base();
             Todos los temas detectados se publican en el radar con su puntuación.</p>
           </article>
           <article class="step">
-            <h3>Detección de tensión informativa</h3>
+            <h3>Detección de polarización informativa</h3>
             <p>El sistema no busca las noticias más importantes ni las más virales.
-            Busca las más tensas: aquellas donde los medios de distintos cuadrantes ideológicos
+            Busca las más polarizadas: aquellas donde los medios de distintos cuadrantes ideológicos
             cuentan la misma historia de formas radicalmente distintas — o donde un lado habla
             y el otro calla. Son los temas que más necesitan una visión multi-postura.</p>
             <details style="margin-top:0.5rem">
               <summary style="font-size:0.88rem;color:var(--text-muted);cursor:pointer">Detalles técnicos del algoritmo</summary>
-              <p style="font-size:0.88rem;margin-top:0.5rem">El algoritmo calcula un índice de tensión informativa
+              <p style="font-size:0.88rem;margin-top:0.5rem">El algoritmo calcula un índice de polarización informativa
               para cada tema detectado, combinando tres señales matemáticas con peso decreciente: la asimetría
               de cobertura (60% — qué proporción de fuentes de cada lado del espectro cubren el tema; un
               silencio editorial es tan revelador como un titular), la divergencia léxica (25% — distancia
@@ -994,13 +994,13 @@ $B = prisma_base();
               de cobertura domina la fórmula porque investigadores del MIT Media Lab y Harvard (proyecto Media
               Cloud) han demostrado que la selección de cobertura — qué elige contar cada medio y qué elige
               ignorar — es la señal más fiable de sesgo editorial, por encima del análisis de vocabulario o
-              del framing textual. El índice de tensión de cada tema es público y verificable en su ficha.</p>
+              del framing textual. El índice de polarización de cada tema es público y verificable en su ficha.</p>
             </details>
           </article>
           <article class="step">
             <h3 style="color:var(--text-faint);font-size:0.78rem;letter-spacing:0.1em;margin-bottom:0.3rem">FASE 2 · ANÁLISIS</h3>
             <h3>Confirmación y síntesis multi-postura</h3>
-            <p>Los temas con mayor tensión pasan un filtro de confirmación (triage) que descarta
+            <p>Los temas con mayor polarización pasan un filtro de confirmación (triage) que descarta
             falsos positivos. Los confirmados se sintetizan: un agente de IA genera el artefacto
             mostrando todas las posturas enfrentadas con sus argumentos y fuentes originales.</p>
           </article>
@@ -1050,11 +1050,11 @@ $B = prisma_base();
             <summary>¿Cómo elegís qué noticias cubrir?</summary>
             <p>No las elegimos: las calcula un algoritmo. Cada día, el sistema lee
             los titulares de más de 28 fuentes de todo el espectro ideológico, agrupa
-            las que hablan del mismo tema, y calcula un índice de tensión informativa
-            para cada uno. Los temas con mayor tensión — donde hay más divergencia
+            las que hablan del mismo tema, y calcula un índice de polarización informativa
+            para cada uno. Los temas con mayor polarización — donde hay más divergencia
             entre cómo los cuenta cada lado — son seleccionados automáticamente para
             análisis. El índice es una fórmula matemática transparente, no una decisión
-            editorial. Puedes ver el porcentaje de tensión y su desglose en cada tema.</p>
+            editorial. Puedes ver el porcentaje de polarización y su desglose en cada tema.</p>
           </details>
           <details>
             <summary>¿Por qué debería confiar en vosotros y no en mi medio habitual?</summary>

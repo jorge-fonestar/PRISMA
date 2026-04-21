@@ -90,7 +90,7 @@ $axiom_names = [
   <meta name="description" content="<?= htmlspecialchars(mb_substr($art['resumen'], 0, 160)) ?>">
   <meta name="robots" content="index, follow">
   <?php elseif ($radar): ?>
-  <meta name="description" content="Tema detectado el <?= htmlspecialchars($radar['fecha']) ?> con <?= round($radar['h_score'] * 100) ?>% de tensión informativa. <?= htmlspecialchars($radar['haiku_frase'] ?: tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?>">
+  <meta name="description" content="Tema detectado el <?= htmlspecialchars($radar['fecha']) ?> con <?= round($radar['h_score'] * 100) ?>% de polarización informativa. <?= htmlspecialchars($radar['haiku_frase'] ?: tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?>">
   <meta name="robots" content="noindex, follow">
   <?php else: ?>
   <meta name="robots" content="noindex, follow">
@@ -428,7 +428,7 @@ $axiom_names = [
           <span class="badge-ambito"><?= htmlspecialchars(ambito_label($art['ambito'])) ?></span>
           <?php if ($tension_data): ?>
             <?= render_circulo_tension($tension_data['h_score']) ?>
-            <span style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:700;color:<?= tension_color($tension_data['h_score']) ?>"><?= round($tension_data['h_score'] * 100) ?>% tensión</span>
+            <span style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:700;color:<?= tension_color($tension_data['h_score']) ?>"><?= round($tension_data['h_score'] * 100) ?>% polarización</span>
           <?php endif; ?>
         </div>
         <h1><?= htmlspecialchars($art['titular_neutral']) ?></h1>
@@ -465,10 +465,10 @@ $axiom_names = [
         </div>
       <?php endif; ?>
 
-      <!-- Tensión informativa -->
+      <!-- Polarización informativa -->
       <?php if ($tension_data): ?>
         <div style="margin-bottom:2rem">
-          <p class="section-label" style="margin-bottom:0.8rem">Tensión informativa</p>
+          <p class="section-label" style="margin-bottom:0.8rem">Polarización informativa</p>
           <?= render_barras_tension($tension_data['h_asimetria'], $tension_data['h_divergencia'], $tension_data['h_varianza'], $tension_data['h_score']) ?>
         </div>
       <?php endif; ?>
@@ -545,7 +545,7 @@ $axiom_names = [
           <span class="article-date"><?= format_fecha($radar['fecha']) ?></span>
           <span class="badge-ambito"><?= htmlspecialchars(ambito_label($radar['ambito'])) ?></span>
           <?= render_circulo_tension($radar['h_score']) ?>
-          <span style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:700;color:<?= tension_color($radar['h_score']) ?>"><?= round($radar['h_score'] * 100) ?>% tensión</span>
+          <span style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:700;color:<?= tension_color($radar['h_score']) ?>"><?= round($radar['h_score'] * 100) ?>% polarización</span>
         </div>
         <h1><?= htmlspecialchars($radar['titulo_tema']) ?></h1>
       </div>
@@ -557,7 +557,7 @@ $axiom_names = [
 
       <!-- Explanation box -->
       <div class="card" style="margin-bottom:2rem;border-left:3px solid <?= tension_color($radar['h_score']) ?>">
-        <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>Este tema no superó el umbral mínimo de tensión informativa (<?= $umbral_pct ?>%) configurado para activar el análisis multi-postura de Prisma.</strong></p>
+        <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>Este tema no superó el umbral mínimo de polarización informativa (<?= $umbral_pct ?>%) configurado para activar el análisis multi-postura de Prisma.</strong></p>
         <?php if ($radar['haiku_frase']): ?>
           <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars($radar['haiku_frase']) ?></p>
         <?php else: ?>
@@ -567,7 +567,7 @@ $axiom_names = [
 
       <!-- Tension breakdown -->
       <div style="margin-bottom:2rem">
-        <p class="section-label" style="margin-bottom:0.8rem">Desglose de tensión informativa</p>
+        <p class="section-label" style="margin-bottom:0.8rem">Desglose de polarización informativa</p>
         <?= render_barras_tension($radar['h_asimetria'], $radar['h_divergencia'], $radar['h_varianza'], $radar['h_score']) ?>
       </div>
 
@@ -589,7 +589,7 @@ $axiom_names = [
       </div>
 
       <p style="color:var(--text-faint);font-size:0.9rem;font-style:italic">
-        Prisma analiza en profundidad los temas con mayor tensión informativa. Este tema no cruza ese umbral — puedes consultar las fuentes directamente para formarte tu propia opinión.
+        Prisma analiza en profundidad los temas con mayor polarización informativa. Este tema no cruza ese umbral — puedes consultar las fuentes directamente para formarte tu propia opinión.
       </p>
 
 

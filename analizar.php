@@ -2,7 +2,7 @@
 /**
  * Prisma — Fase 2: Análisis en profundidad.
  *
- * Toma los temas pendientes del radar que superan el umbral de tensión,
+ * Toma los temas pendientes del radar que superan el umbral de polarización,
  * los pasa por triage Haiku, síntesis Sonnet y auditoría Moral Core.
  * GASTA TOKENS DE IA. Ejecutar con criterio.
  *

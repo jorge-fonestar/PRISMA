@@ -3,7 +3,7 @@
  * Prisma — Fase 1: Escaneo de fuentes.
  *
  * Lee RSS de todos los ámbitos, agrupa temas por similitud,
- * calcula el índice de tensión informativa e inserta en el radar.
+ * calcula el índice de polarización informativa e inserta en el radar.
  * No gasta tokens de IA. Se puede ejecutar tantas veces como se quiera.
  *
  * Uso:
@@ -25,7 +25,7 @@ $opts = getopt('', array('ambito:', 'help'));
 
 if (isset($opts['help'])) {
     echo "Uso: php escanear.php [--ambito españa|europa|global|todos]\n";
-    echo "Lee RSS, calcula tensión e inserta en radar. Sin coste de IA.\n";
+    echo "Lee RSS, calcula polarización e inserta en radar. Sin coste de IA.\n";
     exit(0);
 }
 
@@ -73,7 +73,7 @@ foreach ($ambitos_to_run as $ambito) {
     prisma_log("SCAN", count($articles) . " artículos leídos.");
 
     // 2. Group & score topics
-    prisma_log("SCAN", "Calculando tensión informativa...");
+    prisma_log("SCAN", "Calculando polarización informativa...");
     $all_temas = curador_seleccionar($articles);
 
     if (empty($all_temas)) {

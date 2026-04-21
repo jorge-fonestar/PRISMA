@@ -270,9 +270,9 @@ function triage_haiku(array $candidatos): array {
         }
     }
 
-    $system = 'Eres un analista de medios. Evalúas si la tensión informativa detectada entre fuentes de distintos cuadrantes ideológicos es genuina o un falso positivo (ej. vocabulario técnico diverso que no refleja divergencia editorial real). Respondes SOLO en JSON válido, sin markdown.';
+    $system = 'Eres un analista de medios. Evalúas si la polarización informativa detectada entre fuentes de distintos cuadrantes ideológicos es genuina o un falso positivo (ej. vocabulario técnico diverso que no refleja divergencia editorial real). Respondes SOLO en JSON válido, sin markdown.';
 
-    $user_msg = "Evalúa estos " . count($candidatos) . " temas. Para cada uno, indica si la tensión es genuina (confirma: true/false) y una frase explicativa de una línea en español describiendo la naturaleza de la tensión o la razón del descarte.
+    $user_msg = "Evalúa estos " . count($candidatos) . " temas. Para cada uno, indica si la polarización es genuina (confirma: true/false) y una frase explicativa de una línea en español describiendo la naturaleza de la polarización o la razón del descarte.
 
 Responde con un array JSON:
 [{\"tema\": 1, \"confirma\": true/false, \"frase\": \"...\"}]

@@ -491,7 +491,7 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     <!-- Phase 1: Scan -->
     <div class="card">
       <div class="stat-sub" style="margin-bottom:0.6rem">Fase 1 · Escanear fuentes</div>
-      <p style="font-size:0.82rem;color:#7a7a8a">Lee RSS, agrupa temas, calcula tensión y puebla el radar. <strong style="color:#4ade80">Coste: $0</strong></p>
+      <p style="font-size:0.82rem;color:#7a7a8a">Lee RSS, agrupa temas, calcula polarización y puebla el radar. <strong style="color:#4ade80">Coste: $0</strong></p>
       <form method="post">
         <input type="hidden" name="action" value="escanear">
         <div class="mb">
@@ -510,7 +510,7 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     <!-- Phase 2: Analyze top N -->
     <div class="card">
       <div class="stat-sub" style="margin-bottom:0.6rem">Fase 2 · Analizar pendientes</div>
-      <p style="font-size:0.82rem;color:#7a7a8a">Triage Haiku + síntesis Sonnet + auditoría Moral Core de los temas con más tensión. <strong style="color:#ff4d6d">Gasta tokens</strong></p>
+      <p style="font-size:0.82rem;color:#7a7a8a">Triage Haiku + síntesis Sonnet + auditoría Moral Core de los temas con más polarización. <strong style="color:#ff4d6d">Gasta tokens</strong></p>
       <form method="post" onsubmit="return confirm('Esto gastará tokens de API. ¿Continuar?')">
         <input type="hidden" name="action" value="analizar-pendientes">
         <div class="mb">
@@ -634,7 +634,7 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table>
-          <thead><tr><th style="width:45%">Tema</th><th>Ámbito</th><th>Tensión</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th style="width:45%">Tema</th><th>Ámbito</th><th>Polarización</th><th>Estado</th><th></th></tr></thead>
           <tbody>
           <?php foreach ($temas_dia as $rt):
             $score_pct = round($rt['h_score'] * 100);
