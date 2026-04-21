@@ -481,6 +481,18 @@ function pct_color(float $pct): string {
   <h2>Acciones</h2>
 
   <div class="grid grid-2">
+    <?php
+      // Generar opciones de ámbito dinámicamente desde config
+      $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' => 'Global',
+                             'latinoamérica' => 'Latinoamérica', 'asia-pacífico' => 'Asia-Pacífico');
+      $ambito_options = '';
+      foreach (array_keys($cfg['fuentes']) as $i => $amb) {
+          $label = isset($ambito_labels[$amb]) ? $ambito_labels[$amb] : mb_convert_case($amb, MB_CASE_TITLE, 'UTF-8');
+          $sel = $i === 0 ? ' selected' : '';
+          $ambito_options .= "<option value=\"" . htmlspecialchars($amb) . "\"$sel>" . htmlspecialchars($label) . "</option>";
+      }
+    ?>
+
     <!-- Dry run -->
     <div class="card">
       <div class="stat-sub" style="margin-bottom:0.6rem">Probar RSS + curación</div>
@@ -489,11 +501,7 @@ function pct_color(float $pct): string {
         <input type="hidden" name="action" value="dry-run">
         <div class="mb">
           <label>Ámbito</label>
-          <select name="ambito">
-            <option value="españa" selected>España</option>
-            <option value="europa">Europa</option>
-            <option value="global">Global</option>
-          </select>
+          <select name="ambito"><?= $ambito_options ?></select>
         </div>
         <button class="btn btn-o">Dry-run</button>
       </form>
@@ -508,11 +516,7 @@ function pct_color(float $pct): string {
         <div class="row" style="margin-bottom:0.6rem">
           <div>
             <label>Ámbito</label>
-            <select name="ambito">
-              <option value="españa" selected>España</option>
-              <option value="europa">Europa</option>
-              <option value="global">Global</option>
-            </select>
+            <select name="ambito"><?= $ambito_options ?></select>
           </div>
           <div>
             <label>Temas</label>
@@ -541,11 +545,7 @@ function pct_color(float $pct): string {
       <div class="row">
         <div>
           <label>Ámbito</label>
-          <select name="ambito">
-            <option value="españa">España</option>
-            <option value="europa">Europa</option>
-            <option value="global">Global</option>
-          </select>
+          <select name="ambito"><?= $ambito_options ?></select>
         </div>
         <div style="flex:0">
           <label>&nbsp;</label>

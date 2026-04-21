@@ -33,6 +33,8 @@ function curador_seleccionar(array $articles): array {
 
     // Auto-detectar mínimo de cuadrantes si no se especifica:
     // Cuenta cuántos cuadrantes distintos hay en los artículos disponibles
+    $cfg = prisma_cfg();
+    $min_cuadrantes = $cfg['min_cuadrantes'] ?? 0;
     if ($min_cuadrantes <= 0) {
         $available = count(array_unique(array_column($articles, 'cuadrante')));
         // España (6 cuadrantes) → exigir 3; Europa/Global (2-3) → exigir 2

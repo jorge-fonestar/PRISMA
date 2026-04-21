@@ -49,9 +49,9 @@ $GLOBALS['_PRISMA_CFG'] = array(
 
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',
-    'articulos_dia'       => 5,
+    'articulos_dia'       => 1,
     'min_cuadrantes'      => 3,             // Mínimo de cuadrantes para ir al pipeline Sonnet
-    'umbral_tension'      => 0.60,          // H mínimo para ser candidato a análisis
+    'umbral_tension'      => 0.55,          // H mínimo para ser candidato a análisis
 
     // ── RSS por ámbito y cuadrante ──────────────────────────────────
     'fuentes' => array(
@@ -71,6 +71,8 @@ $GLOBALS['_PRISMA_CFG'] = array(
             'centro' => array(
                 array('EFE',              'https://efe.com/feed/'),
                 array('20minutos',        'https://www.20minutos.es/rss/'),
+                array('Newtral',          'https://www.newtral.es/feed/'),
+                array('El Confidencial',  'https://rss.elconfidencial.com/espana/'),
             ),
             'centro-derecha' => array(
                 array('La Vanguardia',    'https://www.lavanguardia.com/rss/home.xml'),
@@ -79,16 +81,24 @@ $GLOBALS['_PRISMA_CFG'] = array(
             'derecha' => array(
                 array('ABC',              'https://www.abc.es/rss/2.0/portada/'),
                 array('El Mundo',         'https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml'),
+                array('La Razón',         'https://www.larazon.es/?outputType=xml'),
             ),
             'derecha-populista' => array(
                 array('Libertad Digital', 'https://feeds.feedburner.com/libertaddigital/portada'),
                 array('El Debate',        'https://www.eldebate.com/rss/'),
+                array('OKDIARIO',         'https://okdiario.com/feed'),
             ),
         ),
         'europa' => array(
+            'izquierda' => array(
+                array('Libération',       'http://rss.liberation.fr/rss/latest/'),
+                array('Il Manifesto',     'https://ilmanifesto.it/feed'),
+            ),
             'centro-izquierda' => array(
                 array('The Guardian',     'https://www.theguardian.com/world/europe-news/rss'),
                 array('Le Monde',         'https://www.lemonde.fr/europe/rss_full.xml'),
+                array('La Repubblica',    'https://www.repubblica.it/rss/homepage/rss2.0.xml'),
+                array('Süddeutsche Zeitung', 'https://rss.sueddeutsche.de/rss/Topthemen'),
             ),
             'centro' => array(
                 array('Euronews',         'https://www.euronews.com/rss?level=theme&name=news'),
@@ -98,6 +108,14 @@ $GLOBALS['_PRISMA_CFG'] = array(
             'centro-derecha' => array(
                 array('Der Spiegel',      'https://www.spiegel.de/international/index.rss'),
                 array('Financial Times',  'https://www.ft.com/world/europe?format=rss'),
+                array('Corriere della Sera', 'https://xml2.corriereobjects.it/rss/homepage.xml'),
+                array('Notes from Poland', 'https://notesfrompoland.com/feed/'),
+            ),
+            'derecha' => array(
+                array('The Telegraph',    'https://www.telegraph.co.uk/rss.xml'),
+            ),
+            'derecha-populista' => array(
+                array('UnHerd',           'https://unherd.com/feed/atom/'),
             ),
         ),
         'global' => array(
