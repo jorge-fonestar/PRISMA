@@ -531,15 +531,25 @@ $axiom_names = [
       <?php
         $cfg = prisma_cfg();
         $umbral_pct = round($cfg['umbral_tension'] * 100);
+        $supera_umbral = ($radar['h_score'] >= $cfg['umbral_tension']);
       ?>
 
       <!-- Explanation box -->
       <div class="card" style="margin-bottom:2rem;border-left:3px solid <?= tension_color($radar['h_score']) ?>">
-        <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>Este tema no superó el umbral mínimo de polarización informativa (<?= $umbral_pct ?>%) configurado para activar el análisis multi-postura de Prisma.</strong></p>
-        <?php if ($radar['haiku_frase']): ?>
-          <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars($radar['haiku_frase']) ?></p>
+        <?php if (!$supera_umbral): ?>
+          <!-- Caso 1: No supera el umbral -->
+          <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>Este tema no superó el umbral mínimo de polarización informativa (<?= $umbral_pct ?>%) configurado para activar el análisis multi-postura de Prisma.</strong></p>
+          <?php if ($radar['haiku_frase']): ?>
+            <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars($radar['haiku_frase']) ?></p>
+          <?php else: ?>
+            <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars(tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?></p>
+          <?php endif; ?>
         <?php else: ?>
-          <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars(tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?></p>
+          <!-- Caso 2: Supera el umbral pero aún no hay artículo analizado -->
+          <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<?= tension_color($radar['h_score']) ?>;margin-right:6px;vertical-align:middle"></span>
+            Polarización informativa detectada</strong></p>
+          <p style="margin:0;color:var(--text-muted)">Este tema superó el umbral de polarización (<?= $umbral_pct ?>%), pero el análisis multi-postura aún no se ha completado. Puede estar pendiente de procesamiento o no haberse encontrado suficientes fuentes para elaborar el mapa de posturas.</p>
         <?php endif; ?>
       </div>
 
@@ -566,9 +576,15 @@ $axiom_names = [
         <?php endforeach; ?>
       </div>
 
-      <p style="color:var(--text-faint);font-size:0.9rem;font-style:italic">
-        Prisma analiza en profundidad los temas con mayor polarización informativa. Este tema no cruza ese umbral — puedes consultar las fuentes directamente para formarte tu propia opinión.
-      </p>
+      <?php if (!$supera_umbral): ?>
+        <p style="color:var(--text-faint);font-size:0.9rem;font-style:italic">
+          Prisma analiza en profundidad los temas con mayor polarización informativa. Este tema no cruza ese umbral — puedes consultar las fuentes directamente para formarte tu propia opinión.
+        </p>
+      <?php else: ?>
+        <p style="color:var(--text-faint);font-size:0.9rem;font-style:italic">
+          Este tema está marcado para análisis. Mientras tanto, puedes consultar las fuentes directamente para formarte tu propia opinión.
+        </p>
+      <?php endif; ?>
 
 
     <?php else: ?>
