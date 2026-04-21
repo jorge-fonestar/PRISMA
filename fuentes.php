@@ -56,7 +56,9 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
   <p style="margin-top:2rem"><strong>Total: <?= $total_medios ?> medios en <?= $total_cuad ?> cuadrantes de <?= $total_ambitos ?> ámbitos geográficos.</strong></p>
 
   <h2>Cómo decide el sistema qué analizar</h2>
-  <p>Cada día, el sistema lee los RSS de todas las fuentes listadas arriba, agrupa los artículos que hablan del mismo tema, y calcula un <strong>índice de tensión informativa</strong> para cada uno. Este índice combina tres señales:</p>
+  <p>El sistema opera en dos fases. La primera (escaneo) se ejecuta periódicamente sin coste: lee los RSS, agrupa los artículos que hablan del mismo tema y calcula un <strong>índice de tensión informativa</strong> para cada uno. Todos los temas detectados se publican en el radar público con su puntuación.</p>
+
+  <p>El índice combina tres señales:</p>
 
   <h3>Asimetría de cobertura</h3>
   <p>¿Cuántas fuentes de cada lado del espectro cubren el tema? Si solo un lado habla, hay tensión editorial. Un tema cubierto por 5 medios de derecha y ninguno de izquierda (o viceversa) tiene la máxima asimetría: el silencio es tan editorial como el titular. Esta es la señal con más peso en la fórmula, respaldada por investigadores del MIT Media Lab y Harvard (proyecto Media Cloud), que demostraron que lo que un medio elige cubrir — y lo que elige ignorar — es el indicador más fiable de sesgo editorial.</p>
@@ -67,7 +69,7 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
   <h3>Varianza del espectro</h3>
   <p>¿Quién cubre el tema? Un tema que solo aparece en los extremos (izquierda-populista y derecha-populista) pero no en el centro tiene un patrón distinto a uno que aparece en todo el espectro. La varianza de las posiciones ideológicas captura esta distribución.</p>
 
-  <p>Los temas que superan el umbral mínimo de tensión configurado son candidatos a análisis completo. De esos, se seleccionan los que mayor tensión presentan hasta el máximo diario configurado. El índice de tensión de cada tema — analizado o no — es público y verificable en su ficha.</p>
+  <p>La segunda fase (análisis) se ejecuta selectivamente y consume recursos de IA. Los temas que superan el umbral mínimo de tensión son confirmados por un modelo ligero (triage), sintetizados en un artefacto multi-postura y auditados contra 11 axiomas de neutralidad. Solo los que pasan la auditoría se publican como análisis completo. El índice de tensión de cada tema — analizado o no — es público y verificable en su ficha.</p>
 
   <h2>Política de acceso</h2>
   <ul>

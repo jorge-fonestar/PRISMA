@@ -86,43 +86,44 @@ if ($authed && isset($_POST['action'])) {
     $php = PHP_BINARY ?: 'php';
     $cd = 'cd ' . escapeshellarg(__DIR__);
 
-    if ($action === 'dry-run') {
+    if ($action === 'escanear') {
+        // Phase 1: Scan RSS + calculate tension + insert radar (free)
         $safe_ambito = escapeshellarg(isset($_POST['ambito']) ? $_POST['ambito'] : 'todos');
-        passthru("$cd && $php pipeline.php --ambito $safe_ambito --dry-run 2>&1", $rc);
+        passthru("$cd && $php escanear.php --ambito $safe_ambito 2>&1", $rc);
+        $action_result = $rc === 0 ? 'ok' : 'error';
+
+    } elseif ($action === 'analizar-pendientes') {
+        // Phase 2: Analyze top N pending topics (costs tokens)
+        $n = max(1, min(10, (int)(isset($_POST['temas']) ? $_POST['temas'] : $cfg['articulos_dia'])));
+        passthru("$cd && $php analizar.php --temas $n 2>&1", $rc);
         $action_result = $rc === 0 ? 'ok' : 'error';
 
     } elseif ($action === 'process-radar') {
-        // Process a specific radar topic by ID
+        // Phase 2: Analyze a specific radar topic by ID (costs tokens)
         $radar_id = (int)(isset($_POST['radar_id']) ? $_POST['radar_id'] : 0);
         if ($radar_id > 0) {
-            $db = prisma_db();
-            $stmt = $db->prepare('SELECT * FROM radar WHERE id = :id');
-            $stmt->execute(array(':id' => $radar_id));
-            $radar_topic = $stmt->fetch();
+            echo "Lanzando análisis para tema radar #$radar_id...\n\n";
+            $safe_id = escapeshellarg($radar_id);
+            passthru("$cd && $php analizar.php --id $safe_id 2>&1", $rc);
+            $action_result = $rc === 0 ? 'ok' : 'error';
+        }
 
-            if ($radar_topic) {
-                // Write job file for procesar.php
-                $job = array('tema' => $radar_topic['titulo_tema'], 'ambito' => $radar_topic['ambito']);
-                $job_path = __DIR__ . '/data/manual_job.json';
-                file_put_contents($job_path, json_encode($job, JSON_UNESCAPED_UNICODE));
-                echo "Procesando: " . $radar_topic['titulo_tema'] . "\n";
-                echo "Ambito: " . $radar_topic['ambito'] . " | H-score: " . round($radar_topic['h_score'] * 100) . "%\n\n";
-                passthru("$cd && $php procesar.php 2>&1", $rc);
-                @unlink($job_path);
-
-                if ($rc === 0) {
-                    // Link the radar entry to the article
-                    $article_id = $db->query("SELECT id FROM articulos ORDER BY created_at DESC LIMIT 1")->fetchColumn();
-                    if ($article_id) {
-                        $upd = $db->prepare('UPDATE radar SET analizado = 1, articulo_id = :aid WHERE id = :rid');
-                        $upd->execute(array(':aid' => $article_id, ':rid' => $radar_id));
-                    }
-                }
-                $action_result = $rc === 0 ? 'ok' : 'error';
-            } else {
-                echo "Error: tema radar #$radar_id no encontrado.\n";
-                $action_result = 'error';
-            }
+    } elseif ($action === 'analizar-manual') {
+        // Phase 2: Analyze a free-text topic (costs tokens)
+        $tema = trim(isset($_POST['tema']) ? $_POST['tema'] : '');
+        $ambito = isset($_POST['ambito']) ? $_POST['ambito'] : 'españa';
+        if ($tema) {
+            // Write job file for analizar.php
+            $job = array('tema_libre' => $tema, 'ambito' => $ambito);
+            $job_path = __DIR__ . '/data/manual_job.json';
+            file_put_contents($job_path, json_encode($job, JSON_UNESCAPED_UNICODE));
+            echo "Tema manual: $tema\nÁmbito: $ambito\n\n";
+            passthru("$cd && $php analizar.php 2>&1", $rc);
+            @unlink($job_path);
+            $action_result = $rc === 0 ? 'ok' : 'error';
+        } else {
+            echo "Error: escribe un tema a analizar.\n";
+            $action_result = 'error';
         }
 
     } elseif ($action === 'search-topic') {
@@ -487,12 +488,12 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
   <h2>Acciones</h2>
 
   <div class="grid grid-2">
-    <!-- Dry Run -->
+    <!-- Phase 1: Scan -->
     <div class="card">
-      <div class="stat-sub" style="margin-bottom:0.6rem">Dry-Run (solo log)</div>
-      <p style="font-size:0.82rem;color:#7a7a8a">Lee RSS, agrupa temas, calcula tensión. No gasta tokens ni publica.</p>
+      <div class="stat-sub" style="margin-bottom:0.6rem">Fase 1 · Escanear fuentes</div>
+      <p style="font-size:0.82rem;color:#7a7a8a">Lee RSS, agrupa temas, calcula tensión y puebla el radar. <strong style="color:#4ade80">Coste: $0</strong></p>
       <form method="post">
-        <input type="hidden" name="action" value="dry-run">
+        <input type="hidden" name="action" value="escanear">
         <div class="mb">
           <label>Ámbito</label>
           <select name="ambito">
@@ -502,23 +503,69 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
             <?php endforeach; ?>
           </select>
         </div>
-        <button class="btn btn-o">Lanzar dry-run</button>
+        <button class="btn btn-o">Escanear</button>
       </form>
     </div>
 
-    <!-- Buscar tema -->
+    <!-- Phase 2: Analyze top N -->
     <div class="card">
-      <div class="stat-sub" style="margin-bottom:0.6rem">Buscar tema en fuentes</div>
-      <p style="font-size:0.82rem;color:#7a7a8a">Busca en todas las fuentes RSS artículos relacionados con un tema.</p>
-      <form method="post">
-        <input type="hidden" name="action" value="search-topic">
+      <div class="stat-sub" style="margin-bottom:0.6rem">Fase 2 · Analizar pendientes</div>
+      <p style="font-size:0.82rem;color:#7a7a8a">Triage Haiku + síntesis Sonnet + auditoría Moral Core de los temas con más tensión. <strong style="color:#ff4d6d">Gasta tokens</strong></p>
+      <form method="post" onsubmit="return confirm('Esto gastará tokens de API. ¿Continuar?')">
+        <input type="hidden" name="action" value="analizar-pendientes">
         <div class="mb">
-          <label>Tema a buscar</label>
-          <input type="text" name="query" placeholder="Ej: regulación inteligencia artificial" value="<?= ph(isset($_POST['action']) && $_POST['action'] === 'search-topic' ? (isset($_POST['query']) ? $_POST['query'] : '') : '') ?>">
+          <label>Máximo de temas</label>
+          <select name="temas">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="5">5</option>
+          </select>
         </div>
-        <button class="btn btn-y">Buscar en fuentes</button>
+        <button class="btn btn-g">Analizar</button>
       </form>
     </div>
+  </div>
+
+  <!-- Search topic -->
+  <div class="card" style="margin-top:10px">
+    <div class="stat-sub" style="margin-bottom:0.6rem">Buscar tema en fuentes</div>
+    <p style="font-size:0.82rem;color:#7a7a8a">Busca en todos los RSS artículos relacionados con un tema libre.</p>
+    <form method="post">
+      <input type="hidden" name="action" value="search-topic">
+      <div class="mb">
+        <label>Tema a buscar</label>
+        <input type="text" name="query" placeholder="Ej: regulación inteligencia artificial" value="<?= ph(isset($_POST['action']) && $_POST['action'] === 'search-topic' ? (isset($_POST['query']) ? $_POST['query'] : '') : '') ?>">
+      </div>
+      <button class="btn btn-y">Buscar en fuentes</button>
+    </form>
+  </div>
+
+  <!-- Manual topic analysis -->
+  <div class="card" style="margin-top:10px">
+    <div class="stat-sub" style="margin-bottom:0.6rem">Analizar tema manual</div>
+    <p style="font-size:0.82rem;color:#7a7a8a">Análisis completo de un tema libre (sin pasar por radar). <strong style="color:#ff4d6d">Gasta tokens</strong></p>
+    <form method="post" onsubmit="return confirm('Esto gastará tokens de API. ¿Continuar?')">
+      <input type="hidden" name="action" value="analizar-manual">
+      <div class="mb">
+        <label>Tema o noticia</label>
+        <textarea name="tema" rows="2" placeholder="Ej: Manifestación por la educación pública en Madrid"></textarea>
+      </div>
+      <div class="row">
+        <div>
+          <label>Ámbito</label>
+          <select name="ambito">
+            <?php foreach (array_keys($cfg['fuentes']) as $amb): ?>
+              <option value="<?= ph($amb) ?>"><?= ph(isset($ambito_labels[$amb]) ? $ambito_labels[$amb] : ucfirst($amb)) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div style="flex:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-g">Analizar</button>
+        </div>
+      </div>
+    </form>
   </div>
 
   <!-- Search results -->
@@ -564,40 +611,45 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     ?></div>
   <?php endif; ?>
 
-  <!-- ════════ REVISIÓN DE RADAR ════════ -->
-  <h2>Revisión de radar</h2>
-  <p style="font-size:0.82rem;color:#7a7a8a;margin-bottom:1rem">Todos los temas detectados. Puedes lanzar análisis completo de cualquiera.</p>
+  <!-- ════════ TEMAS ════════ -->
+  <h2>Temas</h2>
+  <p style="font-size:0.82rem;color:#7a7a8a;margin-bottom:1rem">Todos los temas detectados. Los analizados se pueden expandir para ver el resultado. Los pendientes se pueden lanzar a análisis.</p>
 
   <?php if (empty($data['radar_temas'])): ?>
     <div class="card"><p style="color:#6a6a7a;margin:0">No hay temas en el radar. Ejecuta un dry-run primero.</p></div>
   <?php else: ?>
     <?php
-      // Group by date
       $by_date = array();
       foreach ($data['radar_temas'] as $rt) {
           $by_date[$rt['fecha']][] = $rt;
       }
+      $row_idx = 0;
     ?>
-    <?php foreach ($by_date as $fecha => $temas_dia): ?>
+    <?php foreach ($by_date as $fecha => $temas_dia):
+      $n_analizados_dia = 0;
+      foreach ($temas_dia as $t) { if ($t['analizado']) $n_analizados_dia++; }
+    ?>
       <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6a6a7a;margin:1rem 0 0.4rem 0">
-        <?= ph($fecha) ?> (<?= count($temas_dia) ?> temas)
+        <?= ph($fecha) ?> — <?= count($temas_dia) ?> temas<?php if ($n_analizados_dia): ?>, <?= $n_analizados_dia ?> analizados<?php endif; ?>
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table>
-          <thead><tr><th style="width:50%">Tema</th><th>Ámbito</th><th>H-score</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th style="width:45%">Tema</th><th>Ámbito</th><th>Tensión</th><th>Estado</th><th></th></tr></thead>
           <tbody>
-          <?php foreach ($temas_dia as $rt): ?>
-            <?php
-              $score_pct = round($rt['h_score'] * 100);
-              $bar_color = $score_pct >= 75 ? '#ff4d6d' : ($score_pct >= 50 ? '#f2f24a' : '#4dc3ff');
-            ?>
-            <tr>
+          <?php foreach ($temas_dia as $rt):
+            $score_pct = round($rt['h_score'] * 100);
+            $bar_color = $score_pct >= 75 ? '#ff4d6d' : ($score_pct >= 50 ? '#f2f24a' : '#4dc3ff');
+            $is_analyzed = (bool)$rt['analizado'];
+            $detail_id = 'detail-' . $row_idx;
+            $row_idx++;
+          ?>
+            <tr class="<?= $is_analyzed ? 'row-analyzed' : '' ?>"
+                <?php if ($is_analyzed): ?>onclick="var d=document.getElementById('<?= $detail_id ?>');d.classList.toggle('open')"<?php endif; ?>>
               <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                <?php if ($rt['articulo_id']): ?>
-                  <a href="<?= $B ?>articulo.php?id=<?= urlencode($rt['articulo_id']) ?>"><?= ph(mb_substr($rt['titulo_tema'], 0, 70, 'UTF-8')) ?></a>
-                <?php else: ?>
-                  <?= ph(mb_substr($rt['titulo_tema'], 0, 70, 'UTF-8')) ?>
+                <?php if ($is_analyzed): ?>
+                  <span style="color:#4ade80;font-size:0.7rem;margin-right:4px" title="Expandir análisis">&#9660;</span>
                 <?php endif; ?>
+                <?= ph(mb_substr($rt['titulo_tema'], 0, 70, 'UTF-8')) ?>
               </td>
               <td><span class="amb-tag"><?= ph(isset($ambito_labels[$rt['ambito']]) ? $ambito_labels[$rt['ambito']] : $rt['ambito']) ?></span></td>
               <td style="white-space:nowrap">
@@ -605,15 +657,20 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
                 <span style="font-size:0.78rem;font-weight:700;color:<?= $bar_color ?>"><?= $score_pct ?>%</span>
               </td>
               <td>
-                <?php if ($rt['analizado']): ?>
-                  <span class="badge badge-ok">Analizado</span>
+                <?php if ($is_analyzed):
+                  $v = isset($rt['veredicto']) ? $rt['veredicto'] : '';
+                  $cls = $v === 'APTO' ? 'ok' : ($v === 'REVISIÓN' ? 'warn' : 'err');
+                ?>
+                  <span class="badge badge-<?= $cls ?>"><?= ph($v) ?></span>
                 <?php else: ?>
                   <span class="badge badge-warn">Pendiente</span>
                 <?php endif; ?>
               </td>
               <td>
-                <?php if (!$rt['analizado']): ?>
-                  <form method="post" style="margin:0" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='...'">
+                <?php if ($is_analyzed && $rt['articulo_id']): ?>
+                  <a href="<?= $B ?>articulo.php?id=<?= urlencode($rt['articulo_id']) ?>" class="btn btn-o btn-sm" onclick="event.stopPropagation()">Ver</a>
+                <?php elseif (!$is_analyzed): ?>
+                  <form method="post" style="margin:0" onclick="event.stopPropagation()" onsubmit="if(!confirm('Gastará tokens de API. ¿Continuar?'))return false;this.querySelector('button').disabled=true;this.querySelector('button').textContent='...'">
                     <input type="hidden" name="action" value="process-radar">
                     <input type="hidden" name="radar_id" value="<?= $rt['id'] ?>">
                     <button class="btn btn-g btn-sm">Analizar</button>
@@ -621,36 +678,40 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
                 <?php endif; ?>
               </td>
             </tr>
+            <?php if ($is_analyzed): ?>
+              <tr class="detail-row" id="<?= $detail_id ?>">
+                <td colspan="5" class="detail-cell">
+                  <div class="detail-grid">
+                    <div class="d-item">
+                      <div class="d-label">Auditoría</div>
+                      <div class="d-val"><?php
+                        $v = isset($rt['veredicto']) ? $rt['veredicto'] : '—';
+                        echo ph($v);
+                        if (isset($rt['puntuacion']) && $rt['puntuacion'] !== null) {
+                            echo ' · ' . round($rt['puntuacion'] * 100) . '/100';
+                        }
+                      ?></div>
+                    </div>
+                    <div class="d-item">
+                      <div class="d-label">Fuentes</div>
+                      <div class="d-val"><?= isset($rt['fuentes_total']) ? $rt['fuentes_total'] : '—' ?></div>
+                    </div>
+                    <div class="d-item">
+                      <div class="d-label">Artículo</div>
+                      <div class="d-val"><a href="<?= $B ?>articulo.php?id=<?= urlencode($rt['articulo_id']) ?>">Ver análisis completo</a></div>
+                    </div>
+                  </div>
+                  <?php if (isset($rt['resumen']) && $rt['resumen']): ?>
+                    <div class="detail-resumen"><?= ph(mb_substr($rt['resumen'], 0, 300, 'UTF-8')) ?><?php if (mb_strlen($rt['resumen'], 'UTF-8') > 300) echo '...'; ?></div>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endif; ?>
           <?php endforeach; ?>
           </tbody>
         </table>
       </div>
     <?php endforeach; ?>
-  <?php endif; ?>
-
-  <!-- Últimos artículos publicados -->
-  <?php if (!empty($data['ultimos'])): ?>
-    <h2>Últimos artículos publicados</h2>
-    <div class="card" style="padding:0;overflow:hidden">
-      <table>
-        <thead><tr><th>Titular</th><th>Auditoría</th><th>Fecha</th></tr></thead>
-        <tbody>
-        <?php foreach ($data['ultimos'] as $row): ?>
-          <tr>
-            <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              <a href="<?= $B ?>articulo.php?id=<?= urlencode($row['id']) ?>"><?= ph(mb_substr($row['titular_neutral'], 0, 80, 'UTF-8')) ?></a>
-            </td>
-            <td><?php
-              $v = isset($row['veredicto']) ? $row['veredicto'] : '';
-              $cls = $v === 'APTO' ? 'ok' : ($v === 'REVISIÓN' ? 'warn' : 'err');
-              echo "<span class='badge badge-$cls'>" . ph($v) . "</span>";
-            ?></td>
-            <td style="white-space:nowrap"><?= ph(substr($row['fecha_publicacion'], 0, 16)) ?></td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
   <?php endif; ?>
 
   <!-- Reset DB -->

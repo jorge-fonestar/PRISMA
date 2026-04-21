@@ -967,15 +967,19 @@ $B = prisma_base();
       <div class="container">
         <p class="eyebrow">El proceso</p>
         <h2 id="how-heading">Cómo se construye una noticia en Prisma</h2>
+        <p style="font-size:0.95rem;color:var(--text-muted);margin-bottom:2rem">El proceso se divide en dos fases independientes. La primera es gratuita y se ejecuta varias veces al día. La segunda gasta recursos de IA y se ejecuta selectivamente.</p>
+
         <div class="steps">
           <article class="step">
+            <h3 style="color:var(--text-faint);font-size:0.78rem;letter-spacing:0.1em;margin-bottom:0.3rem">FASE 1 · ESCANEO</h3>
             <h3>Lectura del espectro</h3>
-            <p>Un sistema automatizado lee diariamente fuentes de todo el espectro
-            ideológico: de izquierda, centro y derecha, española, europea y global.</p>
+            <p>Un sistema automatizado lee las fuentes RSS de todo el espectro
+            ideológico: de izquierda, centro y derecha, española, europea y global.
+            Todos los temas detectados se publican en el radar con su puntuación.</p>
           </article>
           <article class="step">
             <h3>Detección de tensión informativa</h3>
-            <p>Nuestro sistema no busca las noticias más importantes ni las más virales.
+            <p>El sistema no busca las noticias más importantes ni las más virales.
             Busca las más tensas: aquellas donde los medios de distintos cuadrantes ideológicos
             cuentan la misma historia de formas radicalmente distintas — o donde un lado habla
             y el otro calla. Son los temas que más necesitan una visión multi-postura.</p>
@@ -994,13 +998,16 @@ $B = prisma_base();
             </details>
           </article>
           <article class="step">
-            <h3>Síntesis multi-postura</h3>
-            <p>Un primer agente sintetiza el tema mostrando todas las posturas
-            enfrentadas con sus argumentos y sus fuentes originales citadas.</p>
+            <h3 style="color:var(--text-faint);font-size:0.78rem;letter-spacing:0.1em;margin-bottom:0.3rem">FASE 2 · ANÁLISIS</h3>
+            <h3>Confirmación y síntesis multi-postura</h3>
+            <p>Los temas con mayor tensión pasan un filtro de confirmación (triage) que descarta
+            falsos positivos. Los confirmados se sintetizan: un agente de IA genera el artefacto
+            mostrando todas las posturas enfrentadas con sus argumentos y fuentes originales.</p>
           </article>
           <article class="step">
             <h3>Auditoría independiente</h3>
-            <p>Un segundo agente audita el resultado contra 11 axiomas. Si no
+            <p>Un segundo agente, en contexto completamente separado, audita el resultado contra
+            <a href="<?= prisma_base() ?>axiomas.php">11 axiomas verificables</a>. Si no
             pasa, se regenera o se descarta. Solo se publica lo verificado.</p>
           </article>
         </div>

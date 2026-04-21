@@ -16,11 +16,19 @@ page_header('Aviso de inteligencia artificial', 'Todo el contenido de Prisma es 
   <p>Los humanos diseñamos el estándar y los criterios. La máquina los ejecuta.</p>
 
   <h2>Cómo funciona el proceso</h2>
+  <p>El sistema opera en dos fases independientes:</p>
+
+  <h3>Fase 1 — Escaneo (sin IA)</h3>
   <ol>
-    <li><strong>Lectura automática de fuentes</strong> — Un sistema lee diariamente los RSS de medios de todo el espectro ideológico: de izquierda a derecha, españoles, europeos y globales.</li>
-    <li><strong>Detección y triage por tensión informativa</strong> — Un algoritmo matemático puntúa cada tema detectado según tres señales: asimetría de cobertura entre cuadrantes ideológicos, divergencia de vocabulario entre fuentes, y dispersión del espectro que lo cubre. Los temas que superan el umbral mínimo configurado son evaluados por un modelo ligero de IA (Claude Haiku) que confirma la tensión genuina y descarta falsos positivos. El score de tensión es 100% auditable: se muestra públicamente en cada tema con el desglose de cada señal.</li>
-    <li><strong>Síntesis multi-perspectiva</strong> — Un primer agente de IA (Claude Sonnet) genera el artefacto mostrando todas las posturas enfrentadas con sus fuentes originales.</li>
-    <li><strong>Auditoría independiente</strong> — Un segundo agente de IA, en contexto completamente separado, evalúa el resultado contra <a href="<?= prisma_base() ?>axiomas.php">11 axiomas verificables</a>. Si no pasa, se regenera o se descarta.</li>
+    <li><strong>Lectura automática de fuentes</strong> — El sistema lee periódicamente los RSS de medios de todo el espectro ideológico: de izquierda a derecha, españoles, europeos y globales.</li>
+    <li><strong>Detección de tensión informativa</strong> — Un algoritmo matemático (sin IA) puntúa cada tema según tres señales: asimetría de cobertura entre cuadrantes ideológicos, divergencia de vocabulario entre fuentes, y dispersión del espectro. El score es 100% auditable y se muestra públicamente en cada tema. Este paso no gasta recursos de IA.</li>
+  </ol>
+
+  <h3>Fase 2 — Análisis (con IA)</h3>
+  <ol start="3">
+    <li><strong>Triage por IA ligera</strong> — Los temas que superan el umbral de tensión son evaluados por un modelo ligero (Claude Haiku) que confirma la tensión genuina y descarta falsos positivos.</li>
+    <li><strong>Síntesis multi-perspectiva</strong> — Un agente de IA (Claude Sonnet) genera el artefacto mostrando todas las posturas enfrentadas con sus fuentes originales.</li>
+    <li><strong>Auditoría independiente</strong> — Un segundo agente, en contexto completamente separado, evalúa el resultado contra <a href="<?= prisma_base() ?>axiomas.php">11 axiomas verificables</a>. Si no pasa, se regenera o se descarta.</li>
   </ol>
 
   <h2>Limitaciones conocidas</h2>
