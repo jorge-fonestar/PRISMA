@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/theme.php';
+require_once __DIR__ . '/lib/layout.php';
 
 $id = $_GET['id'] ?? '';
 $art = null;
@@ -15,9 +17,37 @@ if ($id) {
     }
 }
 
-if (!$art) {
+// Radar mode: articulo.php?radar=N
+$radar = null;
+$radar_id = $_GET['radar'] ?? '';
+
+if ($radar_id) {
+    $db = prisma_db();
+    $stmt = $db->prepare('SELECT * FROM radar WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $radar_id]);
+    $radar = $stmt->fetch();
+
+    if ($radar && $radar['articulo_id']) {
+        // Redirect to analyzed article
+        header('Location: ' . prisma_base() . 'articulo.php?id=' . urlencode($radar['articulo_id']), true, 301);
+        exit;
+    }
+}
+
+// Tension data for analyzed articles
+$tension_data = null;
+if ($art) {
+    $db = prisma_db();
+    $stmt = $db->prepare('SELECT * FROM radar WHERE articulo_id = :aid LIMIT 1');
+    $stmt->execute([':aid' => $id]);
+    $tension_data = $stmt->fetch();
+}
+
+if (!$art && !$radar) {
     http_response_code(404);
     $page_title = 'Articulo no encontrado — Prisma';
+} elseif ($radar) {
+    $page_title = htmlspecialchars($radar['titulo_tema']) . ' — Radar Prisma';
 } else {
     $page_title = htmlspecialchars($art['titular_neutral']) . ' — Prisma';
 }
@@ -58,8 +88,13 @@ $axiom_names = [
   <title><?= $page_title ?></title>
   <?php if ($art): ?>
   <meta name="description" content="<?= htmlspecialchars(mb_substr($art['resumen'], 0, 160)) ?>">
-  <?php endif; ?>
   <meta name="robots" content="index, follow">
+  <?php elseif ($radar): ?>
+  <meta name="description" content="Tema detectado el <?= htmlspecialchars($radar['fecha']) ?> con <?= round($radar['h_score'] * 100) ?>% de tensión informativa. <?= htmlspecialchars($radar['haiku_frase'] ?: tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?>">
+  <meta name="robots" content="noindex, follow">
+  <?php else: ?>
+  <meta name="robots" content="noindex, follow">
+  <?php endif; ?>
   <meta name="theme-color" content="#0a0a12">
   <?= theme_head_script() ?>
   <?= theme_css() ?>
@@ -379,16 +414,7 @@ $axiom_names = [
   <main id="main-content" role="main">
     <div class="container">
 
-    <?php if (!$art): ?>
-      <div class="not-found">
-        <h1>Articulo no encontrado</h1>
-        <p>El artefacto que buscas no existe o ha sido retirado.</p>
-        <a href="<?= $B ?>" class="back-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Volver a las noticias
-        </a>
-      </div>
-    <?php else: ?>
+    <?php if ($art): ?>
 
       <a href="<?= $B ?>" class="back-link" style="margin-top: 3rem; display: inline-flex;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -400,6 +426,10 @@ $axiom_names = [
         <div class="article-meta">
           <span class="article-date"><?= format_fecha($art['fecha_publicacion']) ?></span>
           <span class="badge-ambito"><?= htmlspecialchars(ambito_label($art['ambito'])) ?></span>
+          <?php if ($tension_data): ?>
+            <?= render_circulo_tension($tension_data['h_score']) ?>
+            <span style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:700;color:<?= tension_color($tension_data['h_score']) ?>"><?= round($tension_data['h_score'] * 100) ?>% tensión</span>
+          <?php endif; ?>
         </div>
         <h1><?= htmlspecialchars($art['titular_neutral']) ?></h1>
       </div>
@@ -432,6 +462,14 @@ $axiom_names = [
               <span><?= (int)$art['fuentes_consultadas_total'] ?> fuentes</span>
             <?php endif; ?>
           </div>
+        </div>
+      <?php endif; ?>
+
+      <!-- Tensión informativa -->
+      <?php if ($tension_data): ?>
+        <div style="margin-bottom:2rem">
+          <p class="section-label" style="margin-bottom:0.8rem">Tensión informativa</p>
+          <?= render_barras_tension($tension_data['h_asimetria'], $tension_data['h_divergencia'], $tension_data['h_varianza'], $tension_data['h_score']) ?>
         </div>
       <?php endif; ?>
 
@@ -493,6 +531,78 @@ $axiom_names = [
         </ol>
       <?php endif; ?>
 
+
+    <?php elseif ($radar): ?>
+
+      <a href="<?= $B ?>" class="back-link" style="margin-top: 3rem; display: inline-flex;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Todas las noticias
+      </a>
+
+      <!-- Radar Mode Header -->
+      <div class="article-header">
+        <div class="article-meta">
+          <span class="article-date"><?= format_fecha($radar['fecha']) ?></span>
+          <span class="badge-ambito"><?= htmlspecialchars(ambito_label($radar['ambito'])) ?></span>
+          <?= render_circulo_tension($radar['h_score']) ?>
+          <span style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;font-weight:700;color:<?= tension_color($radar['h_score']) ?>"><?= round($radar['h_score'] * 100) ?>% tensión</span>
+        </div>
+        <h1><?= htmlspecialchars($radar['titulo_tema']) ?></h1>
+      </div>
+
+      <?php
+        $cfg = prisma_cfg();
+        $umbral_pct = round($cfg['umbral_tension'] * 100);
+      ?>
+
+      <!-- Explanation box -->
+      <div class="card" style="margin-bottom:2rem;border-left:3px solid <?= tension_color($radar['h_score']) ?>">
+        <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>Este tema no superó el umbral mínimo de tensión informativa (<?= $umbral_pct ?>%) configurado para activar el análisis multi-postura de Prisma.</strong></p>
+        <?php if ($radar['haiku_frase']): ?>
+          <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars($radar['haiku_frase']) ?></p>
+        <?php else: ?>
+          <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars(tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?></p>
+        <?php endif; ?>
+      </div>
+
+      <!-- Tension breakdown -->
+      <div style="margin-bottom:2rem">
+        <p class="section-label" style="margin-bottom:0.8rem">Desglose de tensión informativa</p>
+        <?= render_barras_tension($radar['h_asimetria'], $radar['h_divergencia'], $radar['h_varianza'], $radar['h_score']) ?>
+      </div>
+
+      <!-- Source list -->
+      <p class="section-label">Fuentes detectadas</p>
+      <?php $fuentes = json_decode($radar['fuentes_json'], true) ?: []; ?>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:2rem">
+        <?php foreach ($fuentes as $f): ?>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border:1px solid var(--border-card);border-radius:6px;border-left:3px solid <?= cuadrante_color($f['cuadrante']) ?>">
+            <div style="flex:1;min-width:0">
+              <a href="<?= htmlspecialchars($f['url']) ?>" target="_blank" rel="noopener" style="color:var(--text);font-weight:500;text-decoration:none;font-size:0.95rem"><?= htmlspecialchars($f['titulo']) ?></a>
+              <div style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;color:var(--text-faint);margin-top:4px">
+                <?= htmlspecialchars($f['medio']) ?> · <span style="color:<?= cuadrante_color($f['cuadrante']) ?>"><?= htmlspecialchars($f['cuadrante']) ?></span>
+              </div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="2" style="flex-shrink:0;margin-top:4px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+          </div>
+        <?php endforeach; ?>
+      </div>
+
+      <p style="color:var(--text-faint);font-size:0.9rem;font-style:italic">
+        Prisma analiza en profundidad los temas con mayor tensión informativa. Este tema no cruza ese umbral — puedes consultar las fuentes directamente para formarte tu propia opinión.
+      </p>
+
+
+    <?php else: ?>
+
+      <div class="not-found">
+        <h1>Artículo no encontrado</h1>
+        <p>El artefacto que buscas no existe o ha sido retirado.</p>
+        <a href="<?= $B ?>" class="back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver a las noticias
+        </a>
+      </div>
 
     <?php endif; ?>
 
