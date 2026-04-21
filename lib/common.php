@@ -152,22 +152,42 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
     require_once __DIR__ . '/../db.php';
     $db = prisma_db();
 
+    // Check existing topics for this date+ambito to avoid duplicates on re-run
+    $check = $db->prepare('SELECT id, titulo_tema FROM radar WHERE fecha = :fecha AND ambito = :ambito');
+    $check->execute(array(':fecha' => $fecha, ':ambito' => $ambito));
+    $existentes = array();
+    while ($row = $check->fetch()) {
+        $existentes[mb_strtolower(trim($row['titulo_tema']), 'UTF-8')] = $row['id'];
+    }
+
     $stmt = $db->prepare('INSERT INTO radar
         (fecha, titulo_tema, ambito, h_score, h_asimetria, h_divergencia, h_varianza, fuentes_json)
         VALUES (:fecha, :titulo, :ambito, :h_score, :h_asim, :h_div, :h_var, :fuentes)');
 
+    $insertados = 0;
+    $duplicados = 0;
+
     foreach ($temas as &$tema) {
-        $fuentes = [];
+        $key = mb_strtolower(trim($tema['titulo_tema']), 'UTF-8');
+
+        // Skip if already exists for this date+ambito
+        if (isset($existentes[$key])) {
+            $tema['radar_id'] = $existentes[$key];
+            $duplicados++;
+            continue;
+        }
+
+        $fuentes = array();
         foreach ($tema['articulos'] as $art) {
-            $fuentes[] = [
+            $fuentes[] = array(
                 'medio'     => $art['medio'],
                 'titulo'    => $art['titulo'],
                 'url'       => $art['url'],
                 'cuadrante' => $art['cuadrante'],
-            ];
+            );
         }
 
-        $stmt->execute([
+        $stmt->execute(array(
             ':fecha'   => $fecha,
             ':titulo'  => $tema['titulo_tema'],
             ':ambito'  => $ambito,
@@ -176,13 +196,18 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
             ':h_div'   => $tema['h_divergencia'],
             ':h_var'   => $tema['h_varianza'],
             ':fuentes' => json_encode($fuentes, JSON_UNESCAPED_UNICODE),
-        ]);
+        ));
 
         $tema['radar_id'] = $db->lastInsertId();
+        $insertados++;
     }
     unset($tema);
 
-    prisma_log("RADAR", count($temas) . " temas insertados en radar.");
+    $msg = "$insertados temas insertados en radar.";
+    if ($duplicados > 0) {
+        $msg .= " $duplicados duplicados omitidos.";
+    }
+    prisma_log("RADAR", $msg);
     return $temas;
 }
 
