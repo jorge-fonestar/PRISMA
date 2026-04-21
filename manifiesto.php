@@ -124,6 +124,14 @@ $B = prisma_base();
           "@type": "Answer",
           "text": "Sí. Prisma es un servicio público sin ánimo de lucro, sin publicidad y sin muros de pago. La información imparcial no debería ser un privilegio."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cómo elegís qué noticias cubrir?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No las elegimos editorialmente. Un algoritmo calcula un índice de tensión informativa para cada tema detectado, midiendo la divergencia entre cómo lo cubren medios de distintos cuadrantes ideológicos. Los temas con mayor tensión se analizan automáticamente. El índice es público y verificable en cada tema."
+        }
       }
     ]
   }
@@ -966,9 +974,24 @@ $B = prisma_base();
             ideológico: de izquierda, centro y derecha, española, europea y global.</p>
           </article>
           <article class="step">
-            <h3>Selección neutral</h3>
-            <p>Se seleccionan los temas que aparecen en múltiples cuadrantes
-            ideológicos distintos. No los más virales. Los más transversales.</p>
+            <h3>Detección de tensión informativa</h3>
+            <p>Nuestro sistema no busca las noticias más importantes ni las más virales.
+            Busca las más tensas: aquellas donde los medios de distintos cuadrantes ideológicos
+            cuentan la misma historia de formas radicalmente distintas — o donde un lado habla
+            y el otro calla. Son los temas que más necesitan una visión multi-postura.</p>
+            <details style="margin-top:0.5rem">
+              <summary style="font-size:0.88rem;color:var(--text-muted);cursor:pointer">Detalles técnicos del algoritmo</summary>
+              <p style="font-size:0.88rem;margin-top:0.5rem">El algoritmo calcula un índice de tensión informativa
+              para cada tema detectado, combinando tres señales matemáticas: la asimetría de cobertura (qué
+              proporción de fuentes de cada lado del espectro cubren el tema — un silencio editorial es tan
+              revelador como un titular), la divergencia léxica (distancia Jaccard entre el vocabulario que usa
+              cada cuadrante para describir el mismo hecho) y la varianza del espectro (dispersión de las
+              posiciones ideológicas que cubren el tema). Investigadores del MIT Media Lab y Harvard (proyecto
+              Media Cloud) han demostrado que la selección de cobertura — qué elige contar cada medio y qué
+              elige ignorar — es la señal más fiable de sesgo editorial, por encima del análisis de
+              sentimiento o del framing textual. El índice de tensión de cada tema es público y verificable
+              en su ficha.</p>
+            </details>
           </article>
           <article class="step">
             <h3>Síntesis multi-postura</h3>
@@ -1018,11 +1041,13 @@ $B = prisma_base();
           </details>
           <details>
             <summary>¿Cómo elegís qué noticias cubrir?</summary>
-            <p>No las elegimos en el sentido tradicional. Nuestro sistema detecta
-            los temas que están siendo cubiertos simultáneamente por medios de
-            múltiples cuadrantes ideológicos distintos. Son los temas sobre
-            los que realmente hay debate público, no los que se viralizan en
-            una sola burbuja.</p>
+            <p>No las elegimos: las calcula un algoritmo. Cada día, el sistema lee
+            los titulares de más de 28 fuentes de todo el espectro ideológico, agrupa
+            las que hablan del mismo tema, y calcula un índice de tensión informativa
+            para cada uno. Los temas con mayor tensión — donde hay más divergencia
+            entre cómo los cuenta cada lado — son seleccionados automáticamente para
+            análisis. El índice es una fórmula matemática transparente, no una decisión
+            editorial. Puedes ver el porcentaje de tensión y su desglose en cada tema.</p>
           </details>
           <details>
             <summary>¿Por qué debería confiar en vosotros y no en mi medio habitual?</summary>

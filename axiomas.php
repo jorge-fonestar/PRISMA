@@ -7,6 +7,7 @@ page_header('Los 11 axiomas Moral Core', 'Los 11 criterios verificables que debe
   <p class="eyebrow">Estándar Moral Core</p>
   <h1>Los 11 axiomas</h1>
   <p>Cada publicación de Prisma se evalúa contra estos 11 criterios antes de publicarse. Si no supera el umbral, se regenera o se descarta.</p>
+  <p style="font-size:0.9rem;color:var(--text-faint)">Los 11 axiomas evalúan la calidad del análisis una vez producido. La selección de qué temas analizar se rige por un criterio distinto: el <a href="<?= prisma_base() ?>fuentes.php">índice de tensión informativa</a>, una fórmula matemática que mide la divergencia editorial entre fuentes.</p>
 </div>
 
 <div class="content">

@@ -18,7 +18,7 @@ page_header('Aviso de inteligencia artificial', 'Todo el contenido de Prisma es 
   <h2>Cómo funciona el proceso</h2>
   <ol>
     <li><strong>Lectura automática de fuentes</strong> — Un sistema lee diariamente los RSS de medios de todo el espectro ideológico: de izquierda a derecha, españoles, europeos y globales.</li>
-    <li><strong>Selección por transversalidad</strong> — Se seleccionan los temas que aparecen en múltiples cuadrantes ideológicos. No los más virales; los que generan debate real.</li>
+    <li><strong>Detección y triage por tensión informativa</strong> — Un algoritmo matemático puntúa cada tema detectado según tres señales: asimetría de cobertura entre cuadrantes ideológicos, divergencia de vocabulario entre fuentes, y dispersión del espectro que lo cubre. Los temas que superan el umbral mínimo configurado son evaluados por un modelo ligero de IA (Claude Haiku) que confirma la tensión genuina y descarta falsos positivos. El score de tensión es 100% auditable: se muestra públicamente en cada tema con el desglose de cada señal.</li>
     <li><strong>Síntesis multi-perspectiva</strong> — Un primer agente de IA (Claude Sonnet) genera el artefacto mostrando todas las posturas enfrentadas con sus fuentes originales.</li>
     <li><strong>Auditoría independiente</strong> — Un segundo agente de IA, en contexto completamente separado, evalúa el resultado contra <a href="<?= prisma_base() ?>axiomas.php">11 axiomas verificables</a>. Si no pasa, se regenera o se descarta.</li>
   </ol>
@@ -35,6 +35,7 @@ page_header('Aviso de inteligencia artificial', 'Todo el contenido de Prisma es 
   <ul>
     <li><strong>Síntesis</strong>: Claude Sonnet (Anthropic) — optimizado para síntesis multi-fuente con instrucciones complejas.</li>
     <li><strong>Auditoría</strong>: Claude Sonnet/Opus (Anthropic) — máxima calidad en evaluación crítica.</li>
+    <li><strong>Triage</strong>: Claude Haiku (Anthropic) — confirmación rápida de candidatos. Una sola llamada diaria que evalúa todos los temas candidatos en batch. Coste aproximado: medio céntimo de dólar al día.</li>
   </ul>
 
   <h2>Verificación</h2>

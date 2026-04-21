@@ -55,14 +55,19 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
 
   <p style="margin-top:2rem"><strong>Total: <?= $total_medios ?> medios en <?= $total_cuad ?> cuadrantes de <?= $total_ambitos ?> ámbitos geográficos.</strong></p>
 
-  <h2>Criterios de selección de temas</h2>
-  <p>Un tema se considera candidato solo si:</p>
-  <ul>
-    <li>Aparece en múltiples cuadrantes ideológicos de la matriz (la diversidad se exige proporcionalmente al ámbito).</li>
-    <li>Tiene cobertura sustantiva, no mención marginal.</li>
-    <li>Es actualidad política: no crónica rosa, deportes ni entretenimiento.</li>
-  </ul>
-  <p>La selección final prioriza los temas con mayor frecuencia de aparición y mayor diversidad de cuadrantes que los cubren.</p>
+  <h2>Cómo decide el sistema qué analizar</h2>
+  <p>Cada día, el sistema lee los RSS de todas las fuentes listadas arriba, agrupa los artículos que hablan del mismo tema, y calcula un <strong>índice de tensión informativa</strong> para cada uno. Este índice combina tres señales:</p>
+
+  <h3>Asimetría de cobertura</h3>
+  <p>¿Cuántas fuentes de cada lado del espectro cubren el tema? Si solo un lado habla, hay tensión editorial. Un tema cubierto por 5 medios de derecha y ninguno de izquierda (o viceversa) tiene la máxima asimetría: el silencio es tan editorial como el titular. Esta es la señal con más peso en la fórmula, respaldada por investigadores del MIT Media Lab y Harvard (proyecto Media Cloud), que demostraron que lo que un medio elige cubrir — y lo que elige ignorar — es el indicador más fiable de sesgo editorial.</p>
+
+  <h3>Divergencia léxica</h3>
+  <p>¿Usan las mismas palabras para contar la misma historia? El sistema extrae las palabras clave de los titulares de cada cuadrante y mide la distancia entre los vocabularios (coeficiente de Jaccard). Si la izquierda dice «recorte» y la derecha dice «ajuste responsable» sobre el mismo hecho, la divergencia es alta. Cuanto más distintas son las palabras, más distinto es el encuadre.</p>
+
+  <h3>Varianza del espectro</h3>
+  <p>¿Quién cubre el tema? Un tema que solo aparece en los extremos (izquierda-populista y derecha-populista) pero no en el centro tiene un patrón distinto a uno que aparece en todo el espectro. La varianza de las posiciones ideológicas captura esta distribución.</p>
+
+  <p>Los temas que superan el umbral mínimo de tensión configurado son candidatos a análisis completo. De esos, se seleccionan los que mayor tensión presentan hasta el máximo diario configurado. El índice de tensión de cada tema — analizado o no — es público y verificable en su ficha.</p>
 
   <h2>Política de acceso</h2>
   <ul>
