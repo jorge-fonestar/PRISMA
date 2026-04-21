@@ -137,3 +137,158 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
 
     return null;
 }
+
+// ── Radar ────────────────────────────────────────────────────────────
+
+/**
+ * Inserts all detected topics into the radar table.
+ *
+ * @param array $temas All scored topics from curador_seleccionar()
+ * @param string $ambito Current ambito
+ * @param string $fecha Date string YYYY-MM-DD
+ * @return array Same topics with 'radar_id' added to each
+ */
+function radar_insertar_todos(array $temas, string $ambito, string $fecha): array {
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+
+    $stmt = $db->prepare('INSERT INTO radar
+        (fecha, titulo_tema, ambito, h_score, h_asimetria, h_divergencia, h_varianza, fuentes_json)
+        VALUES (:fecha, :titulo, :ambito, :h_score, :h_asim, :h_div, :h_var, :fuentes)');
+
+    foreach ($temas as &$tema) {
+        $fuentes = [];
+        foreach ($tema['articulos'] as $art) {
+            $fuentes[] = [
+                'medio'     => $art['medio'],
+                'titulo'    => $art['titulo'],
+                'url'       => $art['url'],
+                'cuadrante' => $art['cuadrante'],
+            ];
+        }
+
+        $stmt->execute([
+            ':fecha'   => $fecha,
+            ':titulo'  => $tema['titulo_tema'],
+            ':ambito'  => $ambito,
+            ':h_score' => $tema['h_score'],
+            ':h_asim'  => $tema['h_asimetria'],
+            ':h_div'   => $tema['h_divergencia'],
+            ':h_var'   => $tema['h_varianza'],
+            ':fuentes' => json_encode($fuentes, JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $tema['radar_id'] = $db->lastInsertId();
+    }
+    unset($tema);
+
+    prisma_log("RADAR", count($temas) . " temas insertados en radar.");
+    return $temas;
+}
+
+/**
+ * Updates a radar record with Haiku triage results.
+ */
+function radar_actualizar_triage(int $radar_id, string $frase, bool $analizado): void {
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    $stmt = $db->prepare('UPDATE radar SET haiku_frase = :frase, analizado = :anal WHERE id = :id');
+    $stmt->execute([':frase' => $frase, ':anal' => $analizado ? 1 : 0, ':id' => $radar_id]);
+}
+
+/**
+ * Links a radar record to a published article.
+ */
+function radar_link_articulo(int $radar_id, string $articulo_id): void {
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    $stmt = $db->prepare('UPDATE radar SET articulo_id = :aid WHERE id = :id');
+    $stmt->execute([':aid' => $articulo_id, ':id' => $radar_id]);
+}
+
+/**
+ * Cleans up radar entries older than 90 days.
+ */
+function radar_limpiar(): void {
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    $deleted = $db->exec("DELETE FROM radar WHERE fecha < date('now', '-90 days')");
+    if ($deleted > 0) {
+        prisma_log("RADAR", "Limpieza: $deleted registros antiguos eliminados.");
+    }
+}
+
+// ── Haiku Triage ─────────────────────────────────────────────────────
+
+/**
+ * Haiku triage: confirms tension and generates explanatory phrases.
+ *
+ * @param array $candidatos Topics with H >= umbral (must have 'radar_id', 'titulo_tema', 'articulos')
+ * @return array Filtered array of confirmed topics, each with 'haiku_frase' added
+ */
+function triage_haiku(array $candidatos): array {
+    require_once __DIR__ . '/anthropic.php';
+    $cfg = prisma_cfg();
+
+    // Build batch prompt
+    $temas_text = '';
+    foreach ($candidatos as $i => $tema) {
+        $num = $i + 1;
+        $temas_text .= "\nTema $num: \"{$tema['titulo_tema']}\" (H={$tema['h_score']})\n";
+
+        $por_cuadrante = [];
+        foreach ($tema['articulos'] as $art) {
+            $por_cuadrante[$art['cuadrante']][] = $art['titulo'];
+        }
+        foreach ($por_cuadrante as $cuadrante => $titulares) {
+            $temas_text .= "  [$cuadrante]: " . implode(' | ', array_slice($titulares, 0, 3)) . "\n";
+        }
+    }
+
+    $system = 'Eres un analista de medios. Evalúas si la tensión informativa detectada entre fuentes de distintos cuadrantes ideológicos es genuina o un falso positivo (ej. vocabulario técnico diverso que no refleja divergencia editorial real). Respondes SOLO en JSON válido, sin markdown.';
+
+    $user_msg = "Evalúa estos " . count($candidatos) . " temas. Para cada uno, indica si la tensión es genuina (confirma: true/false) y una frase explicativa de una línea en español describiendo la naturaleza de la tensión o la razón del descarte.
+
+Responde con un array JSON:
+[{\"tema\": 1, \"confirma\": true/false, \"frase\": \"...\"}]
+
+$temas_text";
+
+    try {
+        $model = $cfg['model_triage'];
+        $raw = anthropic_call($model, $system, $user_msg, 2048);
+        $results = parse_json_response($raw);
+    } catch (Throwable $e) {
+        // Fallback: skip triage, use all candidates
+        prisma_log("TRIAGE", "ERROR Haiku: " . $e->getMessage() . " — usando H score bruto.");
+        foreach ($candidatos as &$tema) {
+            $tema['haiku_frase'] = null;
+            radar_actualizar_triage($tema['radar_id'], '', true);
+        }
+        unset($tema);
+        return $candidatos;
+    }
+
+    // Map results back to candidates
+    $confirmados = [];
+    foreach ($results as $r) {
+        $idx = ($r['tema'] ?? 0) - 1;
+        if ($idx < 0 || $idx >= count($candidatos)) continue;
+
+        $tema = $candidatos[$idx];
+        $frase = $r['frase'] ?? '';
+        $confirma = !empty($r['confirma']);
+
+        radar_actualizar_triage($tema['radar_id'], $frase, $confirma);
+        $tema['haiku_frase'] = $frase;
+
+        if ($confirma) {
+            $confirmados[] = $tema;
+        } else {
+            prisma_log("TRIAGE", "Descartado: \"{$tema['titulo_tema']}\" — $frase");
+        }
+    }
+
+    prisma_log("TRIAGE", count($confirmados) . " de " . count($candidatos) . " confirmados por Haiku.");
+    return $confirmados;
+}
