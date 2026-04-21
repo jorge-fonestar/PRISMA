@@ -60,14 +60,14 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
 
   <p>El índice combina tres señales:</p>
 
-  <h3>Asimetría de cobertura</h3>
-  <p>¿Cuántas fuentes de cada lado del espectro cubren el tema? Si solo un lado habla, hay tensión editorial. Un tema cubierto por 5 medios de derecha y ninguno de izquierda (o viceversa) tiene la máxima asimetría: el silencio es tan editorial como el titular. Esta es la señal con más peso en la fórmula, respaldada por investigadores del MIT Media Lab y Harvard (proyecto Media Cloud), que demostraron que lo que un medio elige cubrir — y lo que elige ignorar — es el indicador más fiable de sesgo editorial.</p>
+  <h3>Asimetría de cobertura <span style="color:var(--text-faint);font-weight:normal">(60%)</span></h3>
+  <p>¿Cuántas fuentes de cada lado del espectro cubren el tema? Si solo un lado habla, hay tensión editorial. Un tema cubierto por 5 medios de derecha y ninguno de izquierda (o viceversa) tiene la máxima asimetría: el silencio es tan editorial como el titular. Esta es la señal dominante de la fórmula, respaldada por investigadores del MIT Media Lab y Harvard (proyecto Media Cloud), que demostraron que lo que un medio elige cubrir — y lo que elige ignorar — es el indicador más fiable de sesgo editorial, por encima del análisis de vocabulario o del framing textual.</p>
 
-  <h3>Divergencia léxica</h3>
-  <p>¿Usan las mismas palabras para contar la misma historia? El sistema extrae las palabras clave de los titulares de cada cuadrante y mide la distancia entre los vocabularios (coeficiente de Jaccard). Si la izquierda dice «recorte» y la derecha dice «ajuste responsable» sobre el mismo hecho, la divergencia es alta. Cuanto más distintas son las palabras, más distinto es el encuadre.</p>
+  <h3>Divergencia léxica <span style="color:var(--text-faint);font-weight:normal">(25%)</span></h3>
+  <p>¿Usan las mismas palabras para contar la misma historia? El sistema extrae las palabras clave de los titulares de cada cuadrante y mide la distancia entre los vocabularios (coeficiente de Jaccard). Si la izquierda dice «recorte» y la derecha dice «ajuste responsable» sobre el mismo hecho, la divergencia es alta. Cuanto más distintas son las palabras, más distinto es el encuadre. Esta señal complementa a la asimetría: detecta tensión editorial incluso cuando ambos lados cubren la noticia.</p>
 
-  <h3>Varianza del espectro</h3>
-  <p>¿Quién cubre el tema? Un tema que solo aparece en los extremos (izquierda-populista y derecha-populista) pero no en el centro tiene un patrón distinto a uno que aparece en todo el espectro. La varianza de las posiciones ideológicas captura esta distribución.</p>
+  <h3>Varianza del espectro <span style="color:var(--text-faint);font-weight:normal">(15%)</span></h3>
+  <p>¿Quién cubre el tema? Un tema que solo aparece en los extremos (izquierda-populista y derecha-populista) pero no en el centro tiene un patrón distinto a uno que aparece en todo el espectro. La varianza de las posiciones ideológicas captura esta distribución y añade un matiz contextual a la puntuación final.</p>
 
   <p>La segunda fase (análisis) se ejecuta selectivamente y consume recursos de IA. Los temas que superan el umbral mínimo de tensión son confirmados por un modelo ligero (triage), sintetizados en un artefacto multi-postura y auditados contra 11 axiomas de neutralidad. Solo los que pasan la auditoría se publican como análisis completo. El índice de tensión de cada tema — analizado o no — es público y verificable en su ficha.</p>
 

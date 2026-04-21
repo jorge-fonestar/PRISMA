@@ -127,7 +127,7 @@ function curador_seleccionar(array $articles): array {
  * @return array ['h_score'=>float, 'h_asimetria'=>float, 'h_divergencia'=>float, 'h_varianza'=>float]
  */
 function calcular_tension(array $articles): array {
-    // --- Signal A: Coverage Asymmetry (45%) ---
+    // --- Signal A: Coverage Asymmetry (60%) ---
     $izq_n = 0;
     $der_n = 0;
     $centro_n = 0;
@@ -140,7 +140,7 @@ function calcular_tension(array $articles): array {
     $total = $izq_n + $der_n + $centro_n;
     $asimetria = ($total > 0) ? abs($izq_n - $der_n) / $total : 0.0;
 
-    // --- Signal B: Lexical Divergence (40%) ---
+    // --- Signal B: Lexical Divergence (25%) ---
     $kw_izq = [];
     $kw_der = [];
     foreach ($articles as $art) {
@@ -181,7 +181,7 @@ function calcular_tension(array $articles): array {
     }
 
     // --- Composite Score ---
-    $h = 0.45 * $asimetria + 0.40 * $divergencia + 0.15 * $varianza_norm;
+    $h = 0.60 * $asimetria + 0.25 * $divergencia + 0.15 * $varianza_norm;
 
     return [
         'h_score'       => round($h, 4),

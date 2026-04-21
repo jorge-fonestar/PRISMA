@@ -986,15 +986,15 @@ $B = prisma_base();
             <details style="margin-top:0.5rem">
               <summary style="font-size:0.88rem;color:var(--text-muted);cursor:pointer">Detalles técnicos del algoritmo</summary>
               <p style="font-size:0.88rem;margin-top:0.5rem">El algoritmo calcula un índice de tensión informativa
-              para cada tema detectado, combinando tres señales matemáticas: la asimetría de cobertura (qué
-              proporción de fuentes de cada lado del espectro cubren el tema — un silencio editorial es tan
-              revelador como un titular), la divergencia léxica (distancia Jaccard entre el vocabulario que usa
-              cada cuadrante para describir el mismo hecho) y la varianza del espectro (dispersión de las
-              posiciones ideológicas que cubren el tema). Investigadores del MIT Media Lab y Harvard (proyecto
-              Media Cloud) han demostrado que la selección de cobertura — qué elige contar cada medio y qué
-              elige ignorar — es la señal más fiable de sesgo editorial, por encima del análisis de
-              sentimiento o del framing textual. El índice de tensión de cada tema es público y verificable
-              en su ficha.</p>
+              para cada tema detectado, combinando tres señales matemáticas con peso decreciente: la asimetría
+              de cobertura (60% — qué proporción de fuentes de cada lado del espectro cubren el tema; un
+              silencio editorial es tan revelador como un titular), la divergencia léxica (25% — distancia
+              Jaccard entre el vocabulario que usa cada cuadrante para describir el mismo hecho) y la varianza
+              del espectro (15% — dispersión de las posiciones ideológicas que cubren el tema). La asimetría
+              de cobertura domina la fórmula porque investigadores del MIT Media Lab y Harvard (proyecto Media
+              Cloud) han demostrado que la selección de cobertura — qué elige contar cada medio y qué elige
+              ignorar — es la señal más fiable de sesgo editorial, por encima del análisis de vocabulario o
+              del framing textual. El índice de tensión de cada tema es público y verificable en su ficha.</p>
             </details>
           </article>
           <article class="step">

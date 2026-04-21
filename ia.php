@@ -21,7 +21,7 @@ page_header('Aviso de inteligencia artificial', 'Todo el contenido de Prisma es 
   <h3>Fase 1 — Escaneo (sin IA)</h3>
   <ol>
     <li><strong>Lectura automática de fuentes</strong> — El sistema lee periódicamente los RSS de medios de todo el espectro ideológico: de izquierda a derecha, españoles, europeos y globales.</li>
-    <li><strong>Detección de tensión informativa</strong> — Un algoritmo matemático (sin IA) puntúa cada tema según tres señales: asimetría de cobertura entre cuadrantes ideológicos, divergencia de vocabulario entre fuentes, y dispersión del espectro. El score es 100% auditable y se muestra públicamente en cada tema. Este paso no gasta recursos de IA.</li>
+    <li><strong>Detección de tensión informativa</strong> — Un algoritmo matemático (sin IA) puntúa cada tema según tres señales ponderadas: asimetría de cobertura entre cuadrantes ideológicos (60%), divergencia de vocabulario entre fuentes (25%) y dispersión del espectro (15%). La asimetría domina porque el silencio editorial — que un lado cubra un tema y el otro lo ignore — es la señal más fiable de sesgo. El score es 100% auditable y se muestra públicamente en cada tema. Este paso no gasta recursos de IA.</li>
   </ol>
 
   <h3>Fase 2 — Análisis (con IA)</h3>
