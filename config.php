@@ -35,6 +35,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
     'anthropic_api_key'   => getenv('ANTHROPIC_API_KEY') ?: '',
     'model_synth'         => 'claude-sonnet-4-6',
     'model_audit'         => 'claude-sonnet-4-6',
+    'model_triage'        => 'claude-haiku-4-5-20251001',
 
     // ── Ingest ──────────────────────────────────────────────────────
     'ingest_key'          => getenv('PRISMA_INGEST_KEY') ?: '',
@@ -49,6 +50,8 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',
     'articulos_dia'       => 5,
+    'min_cuadrantes'      => 3,             // Mínimo de cuadrantes para ir al pipeline Sonnet
+    'umbral_tension'      => 0.60,          // H mínimo para ser candidato a análisis
 
     // ── RSS por ámbito y cuadrante ──────────────────────────────────
     'fuentes' => array(

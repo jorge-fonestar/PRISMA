@@ -34,6 +34,24 @@ function prisma_db(): PDO {
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_fecha ON articulos(fecha_publicacion DESC)');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS radar (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha           TEXT NOT NULL,
+        titulo_tema     TEXT NOT NULL,
+        ambito          TEXT NOT NULL,
+        h_score         REAL NOT NULL,
+        h_asimetria     REAL NOT NULL,
+        h_divergencia   REAL NOT NULL,
+        h_varianza      REAL NOT NULL,
+        haiku_frase     TEXT,
+        analizado       INTEGER DEFAULT 0,
+        articulo_id     TEXT,
+        fuentes_json    TEXT NOT NULL,
+        created_at      TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_fecha ON radar(fecha DESC)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_score ON radar(h_score DESC)');
+
     return $pdo;
 }
 
