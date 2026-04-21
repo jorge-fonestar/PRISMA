@@ -1,18 +1,39 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/theme.php';
+require_once __DIR__ . '/lib/layout.php';
 
 $db = prisma_db();
-$rows = $db->query('SELECT id, fecha_publicacion, ambito, titular_neutral, resumen, payload, veredicto FROM articulos ORDER BY fecha_publicacion DESC LIMIT 50')->fetchAll();
 
-$articles = [];
+// Get latest date with radar data
+$stmt = $db->prepare("SELECT fecha FROM radar ORDER BY fecha DESC LIMIT 1");
+$stmt->execute();
+$latest = $stmt->fetchColumn();
+
+$temas = [];
 $ambitos_count = [];
-foreach ($rows as $row) {
-    $art = json_decode($row['payload'], true);
-    $art['_id'] = $row['id'];
-    $articles[] = $art;
-    $a = $art['ambito'] ?? '';
-    $ambitos_count[$a] = ($ambitos_count[$a] ?? 0) + 1;
+if ($latest) {
+    $stmt = $db->prepare("SELECT * FROM radar WHERE fecha = :f ORDER BY h_score DESC");
+    $stmt->execute([':f' => $latest]);
+    $temas = $stmt->fetchAll();
+    foreach ($temas as $t) {
+        $a = $t['ambito'];
+        $ambitos_count[$a] = ($ambitos_count[$a] ?? 0) + 1;
+    }
+}
+
+// Also fetch analyzed articles (for backwards compat until radar is populated)
+$articles = [];
+if (empty($temas)) {
+    $rows = $db->query('SELECT id, fecha_publicacion, ambito, titular_neutral, resumen, payload, veredicto FROM articulos ORDER BY fecha_publicacion DESC LIMIT 50')->fetchAll();
+    foreach ($rows as $row) {
+        $art = json_decode($row['payload'], true);
+        $art['_id'] = $row['id'];
+        $articles[] = $art;
+        $a = $art['ambito'] ?? '';
+        $ambitos_count[$a] = ($ambitos_count[$a] ?? 0) + 1;
+    }
 }
 
 function format_fecha($iso) {
@@ -27,6 +48,7 @@ function ambito_label($ambito) {
 }
 
 $B = prisma_base();
+$cfg = prisma_cfg();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -34,7 +56,7 @@ $B = prisma_base();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prisma — Noticias de hoy</title>
-  <meta name="description" content="Las noticias políticas más relevantes del día, presentadas desde todas las posturas enfrentadas. Sin editorial, sin algoritmo, sin cámaras de eco.">
+  <meta name="description" content="Radar informativo: todos los temas políticos del día puntuados por tensión informativa. Los más tensos se analizan en profundidad desde todas las posturas. Sin editorial, sin cámaras de eco.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
   <?= theme_head_script() ?>
@@ -330,25 +352,65 @@ $B = prisma_base();
 
       <!-- Noticias -->
       <div class="section-header">
-        <p class="eyebrow">Noticias</p>
+        <p class="eyebrow">Radar informativo</p>
         <h2>Hoy en Prisma</h2>
+        <p>Todos los temas detectados, ordenados por tensión informativa. Los de mayor tensión se analizan en profundidad.</p>
       </div>
 
       <?php if (!empty($articles) && count($ambitos_count) > 1): ?>
         <div class="filters">
-          <button class="filter-btn active" data-filter="all">Todos <span class="count"><?= count($articles) ?></span></button>
+          <button class="filter-btn active" data-filter="all">Todos <span class="count"><?= !empty($temas) ? count($temas) : count($articles) ?></span></button>
           <?php foreach ($ambitos_count as $amb => $cnt): ?>
             <button class="filter-btn" data-filter="<?= htmlspecialchars($amb) ?>"><?= htmlspecialchars(ambito_label($amb)) ?> <span class="count"><?= $cnt ?></span></button>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
 
-      <?php if (empty($articles)): ?>
+      <?php if (empty($temas) && empty($articles)): ?>
         <div class="empty-state">
           <h2>No hay noticias disponibles</h2>
-          <p>Todavia no se han publicado artefactos. Vuelve pronto.</p>
+          <p>Todavía no se han publicado artefactos. Vuelve pronto.</p>
         </div>
+
+      <?php elseif (!empty($temas)): ?>
+        <?php if ($latest !== date('Y-m-d')): ?>
+          <p style="font-family:'Inter',Arial,sans-serif;font-size:0.78rem;color:var(--text-faint);margin-bottom:1.5rem">
+            Última actualización: <?= format_fecha($latest) ?>
+          </p>
+        <?php endif; ?>
+        <div class="articles-list">
+          <?php foreach ($temas as $tema):
+            $fuentes = json_decode($tema['fuentes_json'], true) ?: [];
+            $link = $tema['analizado'] && $tema['articulo_id']
+                ? $B . 'articulo.php?id=' . urlencode($tema['articulo_id'])
+                : $B . 'articulo.php?radar=' . urlencode($tema['id']);
+            $frase = $tema['haiku_frase'] ?: tension_frase_generica($tema['h_asimetria'], $tema['h_divergencia']);
+          ?>
+            <a href="<?= $link ?>" class="article-card" data-ambito="<?= htmlspecialchars($tema['ambito']) ?>" style="display:flex;gap:20px;align-items:flex-start">
+              <?= render_circulo_tension($tema['h_score']) ?>
+              <div style="flex:1;min-width:0">
+                <div class="article-meta">
+                  <span class="badge-ambito"><?= htmlspecialchars(ambito_label($tema['ambito'])) ?></span>
+                  <?php if ($tema['analizado']): ?>
+                    <span class="badge-apto" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border)">Analizado</span>
+                  <?php endif; ?>
+                </div>
+                <h2 style="font-size:clamp(1.1rem,2vw,1.4rem);margin-bottom:0.3em"><?= htmlspecialchars($tema['titulo_tema']) ?></h2>
+                <p style="color:var(--text-faint);font-size:0.88rem;font-style:italic;margin:0 0 0.8em 0"><?= htmlspecialchars($frase) ?></p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <?php foreach ($fuentes as $f): ?>
+                    <span class="postura-chip" style="border-left:3px solid <?= cuadrante_color($f['cuadrante']) ?>;padding-left:8px">
+                      <?= htmlspecialchars($f['medio']) ?>
+                    </span>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+
       <?php else: ?>
+        <!-- Fallback: articles mode (no radar data yet) -->
         <div class="articles-list">
           <?php foreach ($articles as $art): ?>
             <a href="<?= $B ?>articulo.php?id=<?= urlencode($art['_id']) ?>" class="article-card" data-ambito="<?= htmlspecialchars($art['ambito'] ?? '') ?>">
