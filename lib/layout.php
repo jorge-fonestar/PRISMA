@@ -289,19 +289,28 @@ function render_circulo_tension(float $score, int $size = 36): string {
  * @param float $h_score For color selection
  * @return string HTML
  */
-function render_barras_tension(float $asimetria, float $divergencia, float $varianza, float $h_score): string {
+function render_barras_tension(float $asimetria, float $divergencia, float $varianza, float $h_score, $scoring_version = null): string {
     $color = tension_color($h_score);
-    $signals = [
-        ['Asimetría cobertura', $asimetria],
-        ['Divergencia léxica', $divergencia],
-        ['Varianza espectro', $varianza],
-    ];
+
+    if ($scoring_version === 'v2') {
+        $signals = [
+            ['Cobertura mutua', $asimetria],
+            ['Divergencia de framing', $divergencia],
+            ['Silencio editorial', $varianza],
+        ];
+    } else {
+        $signals = [
+            ['Asimetría cobertura', $asimetria],
+            ['Divergencia léxica', $divergencia],
+            ['Varianza espectro', $varianza],
+        ];
+    }
 
     $html = '<div style="display:flex;flex-direction:column;gap:6px">';
     foreach ($signals as list($label, $val)) {
         $pct = round($val * 100);
         $html .= '<div style="display:flex;align-items:center;gap:8px">'
-            . '<span style="font-family:Inter,Arial,sans-serif;font-size:0.72em;color:var(--text-faint);width:130px;flex-shrink:0">' . $label . '</span>'
+            . '<span style="font-family:Inter,Arial,sans-serif;font-size:0.72em;color:var(--text-faint);width:150px;flex-shrink:0">' . $label . '</span>'
             . '<div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">'
             . '<div style="width:' . $pct . '%;height:100%;background:' . $color . ';border-radius:3px"></div></div>'
             . '<span style="font-family:Inter,Arial,sans-serif;font-size:0.68em;color:var(--text-faint);width:32px;text-align:right">' . $pct . '%</span>'
@@ -314,7 +323,16 @@ function render_barras_tension(float $asimetria, float $divergencia, float $vari
 /**
  * Generates a generic tension phrase for topics below threshold (no Haiku frase).
  */
-function tension_frase_generica(float $asimetria, float $divergencia): string {
+function tension_frase_generica(float $asimetria, float $divergencia, $relevancia = null, $fd = null): string {
+    if ($relevancia === 'descartar') {
+        return 'Tema sin carga ideológica detectada';
+    }
+    if ($fd !== null) {
+        if ($fd == 0) return 'Cobertura insuficiente para medir divergencia';
+        if ($fd == 1) return 'Diferencias menores de énfasis entre fuentes';
+        if ($fd >= 2 && $asimetria < 0.3) return 'Framing divergente con cobertura limitada';
+    }
+    // Legacy fallback
     if ($asimetria <= $divergencia) {
         return 'Cobertura equilibrada entre cuadrantes';
     }

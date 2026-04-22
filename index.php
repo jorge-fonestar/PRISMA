@@ -261,7 +261,17 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
     .article-card:hover {
       border-color: var(--border-hover); background: var(--bg-card-hover);
     }
-    .article-card.hidden, .article-card.hidden-polar { display: none; }
+    .article-card.hidden, .article-card.hidden-polar, .article-card.hidden-analyzed { display: none; }
+    .article-card.card-analyzed {
+      border-left: 3px solid var(--accent);
+    }
+    .badge-analyzed {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border); border-radius: 999px;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.68rem; font-weight: 600;
+      letter-spacing: 0.04em;
+    }
     .article-meta {
       display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; flex-wrap: wrap;
     }
@@ -389,6 +399,12 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       </div>
 
       <!-- Toolbar: date + ambito filters -->
+      <?php
+        $analizados = 0;
+        if (!empty($temas)) {
+          foreach ($temas as $t) { if ($t['analizado']) $analizados++; }
+        }
+      ?>
       <?php if (!empty($temas) || !empty($articles)): ?>
         <div class="toolbar">
           <?php if (!empty($fechas_disponibles) && count($fechas_disponibles) > 1): ?>
@@ -430,6 +446,15 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
             <button class="filter-btn polar-btn" data-min="0" data-max="49">&lt;50%</button>
           </div>
 
+          <div class="toolbar-sep"></div>
+
+          <div class="toolbar-group">
+            <button class="filter-btn analyzed-btn" id="btn-analyzed" title="Mostrar solo temas con análisis multi-postura completado">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px"><path d="M20 6L9 17l-5-5"/></svg>
+              Analizados <span class="count"><?= $analizados ?></span>
+            </button>
+          </div>
+
           <div class="sort-toggle">
             <button class="sort-btn active" data-sort="tension" title="Ordenar por polarización">Polarización</button>
             <button class="sort-btn" data-sort="alpha" title="Ordenar alfabéticamente">A-Z</button>
@@ -442,13 +467,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
           <?php if ($fecha_sel): ?>
             <span><?= format_fecha($fecha_sel) ?></span>
           <?php endif; ?>
-          <?php
-            $analizados = 0;
-            if (!empty($temas)) {
-              foreach ($temas as $t) { if ($t['analizado']) $analizados++; }
-            }
-            if ($analizados > 0):
-          ?>
+          <?php if ($analizados > 0): ?>
             <span><strong><?= $analizados ?></strong> analizados en profundidad</span>
           <?php endif; ?>
         </div>
@@ -477,18 +496,27 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
             $link = $tema['analizado'] && $tema['articulo_id']
                 ? $B . 'articulo.php?id=' . urlencode($tema['articulo_id'])
                 : $B . 'articulo.php?radar=' . urlencode($tema['id']);
-            $frase = $tema['haiku_frase'] ? $tema['haiku_frase'] : tension_frase_generica($tema['h_asimetria'], $tema['h_divergencia']);
+            $sv = isset($tema['scoring_version']) ? $tema['scoring_version'] : 'v1';
+            $m1 = ($sv === 'v2' && $tema['h_cobertura_mutua'] !== null) ? (float)$tema['h_cobertura_mutua'] : (float)$tema['h_asimetria'];
+            $m2 = ($sv === 'v2' && $tema['h_framing'] !== null) ? (float)$tema['h_framing'] : (float)$tema['h_divergencia'];
+            $rel = isset($tema['relevancia']) ? $tema['relevancia'] : null;
+            $fd = isset($tema['framing_divergence']) ? (int)$tema['framing_divergence'] : null;
+            $frase = $tema['haiku_frase'] ? $tema['haiku_frase'] : tension_frase_generica($m1, $m2, $rel, $fd);
           ?>
-            <a href="<?= $link ?>" class="article-card"
+            <a href="<?= $link ?>" class="article-card<?= $tema['analizado'] ? ' card-analyzed' : '' ?>"
                data-ambito="<?= h($tema['ambito']) ?>"
                data-score="<?= $tema['h_score'] ?>"
+               data-analyzed="<?= $tema['analizado'] ? '1' : '0' ?>"
                data-title="<?= h($tema['titulo_tema']) ?>">
               <?= render_circulo_tension($tema['h_score']) ?>
               <div style="flex:1;min-width:0">
                 <div class="article-meta">
                   <span class="badge-ambito"><?= h(ambito_label($tema['ambito'])) ?></span>
                   <?php if ($tema['analizado']): ?>
-                    <span class="badge-apto">Analizado</span>
+                    <span class="badge-analyzed">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:-1px"><path d="M20 6L9 17l-5-5"/></svg>
+                      Análisis multi-postura
+                    </span>
                   <?php endif; ?>
                   <span style="font-family:'Inter',Arial,sans-serif;font-size:0.7rem;color:var(--text-faint);margin-left:auto">
                     H <?= number_format($tema['h_score'] * 100, 0) ?>%
@@ -552,20 +580,22 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
   </footer>
 
   <script>
-  // Polarization filter state — default: show >=50% only
+  // Filter state
   var polarMin = 50, polarMax = 100;
+  var onlyAnalyzed = false;
 
-  function applyPolarFilter() {
+  function applyFilters() {
     var list = document.getElementById('articles-list');
     if (!list) return;
     var cards = Array.prototype.slice.call(list.querySelectorAll('.article-card'));
     cards.forEach(function(card) {
       var score = Math.round(parseFloat(card.dataset.score || 0) * 100);
-      var hidden = score < polarMin || score > polarMax;
-      card.classList.toggle('hidden-polar', hidden);
+      var hiddenPolar = score < polarMin || score > polarMax;
+      var hiddenAnalyzed = onlyAnalyzed && card.dataset.analyzed !== '1';
+      card.classList.toggle('hidden-polar', hiddenPolar);
+      card.classList.toggle('hidden-analyzed', hiddenAnalyzed);
     });
-    // Update visible count
-    var visible = list.querySelectorAll('.article-card:not(.hidden-polar)').length;
+    var visible = list.querySelectorAll('.article-card:not(.hidden-polar):not(.hidden-analyzed)').length;
     var counter = document.getElementById('polar-count');
     if (counter) counter.textContent = visible;
   }
@@ -577,12 +607,22 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       this.classList.add('active');
       polarMin = parseInt(this.dataset.min, 10);
       polarMax = parseInt(this.dataset.max, 10);
-      applyPolarFilter();
+      applyFilters();
     });
   });
 
+  // Analyzed toggle
+  var analyzedBtn = document.getElementById('btn-analyzed');
+  if (analyzedBtn) {
+    analyzedBtn.addEventListener('click', function() {
+      onlyAnalyzed = !onlyAnalyzed;
+      this.classList.toggle('active', onlyAnalyzed);
+      applyFilters();
+    });
+  }
+
   // Apply default filter on load
-  applyPolarFilter();
+  applyFilters();
 
   // Client-side sort (tension vs alphabetical)
   document.querySelectorAll('.sort-btn').forEach(function(btn) {
@@ -592,7 +632,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       var mode = this.dataset.sort;
       var list = document.getElementById('articles-list');
       if (!list) return;
-      var cards = Array.prototype.slice.call(list.querySelectorAll('.article-card:not(.hidden-polar)'));
+      var cards = Array.prototype.slice.call(list.querySelectorAll('.article-card:not(.hidden-polar):not(.hidden-analyzed)'));
       cards.sort(function(a, b) {
         if (mode === 'tension') {
           return parseFloat(b.dataset.score || 0) - parseFloat(a.dataset.score || 0);

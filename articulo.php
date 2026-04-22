@@ -90,7 +90,14 @@ $axiom_names = [
   <meta name="description" content="<?= htmlspecialchars(mb_substr($art['resumen'], 0, 160)) ?>">
   <meta name="robots" content="index, follow">
   <?php elseif ($radar): ?>
-  <meta name="description" content="Tema detectado el <?= htmlspecialchars($radar['fecha']) ?> con <?= round($radar['h_score'] * 100) ?>% de polarización informativa. <?= htmlspecialchars($radar['haiku_frase'] ?: tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?>">
+  <?php
+    $r_sv = isset($radar['scoring_version']) ? $radar['scoring_version'] : 'v1';
+    $r_m1 = ($r_sv === 'v2' && $radar['h_cobertura_mutua'] !== null) ? (float)$radar['h_cobertura_mutua'] : (float)$radar['h_asimetria'];
+    $r_m2 = ($r_sv === 'v2' && $radar['h_framing'] !== null) ? (float)$radar['h_framing'] : (float)$radar['h_divergencia'];
+    $r_rel = isset($radar['relevancia']) ? $radar['relevancia'] : null;
+    $r_fd = isset($radar['framing_divergence']) ? (int)$radar['framing_divergence'] : null;
+  ?>
+  <meta name="description" content="Tema detectado el <?= htmlspecialchars($radar['fecha']) ?> con <?= round($radar['h_score'] * 100) ?>% de polarización informativa. <?= htmlspecialchars($radar['haiku_frase'] ?: tension_frase_generica($r_m1, $r_m2, $r_rel, $r_fd)) ?>">
   <meta name="robots" content="noindex, follow">
   <?php else: ?>
   <meta name="robots" content="noindex, follow">
@@ -444,10 +451,15 @@ $axiom_names = [
       <?php endif; ?>
 
       <!-- Polarización informativa -->
-      <?php if ($tension_data): ?>
+      <?php if ($tension_data):
+        $td_sv = isset($tension_data['scoring_version']) ? $tension_data['scoring_version'] : 'v1';
+        $td_m1 = ($td_sv === 'v2' && $tension_data['h_cobertura_mutua'] !== null) ? (float)$tension_data['h_cobertura_mutua'] : (float)$tension_data['h_asimetria'];
+        $td_m2 = ($td_sv === 'v2' && $tension_data['h_framing'] !== null) ? (float)$tension_data['h_framing'] : (float)$tension_data['h_divergencia'];
+        $td_m3 = ($td_sv === 'v2' && $tension_data['h_silencio'] !== null) ? (float)$tension_data['h_silencio'] : (float)$tension_data['h_varianza'];
+      ?>
         <div style="margin-bottom:2rem">
           <p class="section-label" style="margin-bottom:0.8rem">Polarización informativa</p>
-          <?= render_barras_tension($tension_data['h_asimetria'], $tension_data['h_divergencia'], $tension_data['h_varianza'], $tension_data['h_score']) ?>
+          <?= render_barras_tension($td_m1, $td_m2, $td_m3, (float)$tension_data['h_score'], $td_sv) ?>
         </div>
       <?php endif; ?>
 
@@ -542,7 +554,7 @@ $axiom_names = [
           <?php if ($radar['haiku_frase']): ?>
             <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars($radar['haiku_frase']) ?></p>
           <?php else: ?>
-            <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars(tension_frase_generica($radar['h_asimetria'], $radar['h_divergencia'])) ?></p>
+            <p style="margin:0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars(tension_frase_generica($r_m1, $r_m2, $r_rel, $r_fd)) ?></p>
           <?php endif; ?>
         <?php else: ?>
           <!-- Caso 2: Supera el umbral pero aún no hay artículo analizado -->
@@ -556,7 +568,10 @@ $axiom_names = [
       <!-- Tension breakdown -->
       <div style="margin-bottom:2rem">
         <p class="section-label" style="margin-bottom:0.8rem">Desglose de polarización informativa</p>
-        <?= render_barras_tension($radar['h_asimetria'], $radar['h_divergencia'], $radar['h_varianza'], $radar['h_score']) ?>
+        <?php
+          $r_m3 = ($r_sv === 'v2' && $radar['h_silencio'] !== null) ? (float)$radar['h_silencio'] : (float)$radar['h_varianza'];
+        ?>
+        <?= render_barras_tension($r_m1, $r_m2, $r_m3, (float)$radar['h_score'], $r_sv) ?>
       </div>
 
       <!-- Source list -->

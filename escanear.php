@@ -17,6 +17,9 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/common.php';
 require_once __DIR__ . '/lib/rss.php';
 require_once __DIR__ . '/lib/curador.php';
+require_once __DIR__ . '/lib/scoring.php';
+require_once __DIR__ . '/lib/diccionarios.php';
+require_once __DIR__ . '/lib/gate_haiku.php';
 
 // ── Args ─────────────────────────────────────────────────────────────
 
@@ -82,7 +85,157 @@ foreach ($ambitos_to_run as $ambito) {
 
     prisma_log("SCAN", count($all_temas) . " temas detectados.");
 
-    // 3. Insert into radar (dedup included)
+    // 3. Scoring v2 pipeline
+    prisma_log("SCAN", "Scoring v2: señales estructurales + pre-filtro...");
+
+    $clusters_para_haiku = array();
+    $cluster_id_counter = 0;
+
+    foreach ($all_temas as &$tema) {
+        $cluster_id_counter++;
+        $tema['cluster_id'] = $cluster_id_counter;
+
+        // Structural signals
+        $tema['h_cobertura_mutua'] = calcular_cobertura_mutua($tema['articulos']);
+        $tema['h_silencio_v2'] = calcular_silencio($tema['articulos']);
+        $bloques = contar_bloques($tema['articulos']);
+        $tema['bloques_activos'] = $bloques['bloques_activos'];
+
+        // Pre-filter: negative list
+        $neg = aplicar_lista_negativa($tema['titulo_tema']);
+        if ($neg['descartado']) {
+            $tema['h_score'] = 0.0;
+            $tema['h_framing'] = 0.0;
+            $tema['h_silencio'] = 0.0;
+            $tema['framing_divergence'] = null;
+            $tema['framing_evidence'] = null;
+            $tema['relevancia'] = 'descartar';
+            $tema['dominio_tematico'] = null;
+            $tema['scoring_version'] = 'v2';
+            prisma_log("SCAN", sprintf("  DESCARTAR: \"%s\" (keyword: %s)",
+                mb_substr($tema['titulo_tema'], 0, 50, 'UTF-8'), $neg['keyword']));
+            continue;
+        }
+
+        // Positive list hint
+        $tema['contains_political_actor'] = detectar_lista_positiva($tema['titulo_tema']);
+
+        // Cache check
+        if ($cfg['gate_haiku_cache']) {
+            $cuadrantes_sorted = $tema['cuadrantes'];
+            sort($cuadrantes_sorted);
+            $cached = gate_haiku_cache_check($tema['titulo_tema'], implode(',', $cuadrantes_sorted), $fecha);
+            if ($cached !== null) {
+                prisma_log("SCAN", sprintf("  CACHE HIT: \"%s\"", mb_substr($tema['titulo_tema'], 0, 50, 'UTF-8')));
+                $tema['relevancia'] = $cached['relevancia'];
+                $tema['dominio_tematico'] = $cached['dominio'];
+                $tema['framing_divergence'] = $cached['framing_divergence'];
+                $tema['framing_evidence'] = $cached['framing_evidence'];
+                // Compute score from cached values
+                $tema['h_framing'] = normalizar_framing($cached['framing_divergence']);
+                $sv2 = calcular_h_score_v2(array(
+                    'h_cob' => $tema['h_cobertura_mutua'],
+                    'h_sil' => $tema['h_silencio_v2'],
+                    'fd' => $cached['framing_divergence'],
+                    'relevancia' => $cached['relevancia'],
+                    'lista_positiva' => $tema['contains_political_actor'],
+                ));
+                $tema['h_score'] = $sv2['h_score'];
+                $tema['h_silencio'] = $tema['h_silencio_v2'];
+                $tema['relevancia'] = $sv2['relevancia_final'];
+                $tema['scoring_version'] = 'v2';
+                continue;
+            }
+        }
+
+        // Queue for Haiku
+        $clusters_para_haiku[] = $tema;
+    }
+    unset($tema);
+
+    // Haiku batch call
+    if (!empty($clusters_para_haiku) && $cfg['gate_haiku_enabled']) {
+        prisma_log("SCAN", "Gate Haiku: clasificando " . count($clusters_para_haiku) . " clusters...");
+        $haiku_results = gate_haiku_clasificar($clusters_para_haiku);
+
+        foreach ($all_temas as &$tema) {
+            if (isset($tema['relevancia'])) continue; // already processed (descartar or cache)
+
+            $cid = $tema['cluster_id'];
+            $hr = isset($haiku_results[$cid]) ? $haiku_results[$cid] : null;
+
+            if ($hr === null) {
+                $tema['relevancia'] = 'indeterminada';
+                $tema['dominio_tematico'] = null;
+                $tema['framing_divergence'] = null;
+                $tema['framing_evidence'] = null;
+                $tema['h_framing'] = null;
+            } else {
+                $tema['relevancia'] = $hr['relevancia'];
+                $tema['dominio_tematico'] = $hr['dominio'];
+                $tema['framing_divergence'] = $hr['framing_divergence'];
+                $tema['framing_evidence'] = $hr['framing_evidence'];
+                $tema['h_framing'] = normalizar_framing($hr['framing_divergence']);
+
+                // Log anomalies from Haiku
+                foreach ($hr['anomalies'] as $anom) {
+                    scoring_log_anomaly($fecha, null, $anom['tipo'], $anom['detalle']);
+                }
+            }
+
+            // Compute final H-score
+            $sv2 = calcular_h_score_v2(array(
+                'h_cob' => $tema['h_cobertura_mutua'],
+                'h_sil' => $tema['h_silencio_v2'],
+                'fd' => $tema['framing_divergence'],
+                'relevancia' => $tema['relevancia'],
+                'lista_positiva' => !empty($tema['contains_political_actor']),
+            ));
+
+            $tema['h_score'] = $sv2['h_score'];
+            $tema['h_silencio'] = $tema['h_silencio_v2'];
+            $tema['relevancia'] = $sv2['relevancia_final'];
+            $tema['scoring_version'] = 'v2';
+
+            // Log anomalies from score computation
+            foreach ($sv2['anomalies'] as $anom) {
+                scoring_log_anomaly($fecha, null, $anom['tipo'], $anom['detalle']);
+            }
+        }
+        unset($tema);
+    } elseif (!$cfg['gate_haiku_enabled']) {
+        // Gate disabled: mark all non-discarded as indeterminada
+        foreach ($all_temas as &$tema) {
+            if (isset($tema['relevancia'])) continue;
+            $tema['relevancia'] = 'indeterminada';
+            $tema['dominio_tematico'] = null;
+            $tema['framing_divergence'] = null;
+            $tema['framing_evidence'] = null;
+            $tema['h_framing'] = null;
+            $tema['h_silencio'] = $tema['h_silencio_v2'];
+            $tema['h_score'] = 0.0;
+            $tema['scoring_version'] = 'v2';
+        }
+        unset($tema);
+    }
+
+    // Re-sort by new h_score
+    usort($all_temas, function($a, $b) { return $b['h_score'] <=> $a['h_score']; });
+
+    // Log scored topics
+    foreach ($all_temas as $tema) {
+        $rel_tag = isset($tema['relevancia']) ? $tema['relevancia'] : '?';
+        $fd_tag = isset($tema['framing_divergence']) ? $tema['framing_divergence'] : '?';
+        prisma_log("SCAN", sprintf(
+            "  H=%.0f%% cob=%.0f%% fd=%s rel=%s | %s",
+            $tema['h_score'] * 100,
+            (isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : 0) * 100,
+            $fd_tag, $rel_tag,
+            mb_substr($tema['titulo_tema'], 0, 55, 'UTF-8')
+        ));
+    }
+
+    // 4. Insert into radar (dedup included)
     $all_temas = radar_insertar_todos($all_temas, $ambito, $fecha);
     $total_radar += count($all_temas);
 

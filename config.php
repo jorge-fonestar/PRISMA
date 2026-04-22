@@ -51,7 +51,53 @@ $GLOBALS['_PRISMA_CFG'] = array(
     'timezone'            => 'Europe/Madrid',
     'articulos_dia'       => 1,
     'min_cuadrantes'      => 3,             // Mínimo de cuadrantes para ir al pipeline Sonnet
-    'umbral_tension'      => 0.55,          // H mínimo para ser candidato a análisis
+    'umbral_tension'      => 0.40,          // H mínimo para ser candidato a análisis (v2: era 0.55)
+
+    // ── Scoring v2 ──────────────────────────────────────────────
+    'scoring_alpha'       => 0.4,
+    'scoring_beta'        => 0.6,
+    'scoring_gamma'       => 0.15,
+    'scoring_mapeo'       => 'B',
+    'gate_haiku_enabled'  => true,
+    'gate_haiku_cache'    => true,
+    // gate_haiku_batch_api deferred for later iteration (Anthropic Batch API, 50% discount)
+
+    // ── Listas de filtrado scoring v2 ────────────────────────────
+    'lista_negativa' => array(
+        // Deportes
+        'laliga', 'champions', 'premier league', 'fichaje', 'jornada',
+        'penalti', 'futbol', 'baloncesto',
+        'formula 1', 'moto gp', 'ciclismo',
+        'camp nou', 'bernabeu', 'mestalla', 'mutua madrid open', 'atp', 'wta',
+        // Lotería
+        'bonoloto', 'primitiva', 'euromillones', 'loteria', 'sorteo',
+        'numero premiado',
+        // Entretenimiento
+        'concierto', 'gira mundial', 'alfombra roja', 'look de',
+        'red carpet', 'coachella', 'reality', 'gran hermano', 'eurovision',
+        // Curiosidades
+        'curiosidad', 'no creeras', 'verdad sobre',
+        // Meteorología rutinaria
+        'prevision meteorologica', 'temperaturas hoy', 'lluvias para',
+    ),
+    'lista_positiva' => array(
+        // Instituciones
+        'congreso', 'senado', 'parlamento', 'tribunal constitucional',
+        'tribunal supremo', 'audiencia nacional', 'gobierno', 'moncloa',
+        'comision europea', 'parlamento europeo', 'otan', 'onu', 'fmi',
+        // Cargos
+        'presidente', 'ministro', 'consejero', 'alcalde', 'comisario',
+        'fiscal', 'juez', 'magistrado',
+        // Partidos
+        'psoe', 'pp', 'vox', 'sumar', 'podemos', 'erc', 'junts',
+        'pnv', 'bildu', 'ciudadanos',
+        // Actores
+        'sanchez', 'feijoo', 'abascal', 'diaz', 'puigdemont',
+        'trump', 'biden', 'macron', 'von der leyen',
+        // Conceptos policy
+        'presupuestos', 'decreto', 'ley organica', 'reforma',
+        'regulacion', 'sancion', 'embargo', 'tratado',
+    ),
 
     // ── RSS por ámbito y cuadrante ──────────────────────────────────
     'fuentes' => array(

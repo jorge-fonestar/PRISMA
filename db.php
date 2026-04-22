@@ -52,6 +52,61 @@ function prisma_db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_fecha ON radar(fecha DESC)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_score ON radar(h_score DESC)');
 
+    // ── Scoring v2 columns (idempotent migration) ──
+    $v2_columns = array(
+        'h_cobertura_mutua REAL',
+        'h_framing REAL',
+        'h_silencio REAL',
+        'framing_divergence INTEGER',
+        'framing_evidence TEXT',
+        'relevancia TEXT',
+        'dominio_tematico TEXT',
+        "scoring_version TEXT DEFAULT 'v1'",
+    );
+    foreach ($v2_columns as $col) {
+        try {
+            $pdo->exec("ALTER TABLE radar ADD COLUMN $col");
+        } catch (PDOException $e) {
+            // Column already exists — ignore
+        }
+    }
+
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_relevancia ON radar(relevancia)');
+
+    // ── Scoring anomalies ──
+    $pdo->exec('CREATE TABLE IF NOT EXISTS scoring_anomalies (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha       TEXT NOT NULL,
+        radar_id    INTEGER,
+        tipo        TEXT NOT NULL,
+        detalle     TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_anomalies_fecha ON scoring_anomalies(fecha DESC)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_anomalies_tipo ON scoring_anomalies(tipo)');
+
+    // ── Calibration labels ──
+    $pdo->exec('CREATE TABLE IF NOT EXISTS etiquetas_calibracion (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        radar_id    INTEGER NOT NULL UNIQUE,
+        etiqueta    INTEGER NOT NULL,
+        operador    TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+
+    // ── Calibration runs ──
+    $pdo->exec('CREATE TABLE IF NOT EXISTS calibraciones (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha           TEXT NOT NULL,
+        dataset_size    INTEGER NOT NULL,
+        resultados_json TEXT NOT NULL,
+        params_elegidos TEXT NOT NULL,
+        precision_at_k  REAL,
+        recall_at_k     REAL,
+        operador        TEXT,
+        created_at      TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+
     return $pdo;
 }
 

@@ -155,6 +155,17 @@ if ($authed && isset($_POST['action'])) {
             $action_result = 'error';
         }
 
+    } elseif ($action === 'etiquetar') {
+        $radar_id = (int)(isset($_POST['radar_id']) ? $_POST['radar_id'] : 0);
+        $etiqueta = (int)(isset($_POST['etiqueta']) ? $_POST['etiqueta'] : 0);
+        if ($radar_id > 0) {
+            $db = prisma_db();
+            $stmt = $db->prepare('INSERT OR REPLACE INTO etiquetas_calibracion (radar_id, etiqueta, operador) VALUES (:rid, :et, :op)');
+            $stmt->execute(array(':rid' => $radar_id, ':et' => $etiqueta, ':op' => 'panel'));
+            echo "Etiqueta guardada para radar #$radar_id: " . ($etiqueta ? 'relevante' : 'no relevante') . "\n";
+            $action_result = 'ok';
+        }
+
     } elseif ($action === 'reset-db') {
         $db = prisma_db();
         $db->exec('DELETE FROM radar');
@@ -713,6 +724,96 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
       </div>
     <?php endforeach; ?>
   <?php endif; ?>
+
+  <!-- Scoring v2: Anomalías -->
+  <h2>Anomalías de scoring</h2>
+  <?php
+    $anomalies_count = (int)$db->query("SELECT COUNT(*) FROM scoring_anomalies WHERE fecha >= date('now', '-7 days')")->fetchColumn();
+    $anomalies = $db->query("SELECT * FROM scoring_anomalies ORDER BY created_at DESC LIMIT 50")->fetchAll();
+  ?>
+  <div class="card">
+    <div class="stat-sub" style="margin-bottom:0.8rem">Últimos 7 días: <?= $anomalies_count ?> anomalías</div>
+    <?php if (empty($anomalies)): ?>
+      <p style="color:#7a7a8a;font-size:0.85em">Sin anomalías registradas.</p>
+    <?php else: ?>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82em">
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
+          <th style="text-align:left;padding:6px">Fecha</th>
+          <th style="text-align:left;padding:6px">Tipo</th>
+          <th style="text-align:left;padding:6px">Detalle</th>
+          <th style="text-align:left;padding:6px">Radar</th>
+        </tr>
+        <?php foreach ($anomalies as $a):
+            $sev_color = '#7a7a8a';
+            if (strpos($a['tipo'], 'POLITICAL_LOW') !== false) $sev_color = '#ff9e4d';
+            if (strpos($a['tipo'], 'CAP_VIOLATION') !== false) $sev_color = '#ff4d6d';
+        ?>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
+          <td style="padding:6px"><?= ph($a['fecha']) ?></td>
+          <td style="padding:6px;color:<?= $sev_color ?>"><?= ph($a['tipo']) ?></td>
+          <td style="padding:6px"><?= ph($a['detalle']) ?></td>
+          <td style="padding:6px"><?= $a['radar_id'] ?></td>
+        </tr>
+        <?php endforeach; ?>
+      </table>
+    <?php endif; ?>
+  </div>
+
+  <!-- Scoring v2: Calibración -->
+  <h2>Calibración — Etiquetado manual</h2>
+  <?php
+    $total_radar = (int)$db->query("SELECT COUNT(*) FROM radar")->fetchColumn();
+    $total_etiquetado = (int)$db->query("SELECT COUNT(*) FROM etiquetas_calibracion")->fetchColumn();
+    $next = $db->query("SELECT r.* FROM radar r LEFT JOIN etiquetas_calibracion e ON r.id = e.radar_id WHERE e.id IS NULL ORDER BY r.h_score DESC LIMIT 1")->fetch();
+  ?>
+  <div class="card">
+    <div class="stat-sub" style="margin-bottom:0.8rem"><?= $total_etiquetado ?>/<?= $total_radar ?> etiquetados (<?= $total_radar > 0 ? round($total_etiquetado/$total_radar*100) : 0 ?>%)</div>
+
+    <?php if ($next): ?>
+    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:1.2em;margin-top:0.8em">
+      <h4 style="margin:0 0 0.5em 0"><?= ph($next['titulo_tema']) ?></h4>
+      <p style="font-size:0.82em;color:#7a7a8a;margin:0 0 0.8em 0">
+        Ámbito: <?= $next['ambito'] ?> |
+        H-score: <?= round($next['h_score']*100) ?>%
+        <?php if ($next['relevancia']): ?> | Rel: <?= $next['relevancia'] ?><?php endif; ?>
+        <?php if ($next['dominio_tematico']): ?> | Dominio: <?= $next['dominio_tematico'] ?><?php endif; ?>
+      </p>
+
+      <?php
+      $fuentes = json_decode($next['fuentes_json'], true);
+      if ($fuentes):
+          $por_cuadrante = array();
+          foreach ($fuentes as $f) $por_cuadrante[$f['cuadrante']][] = $f;
+      ?>
+      <div style="margin-bottom:0.8em;font-size:0.80em">
+        <?php foreach ($por_cuadrante as $cuad => $arts): ?>
+        <div style="margin-bottom:0.4em">
+          <strong style="color:#7a7a8a"><?= ph($cuad) ?>:</strong>
+          <?php foreach ($arts as $a): ?>
+          <div style="margin-left:1em">[<?= ph($a['medio']) ?>] <?= ph($a['titulo']) ?></div>
+          <?php endforeach; ?>
+        </div>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+
+      <form method="POST" style="display:flex;gap:0.8em">
+        <input type="hidden" name="action" value="etiquetar">
+        <input type="hidden" name="radar_id" value="<?= $next['id'] ?>">
+        <button type="submit" name="etiqueta" value="1"
+            style="padding:0.5em 1.2em;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em">
+          Relevante polarizado
+        </button>
+        <button type="submit" name="etiqueta" value="0"
+            style="padding:0.5em 1.2em;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em">
+          No relevante
+        </button>
+      </form>
+    </div>
+    <?php else: ?>
+    <p style="color:#7a7a8a;font-size:0.85em">Todos los temas etiquetados.</p>
+    <?php endif; ?>
+  </div>
 
   <!-- Reset DB -->
   <h2>Mantenimiento</h2>

@@ -161,8 +161,11 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
     }
 
     $stmt = $db->prepare('INSERT INTO radar
-        (fecha, titulo_tema, ambito, h_score, h_asimetria, h_divergencia, h_varianza, fuentes_json)
-        VALUES (:fecha, :titulo, :ambito, :h_score, :h_asim, :h_div, :h_var, :fuentes)');
+        (fecha, titulo_tema, ambito, h_score, h_asimetria, h_divergencia, h_varianza,
+         h_cobertura_mutua, h_framing, h_silencio, framing_divergence, framing_evidence,
+         relevancia, dominio_tematico, scoring_version, fuentes_json)
+        VALUES (:fecha, :titulo, :ambito, :h_score, :h_asim, :h_div, :h_var,
+                :h_cob, :h_frm, :h_sil, :fd, :fev, :rel, :dom, :sv, :fuentes)');
 
     $insertados = 0;
     $duplicados = 0;
@@ -174,6 +177,33 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
         if (isset($existentes[$key])) {
             $tema['radar_id'] = $existentes[$key];
             $duplicados++;
+
+            // If we have v2 data and existing record doesn't, update it
+            $sv = isset($tema['scoring_version']) ? $tema['scoring_version'] : null;
+            if ($sv === 'v2') {
+                $upd = $db->prepare('UPDATE radar SET
+                    h_score = :h_score, h_asimetria = :h_asim, h_divergencia = :h_div, h_varianza = :h_var,
+                    h_cobertura_mutua = :h_cob, h_framing = :h_frm, h_silencio = :h_sil,
+                    framing_divergence = :fd, framing_evidence = :fev,
+                    relevancia = :rel, dominio_tematico = :dom, scoring_version = :sv
+                    WHERE id = :id');
+                $upd->execute(array(
+                    ':h_score' => $tema['h_score'],
+                    ':h_asim'  => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : $tema['h_asimetria'],
+                    ':h_div'   => isset($tema['h_framing']) ? $tema['h_framing'] : $tema['h_divergencia'],
+                    ':h_var'   => isset($tema['h_silencio']) ? $tema['h_silencio'] : $tema['h_varianza'],
+                    ':h_cob'   => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : null,
+                    ':h_frm'   => isset($tema['h_framing']) ? $tema['h_framing'] : null,
+                    ':h_sil'   => isset($tema['h_silencio']) ? $tema['h_silencio'] : null,
+                    ':fd'      => isset($tema['framing_divergence']) ? $tema['framing_divergence'] : null,
+                    ':fev'     => isset($tema['framing_evidence']) ? $tema['framing_evidence'] : null,
+                    ':rel'     => isset($tema['relevancia']) ? $tema['relevancia'] : null,
+                    ':dom'     => isset($tema['dominio_tematico']) ? $tema['dominio_tematico'] : null,
+                    ':sv'      => 'v2',
+                    ':id'      => $existentes[$key],
+                ));
+            }
+
             continue;
         }
 
@@ -192,9 +222,17 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
             ':titulo'  => $tema['titulo_tema'],
             ':ambito'  => $ambito,
             ':h_score' => $tema['h_score'],
-            ':h_asim'  => $tema['h_asimetria'],
-            ':h_div'   => $tema['h_divergencia'],
-            ':h_var'   => $tema['h_varianza'],
+            ':h_asim'  => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : $tema['h_asimetria'],
+            ':h_div'   => isset($tema['h_framing']) ? $tema['h_framing'] : $tema['h_divergencia'],
+            ':h_var'   => isset($tema['h_silencio']) ? $tema['h_silencio'] : $tema['h_varianza'],
+            ':h_cob'   => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : null,
+            ':h_frm'   => isset($tema['h_framing']) ? $tema['h_framing'] : null,
+            ':h_sil'   => isset($tema['h_silencio']) ? $tema['h_silencio'] : null,
+            ':fd'      => isset($tema['framing_divergence']) ? $tema['framing_divergence'] : null,
+            ':fev'     => isset($tema['framing_evidence']) ? $tema['framing_evidence'] : null,
+            ':rel'     => isset($tema['relevancia']) ? $tema['relevancia'] : null,
+            ':dom'     => isset($tema['dominio_tematico']) ? $tema['dominio_tematico'] : null,
+            ':sv'      => isset($tema['scoring_version']) ? $tema['scoring_version'] : 'v1',
             ':fuentes' => json_encode($fuentes, JSON_UNESCAPED_UNICODE),
         ));
 
@@ -227,7 +265,7 @@ function radar_actualizar_triage(int $radar_id, string $frase, bool $analizado):
 function radar_link_articulo(int $radar_id, string $articulo_id): void {
     require_once __DIR__ . '/../db.php';
     $db = prisma_db();
-    $stmt = $db->prepare('UPDATE radar SET articulo_id = :aid WHERE id = :id');
+    $stmt = $db->prepare('UPDATE radar SET articulo_id = :aid, analizado = 1 WHERE id = :id');
     $stmt->execute([':aid' => $articulo_id, ':id' => $radar_id]);
 }
 
@@ -316,4 +354,22 @@ $temas_text";
 
     prisma_log("TRIAGE", count($confirmados) . " de " . count($candidatos) . " confirmados por Haiku.");
     return $confirmados;
+}
+
+// ── Scoring v2 Anomalies ──────────────────────────────────────────
+
+/**
+ * Logs a scoring anomaly to the database.
+ *
+ * @param string $fecha Date string
+ * @param int|null $radar_id Radar record ID
+ * @param string $tipo Anomaly type (ANOMALY_POLITICAL_LOW, etc.)
+ * @param string $detalle Description
+ */
+function scoring_log_anomaly(string $fecha, $radar_id, string $tipo, string $detalle): void {
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    $stmt = $db->prepare('INSERT INTO scoring_anomalies (fecha, radar_id, tipo, detalle) VALUES (:f, :r, :t, :d)');
+    $stmt->execute(array(':f' => $fecha, ':r' => $radar_id, ':t' => $tipo, ':d' => $detalle));
+    prisma_log("ANOMALY", "[$tipo] $detalle");
 }

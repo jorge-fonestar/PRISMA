@@ -104,19 +104,7 @@ function curador_seleccionar(array $articles): array {
     // 4. Sort by tension score descending
     usort($scored, fn($a, $b) => $b['h_score'] <=> $a['h_score']);
 
-    foreach ($scored as $tema) {
-        prisma_log("CURADOR", sprintf(
-            "Tema: \"%s\" — %d arts, %d cuad, H=%.0f%% (A=%.0f%% D=%.0f%% V=%.0f%%)",
-            mb_substr($tema['titulo_tema'], 0, 60),
-            $tema['n_articulos'],
-            $tema['n_cuadrantes'],
-            $tema['h_score'] * 100,
-            $tema['h_asimetria'] * 100,
-            $tema['h_divergencia'] * 100,
-            $tema['h_varianza'] * 100
-        ));
-    }
-
+    // Logging moved to escanear.php (scoring v2 pipeline)
     return $scored;
 }
 
