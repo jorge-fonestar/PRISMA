@@ -44,8 +44,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
     'panel_pass'          => getenv('PRISMA_PANEL_PASS') ?: 'prisma2026',
 
     // ── Límites de coste ────────────────────────────────────────────
-    'daily_budget_usd'    => 4.00,
-    'total_credit_usd'    => (float)(getenv('ANTHROPIC_CREDIT_USD') ?: 5.00),
+    'daily_budget_usd'    => 3.00,
 
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',

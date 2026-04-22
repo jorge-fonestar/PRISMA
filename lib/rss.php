@@ -5,6 +5,7 @@
  * Lee feeds RSS/Atom y devuelve artículos normalizados.
  * Sin dependencias externas: parsea XML nativo.
  */
+require_once __DIR__ . '/common.php';
 
 /**
  * Lee los RSS del ámbito indicado y devuelve artículos de las últimas 24h.

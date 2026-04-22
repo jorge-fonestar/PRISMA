@@ -73,6 +73,9 @@ function prisma_db(): PDO {
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_relevancia ON radar(relevancia)');
 
+    // Fix: ensure analizado=1 for any record that already has an articulo_id
+    $pdo->exec("UPDATE radar SET analizado = 1 WHERE articulo_id IS NOT NULL AND analizado = 0");
+
     // ── Scoring anomalies ──
     $pdo->exec('CREATE TABLE IF NOT EXISTS scoring_anomalies (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -76,7 +76,7 @@ function pct_color($pct) {
 
 $action_output = '';
 $action_result = null;
-$search_results = array();
+
 
 if ($authed && isset($_POST['action'])) {
     set_time_limit(300);
@@ -126,35 +126,6 @@ if ($authed && isset($_POST['action'])) {
             $action_result = 'error';
         }
 
-    } elseif ($action === 'search-topic') {
-        // Search RSS feeds for articles matching a user query
-        $query = trim(isset($_POST['query']) ? $_POST['query'] : '');
-        if ($query) {
-            require_once __DIR__ . '/lib/rss.php';
-            echo "Buscando en fuentes RSS: \"$query\"\n\n";
-
-            $all_articles = rss_fetch_all('');
-            $query_lower = mb_strtolower($query, 'UTF-8');
-            $keywords = preg_split('/\s+/', $query_lower);
-
-            foreach ($all_articles as $art) {
-                $haystack = mb_strtolower($art['titulo'] . ' ' . (isset($art['descripcion']) ? $art['descripcion'] : ''), 'UTF-8');
-                $hits = 0;
-                foreach ($keywords as $kw) {
-                    if (mb_strpos($haystack, $kw) !== false) $hits++;
-                }
-                if ($hits >= max(1, count($keywords) - 1)) {
-                    $search_results[] = $art;
-                }
-            }
-
-            echo count($search_results) . " artículos encontrados de " . count($all_articles) . " totales.\n";
-            $action_result = 'ok';
-        } else {
-            echo "Error: escribe un tema a buscar.\n";
-            $action_result = 'error';
-        }
-
     } elseif ($action === 'etiquetar') {
         $radar_id = (int)(isset($_POST['radar_id']) ? $_POST['radar_id'] : 0);
         $etiqueta = (int)(isset($_POST['etiqueta']) ? $_POST['etiqueta'] : 0);
@@ -190,22 +161,6 @@ if ($authed) {
 
     // Articles stats
     $data['articulos_total'] = (int)$db->query("SELECT COUNT(*) FROM articulos")->fetchColumn();
-    $data['articulos_hoy'] = (int)$db->query("SELECT COUNT(*) FROM articulos WHERE date(fecha_publicacion) = date('now')")->fetchColumn();
-
-    // Tasa APTO
-    $total_audited = (int)$db->query("SELECT COUNT(*) FROM articulos WHERE veredicto IS NOT NULL")->fetchColumn();
-    $aptos = (int)$db->query("SELECT COUNT(*) FROM articulos WHERE veredicto = 'APTO'")->fetchColumn();
-    $data['tasa_apto'] = $total_audited > 0 ? round($aptos / $total_audited * 100) : 0;
-
-    // Radar + articulos joined: one unified view
-    $data['radar_temas'] = $db->query("
-        SELECT r.id, r.fecha, r.titulo_tema, r.ambito, r.h_score, r.analizado, r.articulo_id,
-               a.veredicto, a.puntuacion, a.resumen, a.fuentes_total
-        FROM radar r
-        LEFT JOIN articulos a ON r.articulo_id = a.id
-        ORDER BY r.fecha DESC, r.h_score DESC
-        LIMIT 100
-    ")->fetchAll();
 
     // Uso API
     $usage_file = __DIR__ . '/data/usage.json';
@@ -228,34 +183,25 @@ if ($authed) {
 
     // Histórico últimos 7 días para mini-gráfico
     $data['week'] = array();
+    $dias_es = array('dom','lun','mar','mié','jue','vie','sáb');
     for ($i = 6; $i >= 0; $i--) {
         $d = date('Y-m-d', strtotime("-{$i} days"));
+        $ts = strtotime($d);
         $data['week'][] = array(
             'date'  => $d,
-            'label' => date('D j', strtotime($d)),
+            'label' => $dias_es[date('w', $ts)] . ' ' . date('j', $ts),
             'cost'  => isset($usage[$d]['cost_usd']) ? $usage[$d]['cost_usd'] : 0,
             'calls' => isset($usage[$d]['calls']) ? $usage[$d]['calls'] : 0,
         );
     }
 
     $data['budget'] = $cfg['daily_budget_usd'];
-    $data['credit'] = $cfg['total_credit_usd'];
     $data['total_spent'] = 0;
     foreach ($usage as $d) { if (isset($d['cost_usd'])) $data['total_spent'] += $d['cost_usd']; }
-    $data['credit_left'] = max(0, $data['credit'] - $data['total_spent']);
 
-    // Rechazados
-    $rej_dir = __DIR__ . '/rechazados';
-    $data['rechazados'] = is_dir($rej_dir) ? count(glob("$rej_dir/*.json")) : 0;
-
-    // RSS sources count
-    $data['n_fuentes'] = 0;
-    $data['n_cuadrantes'] = 0;
-    $data['n_ambitos'] = count($cfg['fuentes']);
-    foreach ($cfg['fuentes'] as $amb => $cuadrantes) {
-        $data['n_cuadrantes'] += count($cuadrantes);
-        foreach ($cuadrantes as $medios) { $data['n_fuentes'] += count($medios); }
-    }
+    // Total calls all-time
+    $data['total_calls'] = 0;
+    foreach ($usage as $d) { if (isset($d['calls'])) $data['total_calls'] += $d['calls']; }
 }
 
 // Ambito options for forms
@@ -423,34 +369,16 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
       <div class="stat-sub">Temas en radar</div>
     </div>
     <div class="card">
+      <div class="stat-val"><?= $data['radar_hoy'] ?></div>
+      <div class="stat-sub">Temas hoy</div>
+    </div>
+    <div class="card">
       <div class="stat-val"><?= $data['radar_analizados'] ?></div>
       <div class="stat-sub">Analizados</div>
     </div>
     <div class="card">
       <div class="stat-val"><?= $data['articulos_total'] ?></div>
       <div class="stat-sub">Artículos publicados</div>
-    </div>
-    <div class="card">
-      <div class="stat-val"><?= $data['tasa_apto'] ?>%</div>
-      <div class="stat-sub">Tasa APTO</div>
-    </div>
-  </div>
-
-  <div class="grid grid-3" style="margin-top:10px">
-    <div class="card">
-      <div class="stat-sub" style="margin-bottom:0.3rem">Fuentes RSS</div>
-      <span style="color:#fff;font-weight:700"><?= $data['n_fuentes'] ?></span> medios ·
-      <span style="color:#fff;font-weight:700"><?= $data['n_ambitos'] ?></span> ámbitos ·
-      <span style="color:#fff;font-weight:700"><?= $data['n_cuadrantes'] ?></span> cuadrantes
-    </div>
-    <div class="card">
-      <div class="stat-sub" style="margin-bottom:0.3rem">Hoy</div>
-      <span style="color:#fff;font-weight:700"><?= $data['radar_hoy'] ?></span> temas ·
-      <span style="color:#fff;font-weight:700"><?= $data['articulos_hoy'] ?></span> artículos
-    </div>
-    <div class="card">
-      <div class="stat-sub" style="margin-bottom:0.3rem">Rechazados</div>
-      <span style="color:#fff;font-weight:700"><?= $data['rechazados'] ?></span> en archivo
     </div>
   </div>
 
@@ -466,13 +394,11 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     </div>
     <div class="card">
       <div class="stat-val">$<?= number_format($data['month']['cost_usd'], 2) ?></div>
-      <div class="stat-sub"><?= date('M Y') ?> (<?= $data['month']['days'] ?>d)</div>
+      <div class="stat-sub">Este mes (<?= $data['month']['days'] ?> días)</div>
     </div>
     <div class="card">
-      <?php $pct_used = $data['credit'] > 0 ? min(100, $data['total_spent'] / $data['credit'] * 100) : 0; ?>
-      <div class="stat-val" style="color:<?= pct_color($pct_used) ?>">$<?= number_format($data['credit_left'], 2) ?></div>
-      <div class="stat-sub">Restante de $<?= number_format($data['credit'], 2) ?></div>
-      <div class="prog"><div class="prog-fill" style="width:<?= $pct_used ?>%;background:<?= pct_color($pct_used) ?>"></div></div>
+      <div class="stat-val">$<?= number_format($data['total_spent'], 2) ?></div>
+      <div class="stat-sub">Total absoluto</div>
     </div>
     <div class="card">
       <div class="stat-val"><?= $data['day']['calls'] ?></div>
@@ -502,7 +428,7 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     <!-- Phase 1: Scan -->
     <div class="card">
       <div class="stat-sub" style="margin-bottom:0.6rem">Fase 1 · Escanear fuentes</div>
-      <p style="font-size:0.82rem;color:#7a7a8a">Lee RSS, agrupa temas, calcula polarización y puebla el radar. <strong style="color:#4ade80">Coste: $0</strong></p>
+      <p style="font-size:0.82rem;color:#7a7a8a">Lee RSS, agrupa temas, filtra por listas negativas, clasifica relevancia y framing con Haiku, y calcula el H-score v2. <strong style="color:#4ade80">Coste: ~$0.02/escaneo</strong></p>
       <form method="post">
         <input type="hidden" name="action" value="escanear">
         <div class="mb">
@@ -538,75 +464,6 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     </div>
   </div>
 
-  <!-- Search topic -->
-  <div class="card" style="margin-top:10px">
-    <div class="stat-sub" style="margin-bottom:0.6rem">Buscar tema en fuentes</div>
-    <p style="font-size:0.82rem;color:#7a7a8a">Busca en todos los RSS artículos relacionados con un tema libre.</p>
-    <form method="post">
-      <input type="hidden" name="action" value="search-topic">
-      <div class="mb">
-        <label>Tema a buscar</label>
-        <input type="text" name="query" placeholder="Ej: regulación inteligencia artificial" value="<?= ph(isset($_POST['action']) && $_POST['action'] === 'search-topic' ? (isset($_POST['query']) ? $_POST['query'] : '') : '') ?>">
-      </div>
-      <button class="btn btn-y">Buscar en fuentes</button>
-    </form>
-  </div>
-
-  <!-- Manual topic analysis -->
-  <div class="card" style="margin-top:10px">
-    <div class="stat-sub" style="margin-bottom:0.6rem">Analizar tema manual</div>
-    <p style="font-size:0.82rem;color:#7a7a8a">Análisis completo de un tema libre (sin pasar por radar). <strong style="color:#ff4d6d">Gasta tokens</strong></p>
-    <form method="post" onsubmit="return confirm('Esto gastará tokens de API. ¿Continuar?')">
-      <input type="hidden" name="action" value="analizar-manual">
-      <div class="mb">
-        <label>Tema o noticia</label>
-        <textarea name="tema" rows="2" placeholder="Ej: Manifestación por la educación pública en Madrid"></textarea>
-      </div>
-      <div class="row">
-        <div>
-          <label>Ámbito</label>
-          <select name="ambito">
-            <?php foreach (array_keys($cfg['fuentes']) as $amb): ?>
-              <option value="<?= ph($amb) ?>"><?= ph(isset($ambito_labels[$amb]) ? $ambito_labels[$amb] : ucfirst($amb)) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div style="flex:0">
-          <label>&nbsp;</label>
-          <button class="btn btn-g">Analizar</button>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <!-- Search results -->
-  <?php if (!empty($search_results)): ?>
-    <h2>Resultados de búsqueda (<?= count($search_results) ?>)</h2>
-    <div class="card" style="padding:0.6rem 1rem">
-      <?php foreach ($search_results as $sr): ?>
-        <div class="sr-row">
-          <div class="sr-info">
-            <div class="sr-title"><?= ph($sr['titulo']) ?></div>
-            <div class="sr-meta">
-              <span class="amb-tag"><?= ph($sr['cuadrante']) ?></span>
-              <?= ph($sr['medio']) ?>
-              <?php if (isset($sr['url'])): ?> · <a href="<?= ph($sr['url']) ?>" target="_blank" rel="noopener">ver</a><?php endif; ?>
-            </div>
-          </div>
-          <form method="post" style="flex-shrink:0">
-            <input type="hidden" name="action" value="search-topic">
-            <input type="hidden" name="query" value="<?= ph(isset($_POST['query']) ? $_POST['query'] : '') ?>">
-            <input type="hidden" name="add_to_radar" value="1">
-            <input type="hidden" name="sr_titulo" value="<?= ph($sr['titulo']) ?>">
-            <input type="hidden" name="sr_medio" value="<?= ph($sr['medio']) ?>">
-            <input type="hidden" name="sr_url" value="<?= ph(isset($sr['url']) ? $sr['url'] : '') ?>">
-            <input type="hidden" name="sr_cuadrante" value="<?= ph($sr['cuadrante']) ?>">
-          </form>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
   <!-- Output de la última acción -->
   <?php if ($action_output): ?>
     <h2>Resultado</h2>
@@ -622,111 +479,148 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     ?></div>
   <?php endif; ?>
 
-  <!-- ════════ TEMAS ════════ -->
-  <h2>Temas</h2>
-  <p style="font-size:0.82rem;color:#7a7a8a;margin-bottom:1rem">Todos los temas detectados. Los analizados se pueden expandir para ver el resultado. Los pendientes se pueden lanzar a análisis.</p>
+  <!-- ════════ CALIBRACIÓN (justo después de acciones) ════════ -->
+  <h2>Calibración — Etiquetado manual</h2>
+  <?php
+    $cal_total_radar = (int)$db->query("SELECT COUNT(*) FROM radar")->fetchColumn();
+    $cal_total_etiquetado = (int)$db->query("SELECT COUNT(*) FROM etiquetas_calibracion")->fetchColumn();
+    $cal_next = $db->query("SELECT r.* FROM radar r LEFT JOIN etiquetas_calibracion e ON r.id = e.radar_id WHERE e.id IS NULL ORDER BY r.h_score DESC LIMIT 1")->fetch();
+  ?>
+  <div class="card">
+    <div class="stat-sub" style="margin-bottom:0.8rem"><?= $cal_total_etiquetado ?>/<?= $cal_total_radar ?> etiquetados (<?= $cal_total_radar > 0 ? round($cal_total_etiquetado/$cal_total_radar*100) : 0 ?>%)</div>
 
-  <?php if (empty($data['radar_temas'])): ?>
-    <div class="card"><p style="color:#6a6a7a;margin:0">No hay temas en el radar. Ejecuta un dry-run primero.</p></div>
-  <?php else: ?>
-    <?php
-      $by_date = array();
-      foreach ($data['radar_temas'] as $rt) {
-          $by_date[$rt['fecha']][] = $rt;
-      }
-      $row_idx = 0;
-    ?>
-    <?php foreach ($by_date as $fecha => $temas_dia):
-      $n_analizados_dia = 0;
-      foreach ($temas_dia as $t) { if ($t['analizado']) $n_analizados_dia++; }
-    ?>
-      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6a6a7a;margin:1rem 0 0.4rem 0">
-        <?= ph($fecha) ?> — <?= count($temas_dia) ?> temas<?php if ($n_analizados_dia): ?>, <?= $n_analizados_dia ?> analizados<?php endif; ?>
+    <?php if ($cal_next): ?>
+    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:1.2em;margin-top:0.8em">
+      <h4 style="margin:0 0 0.5em 0"><?= ph($cal_next['titulo_tema']) ?></h4>
+      <p style="font-size:0.82em;color:#7a7a8a;margin:0 0 0.8em 0">
+        Ámbito: <?= $cal_next['ambito'] ?> |
+        H-score: <?= round($cal_next['h_score']*100) ?>%
+        <?php if ($cal_next['relevancia']): ?> | Rel: <?= $cal_next['relevancia'] ?><?php endif; ?>
+        <?php if ($cal_next['dominio_tematico']): ?> | Dominio: <?= $cal_next['dominio_tematico'] ?><?php endif; ?>
+      </p>
+
+      <?php
+      $cal_fuentes = json_decode($cal_next['fuentes_json'], true);
+      if ($cal_fuentes):
+          $cal_por_cuadrante = array();
+          foreach ($cal_fuentes as $f) $cal_por_cuadrante[$f['cuadrante']][] = $f;
+      ?>
+      <div style="margin-bottom:0.8em;font-size:0.80em">
+        <?php foreach ($cal_por_cuadrante as $cuad => $arts): ?>
+        <div style="margin-bottom:0.4em">
+          <strong style="color:#7a7a8a"><?= ph($cuad) ?>:</strong>
+          <?php foreach ($arts as $a): ?>
+          <div style="margin-left:1em">[<?= ph($a['medio']) ?>] <?= ph($a['titulo']) ?></div>
+          <?php endforeach; ?>
+        </div>
+        <?php endforeach; ?>
       </div>
-      <div class="card" style="padding:0;overflow:hidden">
+      <?php endif; ?>
+
+      <form method="POST" style="display:flex;gap:0.8em">
+        <input type="hidden" name="action" value="etiquetar">
+        <input type="hidden" name="radar_id" value="<?= $cal_next['id'] ?>">
+        <button type="submit" name="etiqueta" value="1"
+            style="padding:0.5em 1.2em;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em">
+          Relevante polarizado
+        </button>
+        <button type="submit" name="etiqueta" value="0"
+            style="padding:0.5em 1.2em;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em">
+          No relevante
+        </button>
+      </form>
+    </div>
+    <?php else: ?>
+    <p style="color:#7a7a8a;font-size:0.85em">Todos los temas etiquetados.</p>
+    <?php endif; ?>
+  </div>
+
+  <!-- ════════ BUSCADOR DE RADAR ════════ -->
+  <h2>Radar</h2>
+  <?php
+    $radar_query = isset($_GET['q']) ? trim($_GET['q']) : '';
+    $radar_results = array();
+    if ($radar_query !== '') {
+        $sq = $db->prepare("SELECT r.id, r.fecha, r.titulo_tema, r.ambito, r.h_score, r.analizado, r.articulo_id, r.relevancia, r.dominio_tematico,
+               a.veredicto, a.puntuacion
+               FROM radar r LEFT JOIN articulos a ON r.articulo_id = a.id
+               WHERE r.titulo_tema LIKE :q ORDER BY r.fecha DESC LIMIT 50");
+        $sq->execute(array(':q' => '%' . $radar_query . '%'));
+        $radar_results = $sq->fetchAll();
+    }
+  ?>
+  <div class="card">
+    <form method="get" action="panel.php" style="margin-bottom:0.8rem">
+      <div class="row">
+        <div style="flex:3">
+          <label>Buscar en radar</label>
+          <input type="text" name="q" placeholder="Ej: Ayuso, Hungría, homeopatía..." value="<?= ph($radar_query) ?>">
+        </div>
+        <div style="flex:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-o">Buscar</button>
+        </div>
+      </div>
+    </form>
+
+    <?php if ($radar_query !== ''): ?>
+      <div class="stat-sub" style="margin-bottom:0.6rem"><?= count($radar_results) ?> resultados para &laquo;<?= ph($radar_query) ?>&raquo;</div>
+      <?php if (!empty($radar_results)): ?>
         <table>
-          <thead><tr><th style="width:45%">Tema</th><th>Ámbito</th><th>Polarización</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Fecha</th><th style="width:45%">Tema</th><th>Ámbito</th><th>H</th><th>Estado</th><th></th></tr></thead>
           <tbody>
-          <?php foreach ($temas_dia as $rt):
-            $score_pct = round($rt['h_score'] * 100);
-            $bar_color = $score_pct >= 75 ? '#ff4d6d' : ($score_pct >= 50 ? '#f2f24a' : '#4dc3ff');
-            $is_analyzed = (bool)$rt['analizado'];
-            $detail_id = 'detail-' . $row_idx;
-            $row_idx++;
+          <?php foreach ($radar_results as $rr):
+            $rr_pct = round($rr['h_score'] * 100);
+            $rr_color = $rr_pct >= 75 ? '#ff4d6d' : ($rr_pct >= 50 ? '#f2f24a' : '#4dc3ff');
+            $rr_analyzed = (bool)$rr['analizado'];
           ?>
-            <tr class="<?= $is_analyzed ? 'row-analyzed' : '' ?>"
-                <?php if ($is_analyzed): ?>onclick="var d=document.getElementById('<?= $detail_id ?>');d.classList.toggle('open')"<?php endif; ?>>
+            <tr>
+              <td style="white-space:nowrap;font-size:0.78rem"><?= ph($rr['fecha']) ?></td>
               <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                <?php if ($is_analyzed): ?>
-                  <span style="color:#4ade80;font-size:0.7rem;margin-right:4px" title="Expandir análisis">&#9660;</span>
-                <?php endif; ?>
-                <?= ph(mb_substr($rt['titulo_tema'], 0, 70, 'UTF-8')) ?>
+                <?php if ($rr_analyzed): ?><span style="color:#4ade80;margin-right:4px" title="Analizado">&#10003;</span><?php endif; ?>
+                <?= ph(mb_substr($rr['titulo_tema'], 0, 70, 'UTF-8')) ?>
               </td>
-              <td><span class="amb-tag"><?= ph(isset($ambito_labels[$rt['ambito']]) ? $ambito_labels[$rt['ambito']] : $rt['ambito']) ?></span></td>
+              <td><span class="amb-tag"><?= ph(isset($ambito_labels[$rr['ambito']]) ? $ambito_labels[$rr['ambito']] : $rr['ambito']) ?></span></td>
               <td style="white-space:nowrap">
-                <span class="h-bar" style="width:<?= max(8, $score_pct * 0.6) ?>px;background:<?= $bar_color ?>"></span>
-                <span style="font-size:0.78rem;font-weight:700;color:<?= $bar_color ?>"><?= $score_pct ?>%</span>
+                <span class="h-bar" style="width:<?= max(8, $rr_pct * 0.6) ?>px;background:<?= $rr_color ?>"></span>
+                <span style="font-size:0.78rem;font-weight:700;color:<?= $rr_color ?>"><?= $rr_pct ?>%</span>
               </td>
               <td>
-                <?php if ($is_analyzed):
-                  $v = isset($rt['veredicto']) ? $rt['veredicto'] : '';
-                  $cls = $v === 'APTO' ? 'ok' : ($v === 'REVISIÓN' ? 'warn' : 'err');
+                <?php if ($rr_analyzed):
+                  $rv = isset($rr['veredicto']) ? $rr['veredicto'] : '';
+                  $rcls = $rv === 'APTO' ? 'ok' : ($rv === 'REVISIÓN' ? 'warn' : 'err');
                 ?>
-                  <span class="badge badge-<?= $cls ?>"><?= ph($v) ?></span>
+                  <span class="badge badge-<?= $rcls ?>"><?= ph($rv) ?></span>
+                <?php elseif ($rr['relevancia']): ?>
+                  <span style="font-size:0.72rem;color:#7a7a8a"><?= ph($rr['relevancia']) ?></span>
                 <?php else: ?>
                   <span class="badge badge-warn">Pendiente</span>
                 <?php endif; ?>
               </td>
               <td>
-                <?php if ($is_analyzed && $rt['articulo_id']): ?>
-                  <a href="<?= $B ?>articulo.php?id=<?= urlencode($rt['articulo_id']) ?>" class="btn btn-o btn-sm" onclick="event.stopPropagation()">Ver</a>
-                <?php elseif (!$is_analyzed): ?>
-                  <form method="post" style="margin:0" onclick="event.stopPropagation()" onsubmit="if(!confirm('Gastará tokens de API. ¿Continuar?'))return false;this.querySelector('button').disabled=true;this.querySelector('button').textContent='...'">
+                <?php if ($rr_analyzed && $rr['articulo_id']): ?>
+                  <a href="<?= $B ?>articulo.php?id=<?= urlencode($rr['articulo_id']) ?>" class="btn btn-o btn-sm">Ver</a>
+                <?php elseif (!$rr_analyzed): ?>
+                  <form method="post" style="margin:0" onsubmit="if(!confirm('Gastará tokens. ¿Continuar?'))return false;this.querySelector('button').disabled=true;this.querySelector('button').textContent='...'">
                     <input type="hidden" name="action" value="process-radar">
-                    <input type="hidden" name="radar_id" value="<?= $rt['id'] ?>">
+                    <input type="hidden" name="radar_id" value="<?= $rr['id'] ?>">
                     <button class="btn btn-g btn-sm">Analizar</button>
                   </form>
                 <?php endif; ?>
               </td>
             </tr>
-            <?php if ($is_analyzed): ?>
-              <tr class="detail-row" id="<?= $detail_id ?>">
-                <td colspan="5" class="detail-cell">
-                  <div class="detail-grid">
-                    <div class="d-item">
-                      <div class="d-label">Auditoría</div>
-                      <div class="d-val"><?php
-                        $v = isset($rt['veredicto']) ? $rt['veredicto'] : '—';
-                        echo ph($v);
-                        if (isset($rt['puntuacion']) && $rt['puntuacion'] !== null) {
-                            echo ' · ' . round($rt['puntuacion'] * 100) . '/100';
-                        }
-                      ?></div>
-                    </div>
-                    <div class="d-item">
-                      <div class="d-label">Fuentes</div>
-                      <div class="d-val"><?= isset($rt['fuentes_total']) ? $rt['fuentes_total'] : '—' ?></div>
-                    </div>
-                    <div class="d-item">
-                      <div class="d-label">Artículo</div>
-                      <div class="d-val"><a href="<?= $B ?>articulo.php?id=<?= urlencode($rt['articulo_id']) ?>">Ver análisis completo</a></div>
-                    </div>
-                  </div>
-                  <?php if (isset($rt['resumen']) && $rt['resumen']): ?>
-                    <div class="detail-resumen"><?= ph(mb_substr($rt['resumen'], 0, 300, 'UTF-8')) ?><?php if (mb_strlen($rt['resumen'], 'UTF-8') > 300) echo '...'; ?></div>
-                  <?php endif; ?>
-                </td>
-              </tr>
-            <?php endif; ?>
           <?php endforeach; ?>
           </tbody>
         </table>
-      </div>
-    <?php endforeach; ?>
-  <?php endif; ?>
+      <?php else: ?>
+        <p style="color:#6a6a7a;margin:0;font-size:0.85rem">Sin resultados.</p>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
 
   <!-- Scoring v2: Anomalías -->
   <h2>Anomalías de scoring</h2>
+  <p style="font-size:0.82rem;color:#7a7a8a;margin-bottom:0.8rem">Casos donde el motor detecta inconsistencias en la clasificación automática: actores políticos clasificados como irrelevantes, violaciones de caps de framing, o overrides automáticos.</p>
   <?php
     $anomalies_count = (int)$db->query("SELECT COUNT(*) FROM scoring_anomalies WHERE fecha >= date('now', '-7 days')")->fetchColumn();
     $anomalies = $db->query("SELECT * FROM scoring_anomalies ORDER BY created_at DESC LIMIT 50")->fetchAll();
@@ -747,6 +641,7 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
             $sev_color = '#7a7a8a';
             if (strpos($a['tipo'], 'POLITICAL_LOW') !== false) $sev_color = '#ff9e4d';
             if (strpos($a['tipo'], 'CAP_VIOLATION') !== false) $sev_color = '#ff4d6d';
+            if (strpos($a['tipo'], 'FRAMING_OVERRIDE') !== false) $sev_color = '#f2f24a';
         ?>
         <tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
           <td style="padding:6px"><?= ph($a['fecha']) ?></td>
@@ -756,62 +651,6 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
         </tr>
         <?php endforeach; ?>
       </table>
-    <?php endif; ?>
-  </div>
-
-  <!-- Scoring v2: Calibración -->
-  <h2>Calibración — Etiquetado manual</h2>
-  <?php
-    $total_radar = (int)$db->query("SELECT COUNT(*) FROM radar")->fetchColumn();
-    $total_etiquetado = (int)$db->query("SELECT COUNT(*) FROM etiquetas_calibracion")->fetchColumn();
-    $next = $db->query("SELECT r.* FROM radar r LEFT JOIN etiquetas_calibracion e ON r.id = e.radar_id WHERE e.id IS NULL ORDER BY r.h_score DESC LIMIT 1")->fetch();
-  ?>
-  <div class="card">
-    <div class="stat-sub" style="margin-bottom:0.8rem"><?= $total_etiquetado ?>/<?= $total_radar ?> etiquetados (<?= $total_radar > 0 ? round($total_etiquetado/$total_radar*100) : 0 ?>%)</div>
-
-    <?php if ($next): ?>
-    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:1.2em;margin-top:0.8em">
-      <h4 style="margin:0 0 0.5em 0"><?= ph($next['titulo_tema']) ?></h4>
-      <p style="font-size:0.82em;color:#7a7a8a;margin:0 0 0.8em 0">
-        Ámbito: <?= $next['ambito'] ?> |
-        H-score: <?= round($next['h_score']*100) ?>%
-        <?php if ($next['relevancia']): ?> | Rel: <?= $next['relevancia'] ?><?php endif; ?>
-        <?php if ($next['dominio_tematico']): ?> | Dominio: <?= $next['dominio_tematico'] ?><?php endif; ?>
-      </p>
-
-      <?php
-      $fuentes = json_decode($next['fuentes_json'], true);
-      if ($fuentes):
-          $por_cuadrante = array();
-          foreach ($fuentes as $f) $por_cuadrante[$f['cuadrante']][] = $f;
-      ?>
-      <div style="margin-bottom:0.8em;font-size:0.80em">
-        <?php foreach ($por_cuadrante as $cuad => $arts): ?>
-        <div style="margin-bottom:0.4em">
-          <strong style="color:#7a7a8a"><?= ph($cuad) ?>:</strong>
-          <?php foreach ($arts as $a): ?>
-          <div style="margin-left:1em">[<?= ph($a['medio']) ?>] <?= ph($a['titulo']) ?></div>
-          <?php endforeach; ?>
-        </div>
-        <?php endforeach; ?>
-      </div>
-      <?php endif; ?>
-
-      <form method="POST" style="display:flex;gap:0.8em">
-        <input type="hidden" name="action" value="etiquetar">
-        <input type="hidden" name="radar_id" value="<?= $next['id'] ?>">
-        <button type="submit" name="etiqueta" value="1"
-            style="padding:0.5em 1.2em;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em">
-          Relevante polarizado
-        </button>
-        <button type="submit" name="etiqueta" value="0"
-            style="padding:0.5em 1.2em;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85em">
-          No relevante
-        </button>
-      </form>
-    </div>
-    <?php else: ?>
-    <p style="color:#7a7a8a;font-size:0.85em">Todos los temas etiquetados.</p>
     <?php endif; ?>
   </div>
 
