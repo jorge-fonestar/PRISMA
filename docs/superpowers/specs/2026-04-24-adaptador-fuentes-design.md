@@ -6,7 +6,7 @@
 
 ## Problema
 
-El pipeline de Prisma depende exclusivamente de RSS para la ingesta de fuentes. Varios medios relevantes han dejado de ofrecer RSS (modelo suscripción, pérdida de tráfico a agregadores), y la tendencia va a empeorar. El resultado es un desequilibrio estructural: `izquierda-populista` tiene 1 medio (El Salto) e `izquierda` tiene 1 medio (elDiario.es), mientras que `centro` tiene 4 y `derecha` tiene 3.
+El pipeline de Prisma depende exclusivamente de RSS para la ingesta de fuentes. Varios medios relevantes han dejado de ofrecer RSS (modelo suscripción, pérdida de tráfico a agregadores), y la tendencia va a empeorar. El resultado es un desequilibrio estructural: `izquierda-populista` tiene 1 medio (El Salto) e `izquierda` tiene 1 medio (elDiario.es), mientras que `centro` tiene 4, `centro-derecha` tiene 2 y `derecha` tiene 3. Los 7 cuadrantes del ámbito España (`izquierda-populista`, `izquierda`, `centro-izquierda`, `centro`, `centro-derecha`, `derecha`, `derecha-populista`) muestran un desequilibrio claro hacia la izquierda del espectro.
 
 Este desequilibrio no es solo cuantitativo. Produce falsos silencios en el scoring: cuando la izquierda no cubre un tema, puede ser un artefacto de selección del corpus (los medios elegidos no cubren ese beat) y no una señal real de polarización editorial.
 
@@ -80,16 +80,27 @@ array(
 | `modalidad` | Sí | `rss_nativo` / `captura_portada` / `no_disponible` |
 | `categoria_acceso` | Solo captura_portada y no_disponible | A / B / C |
 | `selector_articulos` | Solo captura_portada | Selector CSS del contenedor de artículos |
-| `selector_titulo` | Solo captura_portada | Selector CSS del título (texto) |
-| `selector_url` | Solo captura_portada | Selector CSS + `@atributo` para href |
-| `selector_fecha` | Solo captura_portada | Selector CSS + `@atributo` para datetime |
+| `selector_titulo` | Solo captura_portada | Selector CSS del título (texto). Notación `@atributo`: se separa por `@`, la parte izquierda es selector CSS, la derecha es nombre de atributo a extraer. |
+| `selector_url` | Solo captura_portada | Selector CSS + `@atributo` para href. Ejemplo: `h2 a@href` → selector `h2 a`, atributo `href`. |
+| `selector_fecha` | Solo captura_portada | Selector CSS + `@atributo` para datetime. Ejemplo: `time@datetime`. |
 | `transparencia` | No | Nota pública renderizada en fuentes.php. Preserva notas existentes del formato legacy. |
 | `perfil_editorial` | No | Texto libre descriptivo del perfil del medio. Renderizado en fuentes.php. |
 | `ejes_cubiertos` | No | Array de etiquetas ligeras. Herramienta de gestión del corpus, no alimenta el scoring. |
 
+### Subset CSS soportado en selectores
+
+Los selectores CSS del config usan un subset limitado, convertido a XPath por `captura_portada_css_to_xpath()`:
+
+- **Tag names:** `article`, `h2`, `time`
+- **Class selectors:** `.noticia`, `.post`
+- **Descendant combinator (espacio):** `article .titulo a`
+- **Notación `@atributo`** (Prisma-specific): `h2 a@href` se parsea como selector `h2 a` + extraer atributo `href`
+
+**No soportados:** pseudo-selectors (`:first-child`), sibling combinators (`+`, `~`), attribute selectors (`[data-x]`), ID selectors (`#id`). Si un medio requiere selectores complejos, usar XPath directo en el config (prefijo `xpath:` para distinguir).
+
 ### Compatibilidad Legacy
 
-`rss_normalizar_fuente()` convierte formato legacy a formato nuevo:
+`rss_normalizar_fuente()` convierte formato legacy a formato nuevo. Se ubica en `lib/fuentes/normalizar.php` (fichero compartido entre `rss.php`, `fuentes.php` y otros consumidores del config de fuentes):
 
 ```php
 function rss_normalizar_fuente($fuente, $cuadrante, $ambito) {
@@ -126,36 +137,43 @@ Recibe el array de config del medio. Devuelve el mismo formato normalizado que `
 ```php
 array(
     array(
-        'titulo'      => 'Titular del artículo',
-        'url'         => 'https://medio.com/articulo-completo',
-        'fecha'       => '2026-04-24 14:30:00',
-        'fecha_ts'    => 1745502600,
-        'descripcion' => '',  // Siempre vacío — nunca extraemos entradilla (art. 15)
+        'titulo'         => 'Titular del artículo',
+        'url'            => 'https://medio.com/articulo-completo',
+        'fecha'          => '2026-04-24 14:30:00',
+        'fecha_ts'       => 1745502600,
+        'descripcion'    => '',     // Siempre vacío — nunca extraemos entradilla (art. 15)
+        'fecha_inferida' => false,  // true si la fecha no pudo extraerse y se usó la actual
     ),
 )
 ```
 
+Nota: `fecha_inferida` indica que la fecha de publicación no pudo extraerse del HTML y se usó la fecha actual como aproximación. El curador puede usar este flag para penalizar items con fecha incierta en el clustering (menor confianza en la ventana temporal).
+
 ### Flujo interno
 
-1. **robots.txt check** — `captura_portada_robots_allowed($url, $user_agent)`. Parsea robots.txt del dominio, cachea en memoria por dominio durante la ejecución. Si Disallow, retorna array vacío + log warning.
+1. **robots.txt check** — `captura_portada_robots_allowed($url, $user_agent)`. Parsea robots.txt del dominio, cachea en memoria por dominio durante la ejecución. Si Disallow, retorna array vacío + log warning. **Manejo de errores en robots.txt:** HTTP 404 → todo permitido (no hay restricciones). HTTP 5xx o timeout → todo denegado (conservador, se reintenta en siguiente ciclo). HTTP 200 con contenido no parseable → todo denegado + log warning.
 
-2. **Rate limit** — `captura_portada_rate_check($dominio)`. Consulta tabla `feed_health` en `prisma_logs.db` para el último fetch exitoso de ese dominio. Si < 60 minutos, retorna array vacío (throttle esperado, no error).
+2. **Rate limit** — `captura_portada_rate_check($dominio)`. Consulta tabla `feed_health` en `prisma_logs.db` para el último registro (cualquier resultado) de ese dominio. Si < 60 minutos, retorna array vacío (throttle esperado, no error). **Nota:** el rate check consulta registros existentes incluyendo los de tipo "started" — ver paso 2b.
+
+   2b. **Pre-registro** — Antes del fetch HTTP, se escribe un registro `feed_health` con resultado `started` para evitar race conditions si dos ejecuciones coinciden. Si el fetch posterior tiene éxito, se actualiza a `ok`; si falla, a `fail`.
 
 3. **HTTP fetch** — cURL con:
-   - User-Agent: `PrismaBot/1.0 (+https://prisma.example/bot)`
+   - User-Agent: `PrismaBot/1.0 (+https://prisma.example/bot)` (mismo UA que rss.php para consistencia en logs de los medios)
    - Timeout: 15s (consistente con rss.php)
    - Follow redirects: sí (max 3)
    - Accept: `text/html`
    - No cookies, no JavaScript
 
-4. **HTML parse** — `captura_portada_parse($html, $selectores)`. Usa DOMDocument + DOMXPath (libxml). Convierte selectores CSS del config a XPath internamente. Extrae:
+4. **Encoding detection** — Antes de parsear, detectar charset del HTML: primero desde header HTTP `Content-Type`, luego desde `<meta charset>` o `<meta http-equiv>`. Si no se detecta, asumir UTF-8. Convertir a UTF-8 con `mb_convert_encoding()` si es necesario (ISO-8859-1 es común en medios españoles antiguos).
+
+5. **HTML parse** — `captura_portada_parse($html, $selectores)`. Usa DOMDocument + DOMXPath (libxml). Convierte selectores CSS del config a XPath internamente. Extrae:
    - Título: texto del nodo selector_titulo
    - URL: atributo href de selector_url, normalizado a absoluto
    - Fecha: atributo datetime de selector_fecha. Si no existe, fecha actual con flag `fecha_inferida = true`
 
-5. **Sanitización** — Misma normalización que rss.php: trim, decode HTML entities, dedup por URL.
+6. **Sanitización** — Misma normalización que rss.php: trim, decode HTML entities, dedup por URL.
 
-6. **Descarte del HTML** — El string HTML crudo no se almacena ni retorna. Solo los items normalizados salen de la función.
+7. **Descarte del HTML** — El string HTML crudo no se almacena ni retorna. Solo los items normalizados salen de la función.
 
 ### Funciones auxiliares
 
@@ -196,7 +214,8 @@ function rss_fetch_all($ambito = null) {
         if ($cfg['modalidad'] === 'captura_portada') {
             $items = captura_portada_fetch($cfg);
         } else {
-            $items = rss_fetch_feed($cfg['url'], $cfg['medio']);
+            $items = rss_fetch_feed($cfg['url']);
+            if ($items === null) $items = array();
         }
 
         feed_health_registrar($cfg['medio'], $ambito_actual,
@@ -232,7 +251,7 @@ CREATE INDEX idx_fh_medio_fecha ON feed_health(medio, created_at);
 
 ```php
 function feed_health_registrar($medio, $ambito, $resultado, $modalidad, $items = 0, $extras = array()) {
-    $db = prisma_logs_db();
+    $db = prisma_logger_db();
     $stmt = $db->prepare('INSERT INTO feed_health (medio, ambito, modalidad, resultado, items_count, http_status, error_msg, latencia_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute(array(
         $medio, $ambito, $modalidad, $resultado, $items,
@@ -271,7 +290,7 @@ WHERE id IN (SELECT MAX(id) FROM feed_health GROUP BY medio);
 
 ### Purga automática
 
-Registros de `feed_health` más antiguos de 90 días se eliminan al inicio de cada ejecución de `escanear.php`. Mantiene la tabla manejable (~120K registros máximo).
+Registros de `feed_health` más antiguos de 90 días se eliminan al inicio de cada ejecución de `escanear.php`. Con ~42 fuentes y ejecuciones de escaneo 1-2 veces al día, esto supone ~4.000-8.000 registros en 90 días. Holgado para SQLite.
 
 ---
 
@@ -413,11 +432,11 @@ Lista no cerrada. Nuevos ejes se añaden orgánicamente cuando se observa polari
 | Fichero | Cambio |
 |---------|--------|
 | `config.php` | Estructura de fuentes extendida (retrocompatible) |
-| `lib/rss.php` | Añadir `rss_normalizar_fuente()`, modificar `rss_fetch_all()` para despacho |
+| `lib/rss.php` | Modificar `rss_fetch_all()` para despacho por modalidad, unificar UA a PrismaBot |
+| `lib/fuentes/normalizar.php` | **Nuevo.** `rss_normalizar_fuente()` — compartido entre rss.php, fuentes.php y otros consumidores |
 | `lib/fuentes/captura_portada.php` | **Nuevo.** Módulo de captura de portada |
-| `lib/fuentes/feed_health.php` | **Nuevo.** Funciones de registro y consulta de salud |
-| `db.php` | Crear tabla `feed_health` en `prisma_logs.db` |
-| `escanear.php` | Añadir purga de feed_health >90 días |
+| `lib/fuentes/feed_health.php` | **Nuevo.** Funciones de registro/consulta de salud + creación de tabla en `prisma_logs.db` (usa `prisma_logger_db()`) |
+| `escanear.php` | Añadir require condicional de captura_portada + purga de feed_health >90 días |
 | `panel.php` | Widget resumen de salud de fuentes |
 | `validar_feeds.php` | Nuevo modo `salud` con historial y matriz ejes×cuadrantes |
-| `fuentes.php` | Renderizado de modalidad, transparencia, perfil_editorial, declaración de acceso |
+| `fuentes.php` | Renderizado de modalidad, transparencia, perfil_editorial, declaración de acceso (usa normalizar.php) |
