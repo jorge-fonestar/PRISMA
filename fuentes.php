@@ -13,15 +13,10 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
 </div>
 
 <div class="content">
-  <p>La clasificación ideológica es una simplificación necesaria para garantizar diversidad. Ningún medio cabe enteramente en una etiqueta. La clasificación refleja la posición editorial predominante según el consenso de estudios de comunicación política en España y Europa. Los medios se agrupan en tres bloques para el cálculo de polarización: <strong>izquierda</strong> (izquierda-populista, izquierda, centro-izquierda), <strong>centro</strong> y <strong>derecha</strong> (centro-derecha, derecha, derecha-populista).</p>
+  <p>La clasificación ideológica es una simplificación necesaria para garantizar diversidad. Ningún medio cabe enteramente en una etiqueta. La clasificación refleja la posición editorial predominante según el consenso de estudios de comunicación política en España y Europa. 
 
-  <h2>Por qué importa saber quién financia cada medio</h2>
-
-  <p>Un titular no existe en el vacío. Detrás de cada redacción hay una estructura de propiedad que condiciona — a veces explícitamente, a veces por omisión — qué se publica, cómo se encuadra y qué se ignora. No es lo mismo un medio propiedad de sus trabajadores que uno controlado por un fondo de inversión, un gobierno extranjero o una familia con intereses industriales cruzados.</p>
-
-  <p>Prisma no evalúa la calidad ni la honestidad de ningún medio. Pero sí cree que el lector merece saber quién paga antes de interpretar las diferencias de cobertura. Un silencio editorial adquiere significado distinto cuando se conoce la estructura accionarial. Una divergencia de framing se contextualiza mejor cuando se sabe qué intereses económicos o políticos están detrás de cada encuadre.</p>
-
-  <p>La información de financiación que sigue se ha compilado a partir de fuentes públicas: registros mercantiles, portales de transparencia de los propios medios, investigaciones periodísticas publicadas y bases de datos de propiedad mediática. Puede contener errores u omisiones — si detectas alguno, contacta con nosotros.</p>
+  <h2>La importancia de la financiación</h2>
+  <p>Detrás de cada redacción hay una estructura de propiedad que condiciona qué se publica y cómo se encuadra. <br>El lector merece saber quién paga. Datos compilados de registros mercantiles, portales de transparencia e investigaciones publicadas.</p>
 
   <details>
     <summary style="cursor:pointer;font-family:'Inter',Arial,sans-serif;font-weight:600;font-size:0.95rem;color:var(--accent);padding:1rem 0;user-select:none">Ver listado de fuentes y análisis de financiación</summary>
@@ -46,26 +41,22 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
   ?>
     <h3><?= htmlspecialchars($label) ?></h3>
     <p style="font-size:0.88rem;color:var(--text-faint);margin-bottom:1rem"><?= $n_cuad ?> cuadrantes · <?= $n_medios ?> medios</p>
-
-    <?php foreach ($cuadrantes as $cuadrante => $medios): ?>
-      <h4 style="font-family:'Inter',Arial,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);margin:1.5rem 0 0.5rem 0"><?= htmlspecialchars(ucfirst($cuadrante)) ?></h4>
-
-      <?php foreach ($medios as $medio):
-        $nombre = $medio[0];
-        $url = $medio[1];
-        $transparencia = isset($medio[2]) ? $medio[2] : null;
-      ?>
-        <div style="padding:0.8rem 1rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-card)">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem">
-            <strong style="font-size:0.95rem"><?= htmlspecialchars($nombre) ?></strong>
-            <span style="font-size:0.72rem;color:var(--text-faintest);word-break:break-all;text-align:right;max-width:50%"><?= htmlspecialchars($url) ?></span>
-          </div>
-          <?php if ($transparencia): ?>
-            <p style="margin:0.4rem 0 0 0;font-size:0.85rem;color:var(--text-muted);line-height:1.5"><?= htmlspecialchars($transparencia) ?></p>
-          <?php endif; ?>
-        </div>
+    <table>
+      <thead><tr><th>Cuadrante</th><th>Medio</th><th>Propiedad y financiación</th></tr></thead>
+      <tbody>
+      <?php foreach ($cuadrantes as $cuadrante => $medios): ?>
+        <?php foreach ($medios as $i => $medio): ?>
+          <tr>
+            <?php if ($i === 0): ?>
+              <td style="white-space:nowrap;vertical-align:top" rowspan="<?= count($medios) ?>"><strong><?= htmlspecialchars(ucfirst($cuadrante)) ?></strong></td>
+            <?php endif; ?>
+            <td style="white-space:nowrap;vertical-align:top"><strong><?= htmlspecialchars($medio[0]) ?></strong></td>
+            <td style="font-size:0.85rem;color:var(--text-muted);line-height:1.5"><?= htmlspecialchars(isset($medio[2]) ? $medio[2] : '—') ?></td>
+          </tr>
+        <?php endforeach; ?>
       <?php endforeach; ?>
-    <?php endforeach; ?>
+      </tbody>
+    </table>
   <?php endforeach; ?>
 
   <p style="margin-top:2rem"><strong>Total: <?= $total_medios ?> medios en <?= $total_cuad ?> cuadrantes de <?= $total_ambitos ?> ámbitos geográficos.</strong></p>
