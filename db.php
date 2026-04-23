@@ -110,6 +110,14 @@ function prisma_db(): PDO {
         created_at      TEXT NOT NULL DEFAULT (datetime(\'now\'))
     )');
 
+    // ── Custom negative list (learned from panel discards) ──
+    $pdo->exec('CREATE TABLE IF NOT EXISTS lista_negativa_custom (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        keyword     TEXT NOT NULL UNIQUE,
+        origen      TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+
     return $pdo;
 }
 

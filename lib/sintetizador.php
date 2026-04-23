@@ -36,7 +36,10 @@ $fuentes_ref
 
 ## Formato de salida
 
-Responde ÚNICAMENTE con JSON válido (sin markdown, sin ```), con esta estructura exacta:
+Tu respuesta debe empezar exactamente con { y terminar exactamente con }.
+No incluyas markdown, ni ```, ni texto explicativo antes o después.
+No expliques lo que vas a hacer ni resumas tu razonamiento.
+Produce únicamente el JSON resultante con esta estructura exacta:
 
 {
   "id": "$article_id",
@@ -71,6 +74,10 @@ IMPORTANTE:
 - Las ausencias deben ser genuinas, no relleno.
 - Las preguntas deben ser abiertas, sin respuesta implícita.
 - NO inventes URLs. Usa solo las proporcionadas en el contexto.
+- resumen: máximo 80 palabras.
+- argumentos: máximo 50 palabras por argumento.
+- ausencias: máximo 30 palabras cada una.
+- La primera línea de tu respuesta DEBE ser una llave abierta {.
 SYSTEM;
 }
 
@@ -111,7 +118,7 @@ function sintetizar(string $contexto, string $article_id, string $ambito = 'espa
 
     prisma_log("SYNTH", "Llamando a Sintetizador ({$cfg['model_synth']})...");
 
-    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, 8192);
+    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, 4096, '{');
     $artifact = parse_json_response($raw);
 
     $n_posturas = count($artifact['mapa_posturas'] ?? []);
@@ -150,7 +157,7 @@ function sintetizar_manual(string $tema, string $article_id, string $ambito = 'e
 
     prisma_log("SYNTH", "Llamando a Sintetizador en modo manual ({$cfg['model_synth']})...");
 
-    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, 8192);
+    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, 4096, '{');
     $artifact = parse_json_response($raw);
 
     $n_posturas = count($artifact['mapa_posturas'] ?? []);

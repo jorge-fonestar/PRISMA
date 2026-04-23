@@ -75,6 +75,9 @@ function curador_seleccionar(array $articles): array {
         }
     }
 
+    // 2b. Post-merge: fuse clusters that are variants of the same story
+    $clusters = postmerge_clusters($clusters, $indexed);
+
     // 3. Score each cluster with tension formula — no min_cuadrantes filter (all go to radar)
     $scored = [];
     foreach ($clusters as $cluster) {
@@ -224,6 +227,135 @@ function keywords_similarity(array $a, array $b): float {
     $union = count($a) + count($b) - $intersection;
 
     return $union > 0 ? $intersection / $union : 0.0;
+}
+
+/**
+ * Post-merge: fuses clusters that are variants of the same story.
+ *
+ * Uses word-level trigram overlap between cluster titles.
+ * Only merges clusters from the same 24h window (implicit — all articles are from last 24h).
+ *
+ * @param array $clusters Array of index arrays (from step 2)
+ * @param array $indexed  Indexed articles with keywords
+ * @return array Merged clusters
+ */
+function postmerge_clusters(array $clusters, array $indexed): array {
+    if (count($clusters) <= 1) return $clusters;
+
+    // Build representative title keywords + trigrams for each cluster
+    $cluster_data = array();
+    foreach ($clusters as $ci => $indices) {
+        // Collect all keywords from all titles in the cluster
+        $all_kw = array();
+        $all_titles = array();
+        foreach ($indices as $idx) {
+            $all_kw = array_merge($all_kw, array_keys($indexed[$idx]['keywords']));
+            $all_titles[] = $indexed[$idx]['article']['titulo'];
+        }
+        $all_kw = array_unique($all_kw);
+
+        // Build word trigrams from all titles
+        $trigrams = array();
+        foreach ($all_titles as $title) {
+            $tg = extraer_trigrams($title);
+            foreach ($tg as $t) $trigrams[$t] = true;
+        }
+
+        $cluster_data[$ci] = array(
+            'keywords' => array_flip($all_kw),
+            'trigrams' => $trigrams,
+            'size'     => count($indices),
+        );
+    }
+
+    // Merge pass: compare all pairs, greedily fuse
+    $merged_into = array(); // ci => target ci
+    $cluster_keys = array_keys($clusters);
+
+    for ($i = 0; $i < count($cluster_keys); $i++) {
+        $ci = $cluster_keys[$i];
+        if (isset($merged_into[$ci])) continue;
+
+        for ($j = $i + 1; $j < count($cluster_keys); $j++) {
+            $cj = $cluster_keys[$j];
+            if (isset($merged_into[$cj])) continue;
+
+            // Compare trigram overlap
+            $sim = trigram_overlap($cluster_data[$ci]['trigrams'], $cluster_data[$cj]['trigrams']);
+
+            // Also check keyword Jaccard as secondary signal
+            $kw_sim = keywords_similarity($cluster_data[$ci]['keywords'], $cluster_data[$cj]['keywords']);
+
+            // Merge if trigram overlap >= 0.35 OR keyword similarity >= 0.5
+            // (trigram is the primary signal, keyword is fallback for short titles)
+            if ($sim >= 0.35 || $kw_sim >= 0.5) {
+                // Merge cj into ci
+                $clusters[$ci] = array_merge($clusters[$ci], $clusters[$cj]);
+                $merged_into[$cj] = $ci;
+
+                // Update cluster_data for ci
+                $all_kw = array_merge(
+                    array_keys($cluster_data[$ci]['keywords']),
+                    array_keys($cluster_data[$cj]['keywords'])
+                );
+                $cluster_data[$ci]['keywords'] = array_flip(array_unique($all_kw));
+                $cluster_data[$ci]['trigrams'] = array_merge(
+                    $cluster_data[$ci]['trigrams'],
+                    $cluster_data[$cj]['trigrams']
+                );
+                $cluster_data[$ci]['size'] = count($clusters[$ci]);
+            }
+        }
+    }
+
+    // Remove merged clusters
+    foreach ($merged_into as $cj => $target) {
+        unset($clusters[$cj]);
+    }
+
+    $n_merged = count($merged_into);
+    if ($n_merged > 0) {
+        prisma_log("CURADOR", "$n_merged clusters fusionados en post-merge.");
+    }
+
+    return array_values($clusters);
+}
+
+/**
+ * Extracts word-level trigrams from a title.
+ * E.g. "Trump ordena disparar a matar" → ["trump ordena disparar", "ordena disparar matar"]
+ * (after keyword extraction / stopword removal)
+ */
+function extraer_trigrams(string $texto): array {
+    $kw = extraer_keywords($texto);
+    $words = array_keys($kw);
+
+    if (count($words) < 3) {
+        // For very short titles, use bigrams
+        if (count($words) === 2) {
+            return array(implode(' ', $words));
+        }
+        return $words; // single word = itself as "trigram"
+    }
+
+    $trigrams = array();
+    for ($i = 0; $i <= count($words) - 3; $i++) {
+        $trigrams[] = $words[$i] . ' ' . $words[$i + 1] . ' ' . $words[$i + 2];
+    }
+    return $trigrams;
+}
+
+/**
+ * Calculates overlap between two trigram sets.
+ * Returns fraction of smaller set found in larger set.
+ */
+function trigram_overlap(array $a, array $b): float {
+    if (empty($a) || empty($b)) return 0.0;
+
+    $intersection = count(array_intersect_key($a, $b));
+    $min_size = min(count($a), count($b));
+
+    return $min_size > 0 ? $intersection / $min_size : 0.0;
 }
 
 /**

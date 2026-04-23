@@ -51,11 +51,39 @@ function matchear_lista(string $titulo_normalizado, array $lista) {
 function aplicar_lista_negativa(string $titulo_tema): array {
     $cfg = prisma_cfg();
     $norm = normalizar_titulo($titulo_tema);
+
+    // Check config list first
     $match = matchear_lista($norm, $cfg['lista_negativa']);
+    if ($match !== null) {
+        return array('descartado' => true, 'keyword' => $match);
+    }
+
+    // Check custom DB list (learned from panel discards)
+    $custom = lista_negativa_custom();
+    $match = matchear_lista($norm, $custom);
     return array(
         'descartado' => $match !== null,
         'keyword' => $match,
     );
+}
+
+/**
+ * Loads custom negative keywords from the DB.
+ * Cached per request to avoid repeated queries.
+ */
+function lista_negativa_custom(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+
+    try {
+        require_once dirname(__DIR__) . '/db.php';
+        $db = prisma_db();
+        $rows = $db->query('SELECT keyword FROM lista_negativa_custom')->fetchAll();
+        $cache = array_column($rows, 'keyword');
+    } catch (Exception $e) {
+        $cache = array();
+    }
+    return $cache;
 }
 
 /**

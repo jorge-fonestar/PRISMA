@@ -137,6 +137,20 @@ if ($authed && isset($_POST['action'])) {
             $action_result = 'ok';
         }
 
+    } elseif ($action === 'descartar-keyword') {
+        $keyword = trim(isset($_POST['keyword']) ? $_POST['keyword'] : '');
+        $radar_id = (int)(isset($_POST['radar_id']) ? $_POST['radar_id'] : 0);
+        if ($keyword !== '') {
+            require_once __DIR__ . '/lib/diccionarios.php';
+            $keyword = normalizar_titulo($keyword);
+            $db = prisma_db();
+            $stmt = $db->prepare('INSERT OR IGNORE INTO lista_negativa_custom (keyword, origen) VALUES (:kw, :orig)');
+            $origen = $radar_id > 0 ? "panel:radar#$radar_id" : 'panel:manual';
+            $stmt->execute(array(':kw' => $keyword, ':orig' => $origen));
+            echo "Keyword añadida a lista negativa: \"$keyword\"\n";
+            $action_result = 'ok';
+        }
+
     } elseif ($action === 'reset-db') {
         $db = prisma_db();
         $db->exec('DELETE FROM radar');
@@ -191,10 +205,12 @@ if ($authed && isset($_GET['ajax']) && $_GET['ajax'] === 'radar-search') {
             if ($rr_analyzed && $rr['articulo_id']) {
                 echo '<a href="' . $B . 'articulo.php?id=' . urlencode($rr['articulo_id']) . '" class="btn btn-o btn-sm">Ver</a>';
             } elseif (!$rr_analyzed) {
-                echo '<form method="post" style="margin:0" onsubmit="if(!confirm(\'Gastará tokens. ¿Continuar?\'))return false;this.querySelector(\'button\').disabled=true;this.querySelector(\'button\').textContent=\'...\'">';
+                echo '<form method="post" style="margin:0;display:inline" onsubmit="if(!confirm(\'Gastará tokens. ¿Continuar?\'))return false;this.querySelector(\'button\').disabled=true;this.querySelector(\'button\').textContent=\'...\'">';
                 echo '<input type="hidden" name="action" value="process-radar"><input type="hidden" name="radar_id" value="' . $rr['id'] . '">';
-                echo '<button class="btn btn-g btn-sm">Analizar</button></form>';
+                echo '<button class="btn btn-g btn-sm">Analizar</button></form> ';
             }
+            // Descartar button: prompts for keyword to add to negative list
+            echo '<a href="#" class="btn btn-r btn-sm" style="margin-left:2px" onclick="descartarRadar(' . $rr['id'] . ',' . ph(json_encode($rr['titulo_tema'])) . ');return false" title="Añadir keyword a lista negativa">Desc.</a>';
             echo '</td></tr>';
         }
         echo '</tbody></table>';
@@ -805,6 +821,20 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     xhr.send();
     return false;
   }
+  function descartarRadar(id,titulo){
+    // Normalize: lowercase, remove accents, extract words >2 chars
+    var norm=titulo.toLowerCase()
+      .replace(/[áàâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i')
+      .replace(/[óòôö]/g,'o').replace(/[úùûü]/g,'u').replace(/ñ/g,'n')
+      .replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+    var stop='el la los las un una de del en con por para al que se su es ha han no mas pero como'.split(' ');
+    var words=norm.split(' ').filter(function(w){return w.length>2&&stop.indexOf(w)<0});
+    var kw=prompt('Keyword para lista negativa (sugerencias: '+words.join(', ')+'):');
+    if(!kw||!kw.trim())return;
+    var form=document.createElement('form');form.method='POST';form.style.display='none';
+    form.innerHTML='<input name="action" value="descartar-keyword"><input name="keyword" value="'+kw.trim()+'"><input name="radar_id" value="'+id+'">';
+    document.body.appendChild(form);form.submit();
+  }
   </script>
 
   <!-- Scoring v2: Anomalías -->
@@ -841,6 +871,39 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
         <?php endforeach; ?>
       </table>
     <?php endif; ?>
+  </div>
+
+  <!-- ════════ LISTA NEGATIVA ════════ -->
+  <h2>Lista negativa</h2>
+  <p style="font-size:0.82rem;color:#7a7a8a;margin-bottom:0.8rem">Keywords que descartan clusters automáticamente. Las del config son fijas; las custom se aprenden desde aquí.</p>
+  <?php
+    $custom_kw = $db->query('SELECT * FROM lista_negativa_custom ORDER BY created_at DESC')->fetchAll();
+  ?>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="stat-sub" style="margin-bottom:0.6rem">Añadir keyword</div>
+      <form method="post" style="display:flex;gap:8px;align-items:flex-end">
+        <input type="hidden" name="action" value="descartar-keyword">
+        <input type="hidden" name="radar_id" value="0">
+        <div style="flex:1">
+          <label>Keyword (normalizada)</label>
+          <input type="text" name="keyword" placeholder="ej: once, horoscopo, receta..." required>
+        </div>
+        <button class="btn btn-o">Añadir</button>
+      </form>
+    </div>
+    <div class="card">
+      <div class="stat-sub" style="margin-bottom:0.6rem">Custom (<?= count($custom_kw) ?>)</div>
+      <?php if (empty($custom_kw)): ?>
+        <p style="color:#7a7a8a;font-size:0.82rem">Sin keywords custom. Usa el campo o el botón "Descartar" en búsqueda de radar.</p>
+      <?php else: ?>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <?php foreach ($custom_kw as $ckw): ?>
+            <span style="display:inline-block;padding:2px 8px;border-radius:3px;font-size:0.72rem;background:rgba(255,77,109,0.1);color:#ff4d6d"><?= ph($ckw['keyword']) ?></span>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
   </div>
 
   <!-- ════════ API LOGS ════════ -->

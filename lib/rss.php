@@ -37,7 +37,11 @@ function rss_fetch_all(string $ambito = ''): array {
     foreach ($ambitos as $amb => $cuadrantes) {
         prisma_log("RSS", "═ Ámbito: $amb ═");
         foreach ($cuadrantes as $cuadrante => $medios) {
-            foreach ($medios as [$nombre, $rss_url]) {
+            foreach ($medios as $medio_arr) {
+            // Support both ['name', 'url'] and ['name', 'url', 'transparencia']
+            $nombre = $medio_arr[0];
+            $rss_url = $medio_arr[1];
+            // $transparencia = isset($medio_arr[2]) ? $medio_arr[2] : null;
             // Rate limit por dominio
             $domain = parse_url($rss_url, PHP_URL_HOST);
             if ($domain === $last_domain) {
@@ -87,19 +91,24 @@ function rss_fetch_all(string $ambito = ''): array {
  * Parsea un feed RSS/Atom individual.
  */
 function rss_fetch_feed(string $url, int $timeout = 15): ?array {
-    $ctx = stream_context_create([
-        'http' => [
-            'timeout' => $timeout,
-            'user_agent' => 'Prisma/1.0 (RSS reader; +https://prisma.example)',
-            'ignore_errors' => true,
-        ],
-        'ssl' => [
-            'verify_peer' => true,
-        ],
-    ]);
+    // Use cURL for better redirect handling, compression, and User-Agent control
+    $ch = curl_init($url);
+    curl_setopt_array($ch, array(
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => $timeout,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 5,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; Prisma/1.0; +https://prisma.example)',
+        CURLOPT_ENCODING       => '',  // Accept gzip/deflate
+        CURLOPT_SSL_VERIFYPEER => true,
+    ));
 
-    $xml_str = @file_get_contents($url, false, $ctx);
-    if (!$xml_str) return null;
+    $xml_str = curl_exec($ch);
+    $http_code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_err = curl_error($ch);
+    curl_close($ch);
+
+    if (!$xml_str || $http_code < 200 || $http_code >= 400) return null;
 
     libxml_use_internal_errors(true);
     $xml = simplexml_load_string($xml_str);

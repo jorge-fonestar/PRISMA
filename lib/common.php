@@ -91,10 +91,23 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
         prisma_log("PIPE", "═══ Intento $attempt/" . ($max_retries + 1) . " ═══");
 
         // ── Sintetizar ──
-        if ($manual) {
-            $artifact = sintetizar_manual($contexto, $article_id, $ambito, $feedback);
-        } else {
-            $artifact = sintetizar($contexto, $article_id, $ambito, $feedback);
+        try {
+            if ($manual) {
+                $artifact = sintetizar_manual($contexto, $article_id, $ambito, $feedback);
+            } else {
+                $artifact = sintetizar($contexto, $article_id, $ambito, $feedback);
+            }
+        } catch (RuntimeException $e) {
+            // JSON parse failure — retry with format feedback
+            if (strpos($e->getMessage(), 'JSON inválido') !== false && $attempt <= $max_retries) {
+                prisma_log("PIPE", "ERROR formato: " . $e->getMessage());
+                $feedback = "ERROR CRÍTICO: Tu respuesta anterior NO era JSON válido. "
+                    . "Empezó con texto explicativo en lugar de JSON. "
+                    . "Tu respuesta DEBE empezar directamente con { y ser JSON puro. "
+                    . "No incluyas ningún texto antes ni después del JSON.";
+                continue;
+            }
+            throw $e;
         }
 
         // ── Auditar ──

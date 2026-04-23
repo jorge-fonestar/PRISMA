@@ -46,7 +46,7 @@ function anthropic_check_budget(): void {
 /**
  * Llama a la API de Anthropic y registra el coste.
  */
-function anthropic_call(string $model, string $system, string $user_msg, int $max_tokens = 8192): string {
+function anthropic_call(string $model, string $system, string $user_msg, int $max_tokens = 8192, string $prefill = ''): string {
     require_once __DIR__ . '/logger.php';
 
     $cfg = prisma_cfg();
@@ -62,13 +62,18 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     $caller = prisma_detect_caller();
     $t_start = microtime(true);
 
+    $messages = [
+        ['role' => 'user', 'content' => $user_msg],
+    ];
+    if ($prefill !== '') {
+        $messages[] = ['role' => 'assistant', 'content' => $prefill];
+    }
+
     $payload = json_encode([
         'model'      => $model,
         'max_tokens' => $max_tokens,
         'system'     => $system,
-        'messages'   => [
-            ['role' => 'user', 'content' => $user_msg],
-        ],
+        'messages'   => $messages,
     ], JSON_UNESCAPED_UNICODE);
 
     $ch = curl_init('https://api.anthropic.com/v1/messages');
@@ -139,8 +144,11 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
 
     anthropic_record_usage($model, $input_tokens, $output_tokens, $cost);
 
-    // Log to isolated DB
+    // Log to isolated DB — prepend prefill to reconstruct full response
     $text = $data['content'][0]['text'];
+    if ($prefill !== '') {
+        $text = $prefill . $text;
+    }
     prisma_log_api_call(array(
         'caller'        => $caller,
         'model'         => $model,
