@@ -67,6 +67,10 @@ mkdir -p lib/fuentes
  * @param string $ambito    Ámbito geográfico
  * @return array Formato asociativo normalizado
  */
+if (!defined('PRISMA_BOT_UA')) {
+    define('PRISMA_BOT_UA', 'PrismaBot/1.0 (+https://prisma.example/bot)');
+}
+
 function rss_normalizar_fuente($fuente, $cuadrante, $ambito) {
     // Legacy: array('Nombre', 'URL'[, 'Transparencia'])
     if (isset($fuente[0]) && is_string($fuente[0])) {
@@ -205,8 +209,9 @@ function feed_health_update($id, $resultado, $items = 0, $extras = array()) {
 function feed_health_purgar($days = 90) {
     feed_health_init();
     $db = prisma_logger_db();
-    $stmt = $db->prepare("DELETE FROM feed_health WHERE created_at < datetime('now', ? || ' days')");
-    $stmt->execute(array(-$days));
+    $interval = '-' . (int)$days . ' days';
+    $stmt = $db->prepare("DELETE FROM feed_health WHERE created_at < datetime('now', ?)");
+    $stmt->execute(array($interval));
     return $stmt->rowCount();
 }
 
@@ -377,8 +382,10 @@ Replace the inner loop body in `rss_fetch_all()` (lines 40-80). The new loop bod
                 $extras = array();
             }
 
-            // Register health
-            feed_health_registrar($nombre, $amb, $resultado, $cfg_medio['modalidad'], count($items), $extras);
+            // Register health (captura_portada handles its own registration internally)
+            if ($cfg_medio['modalidad'] !== 'captura_portada') {
+                feed_health_registrar($nombre, $amb, $resultado, $cfg_medio['modalidad'], count($items), $extras);
+            }
 
             if ($resultado === 'fail') {
                 prisma_log("RSS", "  ERROR leyendo $nombre — saltando");
@@ -459,8 +466,7 @@ The core scraping module. Pure functions, no state.
  * HTML crudo se descarta tras parsing.
  */
 require_once __DIR__ . '/feed_health.php';
-
-define('PRISMA_BOT_UA', 'PrismaBot/1.0 (+https://prisma.example/bot)');
+require_once __DIR__ . '/normalizar.php';  // For PRISMA_BOT_UA constant
 
 /**
  * Fetches front page of a media outlet and extracts article items.
@@ -629,7 +635,8 @@ function captura_portada_parse_robots($body, $ua, $path) {
 
         if ($current_applies && stripos($line, 'disallow:') === 0) {
             $disallowed = trim(substr($line, 9));
-            if ($disallowed === '' || $disallowed === '/') {
+            if ($disallowed === '') continue; // Empty Disallow = allow all (RFC 9309)
+            if ($disallowed === '/') {
                 $specific_allowed = false;
             } elseif (strpos($path, $disallowed) === 0) {
                 $specific_allowed = false;
@@ -949,20 +956,47 @@ git commit -m "feat: add feed_health purge on scan startup"
 **Files:**
 - Modify: `config.php:105-120` (españa fuentes section)
 
-- [ ] **Step 1: Add CTXT and La Marea to izquierda cuadrante**
+- [ ] **Step 1: Add CTXT and La Marea to izquierda, add no_disponible entries**
 
-In `config.php`, after the elDiario.es entry in `izquierda`:
+In `config.php`, replace the `izquierda` cuadrante and add `no_disponible` entries for Público (currently a comment in `izquierda`) and InfoLibre (currently a comment in `centro-izquierda`):
 
 ```php
             'izquierda' => array(
-                // Público: no RSS feed found in source — may have discontinued RSS
+                array(
+                    'medio' => 'Público',
+                    'url' => null,
+                    'modalidad' => 'no_disponible',
+                    'categoria_acceso' => 'C',
+                    'transparencia' => 'Medio sin RSS nativo (política editorial). Autorización pendiente de solicitud.',
+                    'perfil_editorial' => 'Generalista progresista español.',
+                    'ejes_cubiertos' => array(),
+                ),
                 array('elDiario.es',      'https://www.eldiario.es/rss/'),
                 array('CTXT',             'https://ctxt.es/es/rss.xml'),
                 array('La Marea',         'https://www.lamarea.com/feed/'),
             ),
 ```
 
-- [ ] **Step 2: Verify feeds work**
+And in `centro-izquierda`, add InfoLibre as `no_disponible`:
+
+```php
+            'centro-izquierda' => array(
+                array('El País',          'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada'),
+                array(
+                    'medio' => 'InfoLibre',
+                    'url' => null,
+                    'modalidad' => 'no_disponible',
+                    'categoria_acceso' => 'C',
+                    'transparencia' => 'RSS descontinuado (política editorial). Autorización pendiente de solicitud.',
+                    'perfil_editorial' => 'Progresista, modelo suscripción.',
+                    'ejes_cubiertos' => array(),
+                ),
+            ),
+```
+
+This exercises the full `no_disponible` dispatch path and makes the absence visible in `fuentes.php`.
+
+- [ ] **Step 2: Verify feeds work (new RSS sources only)**
 
 ```bash
 php validar_feeds.php --url https://ctxt.es/es/rss.xml
@@ -975,7 +1009,7 @@ Expected: Both should show OK status with recent items.
 
 ```bash
 git add config.php
-git commit -m "feat: add CTXT and La Marea to izquierda cuadrante"
+git commit -m "feat: add CTXT, La Marea + Público/InfoLibre as no_disponible"
 ```
 
 ---
@@ -1028,6 +1062,8 @@ Replace the table header and row rendering (lines 45-58):
             ?></td>
             <td style="font-size:0.85rem;color:var(--text-muted);line-height:1.5"><?php
               $trans = isset($cfg_m['transparencia']) ? $cfg_m['transparencia'] : '';
+              $perfil = isset($cfg_m['perfil_editorial']) ? $cfg_m['perfil_editorial'] : '';
+              if ($perfil) echo '<em style="color:var(--text-faint,#888)">' . htmlspecialchars($perfil) . '</em><br>';
               echo htmlspecialchars($trans ? $trans : '—');
             ?></td>
           </tr>
