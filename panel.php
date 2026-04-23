@@ -148,6 +148,239 @@ if ($authed && isset($_POST['action'])) {
     $action_output = ob_get_clean();
 }
 
+// ── AJAX: búsqueda radar sin recarga ─────────────────────────────────
+
+if ($authed && isset($_GET['ajax']) && $_GET['ajax'] === 'radar-search') {
+    header('Content-Type: text/html; charset=utf-8');
+    $q = isset($_GET['q']) ? trim($_GET['q']) : '';
+    if ($q === '') { echo '<p style="color:#6a6a7a;margin:0;font-size:0.85rem">Escribe algo para buscar.</p>'; exit; }
+    $db = prisma_db();
+    $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' => 'Global', 'todos' => 'Todos');
+    $sq = $db->prepare("SELECT r.id, r.fecha, r.titulo_tema, r.ambito, r.h_score, r.analizado, r.articulo_id, r.relevancia, r.dominio_tematico,
+           a.veredicto, a.puntuacion
+           FROM radar r LEFT JOIN articulos a ON r.articulo_id = a.id
+           WHERE r.titulo_tema LIKE :q ORDER BY r.fecha DESC LIMIT 50");
+    $sq->execute(array(':q' => '%' . $q . '%'));
+    $radar_results = $sq->fetchAll();
+    echo '<div class="stat-sub" style="margin-bottom:0.6rem">' . count($radar_results) . ' resultados para &laquo;' . ph($q) . '&raquo;</div>';
+    if (!empty($radar_results)) {
+        echo '<table><thead><tr><th>Fecha</th><th style="width:45%">Tema</th><th>Ámbito</th><th>H</th><th>Estado</th><th></th></tr></thead><tbody>';
+        foreach ($radar_results as $rr) {
+            $rr_pct = round($rr['h_score'] * 100);
+            $rr_color = $rr_pct >= 75 ? '#ff4d6d' : ($rr_pct >= 50 ? '#f2f24a' : '#4dc3ff');
+            $rr_analyzed = (bool)$rr['analizado'];
+            echo '<tr>';
+            echo '<td style="white-space:nowrap;font-size:0.78rem">' . ph($rr['fecha']) . '</td>';
+            echo '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">';
+            if ($rr_analyzed) echo '<span style="color:#4ade80;margin-right:4px" title="Analizado">&#10003;</span>';
+            echo ph(mb_substr($rr['titulo_tema'], 0, 70, 'UTF-8')) . '</td>';
+            echo '<td><span class="amb-tag">' . ph(isset($ambito_labels[$rr['ambito']]) ? $ambito_labels[$rr['ambito']] : $rr['ambito']) . '</span></td>';
+            echo '<td style="white-space:nowrap"><span class="h-bar" style="width:' . max(8, $rr_pct * 0.6) . 'px;background:' . $rr_color . '"></span> <span style="font-size:0.78rem;font-weight:700;color:' . $rr_color . '">' . $rr_pct . '%</span></td>';
+            echo '<td>';
+            if ($rr_analyzed) {
+                $rv = isset($rr['veredicto']) ? $rr['veredicto'] : '';
+                $rcls = $rv === 'APTO' ? 'ok' : ($rv === 'REVISIÓN' ? 'warn' : 'err');
+                echo '<span class="badge badge-' . $rcls . '">' . ph($rv) . '</span>';
+            } elseif ($rr['relevancia']) {
+                echo '<span style="font-size:0.72rem;color:#7a7a8a">' . ph($rr['relevancia']) . '</span>';
+            } else {
+                echo '<span class="badge badge-warn">Pendiente</span>';
+            }
+            echo '</td>';
+            echo '<td>';
+            if ($rr_analyzed && $rr['articulo_id']) {
+                echo '<a href="' . $B . 'articulo.php?id=' . urlencode($rr['articulo_id']) . '" class="btn btn-o btn-sm">Ver</a>';
+            } elseif (!$rr_analyzed) {
+                echo '<form method="post" style="margin:0" onsubmit="if(!confirm(\'Gastará tokens. ¿Continuar?\'))return false;this.querySelector(\'button\').disabled=true;this.querySelector(\'button\').textContent=\'...\'">';
+                echo '<input type="hidden" name="action" value="process-radar"><input type="hidden" name="radar_id" value="' . $rr['id'] . '">';
+                echo '<button class="btn btn-g btn-sm">Analizar</button></form>';
+            }
+            echo '</td></tr>';
+        }
+        echo '</tbody></table>';
+    } else {
+        echo '<p style="color:#6a6a7a;margin:0;font-size:0.85rem">Sin resultados.</p>';
+    }
+    exit;
+}
+
+// ── AJAX: API logs viewer ────────────────────────────────────────────
+
+if ($authed && isset($_GET['ajax']) && $_GET['ajax'] === 'api-logs') {
+    require_once __DIR__ . '/lib/logger.php';
+    header('Content-Type: text/html; charset=utf-8');
+
+    $filter_caller = isset($_GET['caller']) ? trim($_GET['caller']) : '';
+    $filter_errors = !empty($_GET['errors']);
+    $page = max(1, (int)(isset($_GET['p']) ? $_GET['p'] : 1));
+    $per_page = 20;
+    $offset = ($page - 1) * $per_page;
+
+    try {
+        $ldb = prisma_logger_db();
+
+        $where = array();
+        $params = array();
+        if ($filter_caller !== '') {
+            $where[] = 'caller = :caller';
+            $params[':caller'] = $filter_caller;
+        }
+        if ($filter_errors) {
+            $where[] = 'error IS NOT NULL';
+        }
+
+        $where_sql = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $total = (int)$ldb->prepare("SELECT COUNT(*) FROM api_calls $where_sql")
+            ->execute($params) ? $ldb->query("SELECT COUNT(*) FROM api_calls $where_sql")->fetchColumn() : 0;
+
+        // Re-query with proper params for count
+        $count_stmt = $ldb->prepare("SELECT COUNT(*) FROM api_calls $where_sql");
+        $count_stmt->execute($params);
+        $total = (int)$count_stmt->fetchColumn();
+
+        $stmt = $ldb->prepare("SELECT id, timestamp, caller, model, http_code, error,
+            input_tokens, output_tokens, cost_usd, duration_ms,
+            LENGTH(system_prompt) as sys_len, LENGTH(user_msg) as usr_len, LENGTH(response_raw) as resp_len
+            FROM api_calls $where_sql ORDER BY id DESC LIMIT $per_page OFFSET $offset");
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        $total_pages = max(1, ceil($total / $per_page));
+
+        echo '<div class="stat-sub" style="margin-bottom:0.6rem">'
+            . $total . ' llamadas' . ($filter_caller ? " ($filter_caller)" : '')
+            . ($filter_errors ? ' con errores' : '')
+            . ' &mdash; pág. ' . $page . '/' . $total_pages . '</div>';
+
+        if (!empty($rows)) {
+            echo '<table><thead><tr>'
+                . '<th>Fecha</th><th>Caller</th><th>Modelo</th>'
+                . '<th>Tokens</th><th>Coste</th><th>Latencia</th><th>Estado</th><th></th>'
+                . '</tr></thead><tbody>';
+
+            foreach ($rows as $row) {
+                $ts = substr($row['timestamp'], 0, 19);
+                $ts_short = substr($ts, 5, 14); // MM-DD HH:MM:SS
+                $is_err = $row['error'] !== null;
+                $tok = number_format($row['input_tokens']) . ' / ' . number_format($row['output_tokens']);
+                $cost_fmt = '$' . number_format($row['cost_usd'], 4);
+                $dur = $row['duration_ms'] > 0 ? number_format($row['duration_ms'] / 1000, 1) . 's' : '-';
+                $model_short = str_replace(array('claude-', '-20251001'), array('', ''), $row['model']);
+
+                echo '<tr style="' . ($is_err ? 'background:rgba(255,77,109,0.04)' : '') . '">';
+                echo '<td style="white-space:nowrap;font-size:0.72rem">' . ph($ts_short) . '</td>';
+                echo '<td><span class="amb-tag">' . ph($row['caller'] ?: '?') . '</span></td>';
+                echo '<td style="font-size:0.75rem">' . ph($model_short) . '</td>';
+                echo '<td style="font-size:0.75rem;white-space:nowrap">' . $tok . '</td>';
+                echo '<td style="font-size:0.75rem;white-space:nowrap">' . $cost_fmt . '</td>';
+                echo '<td style="font-size:0.75rem">' . $dur . '</td>';
+                echo '<td>';
+                if ($is_err) {
+                    echo '<span class="badge badge-err" title="' . ph($row['error']) . '">ERR</span>';
+                } else {
+                    echo '<span class="badge badge-ok">' . $row['http_code'] . '</span>';
+                }
+                echo '</td>';
+                echo '<td><a href="#" onclick="toggleLogDetail(' . $row['id'] . ',this);return false" class="btn btn-o btn-sm">Ver</a></td>';
+                echo '</tr>';
+                echo '<tr class="detail-row" id="log-detail-' . $row['id'] . '"><td colspan="8" class="detail-cell"><div class="stat-sub">Cargando...</div></td></tr>';
+            }
+            echo '</tbody></table>';
+
+            // Pagination
+            if ($total_pages > 1) {
+                $qs = 'ajax=api-logs' . ($filter_caller ? '&caller=' . urlencode($filter_caller) : '') . ($filter_errors ? '&errors=1' : '');
+                echo '<div style="display:flex;gap:8px;margin-top:0.8rem;justify-content:center">';
+                if ($page > 1) echo '<a href="#" onclick="loadLogs(\'' . $qs . '&p=' . ($page - 1) . '\');return false" class="btn btn-o btn-sm">&laquo;</a>';
+                echo '<span style="font-size:0.78rem;color:#6a6a7a;line-height:28px">' . $page . '/' . $total_pages . '</span>';
+                if ($page < $total_pages) echo '<a href="#" onclick="loadLogs(\'' . $qs . '&p=' . ($page + 1) . '\');return false" class="btn btn-o btn-sm">&raquo;</a>';
+                echo '</div>';
+            }
+        } else {
+            echo '<p style="color:#6a6a7a;margin:0;font-size:0.85rem">Sin registros.</p>';
+        }
+    } catch (Exception $e) {
+        echo '<p style="color:#ff4d6d;font-size:0.85rem">Error: ' . ph($e->getMessage()) . '</p>';
+    }
+    exit;
+}
+
+// ── AJAX: API log detail ────────────────────────────────────────────
+
+if ($authed && isset($_GET['ajax']) && $_GET['ajax'] === 'log-detail') {
+    require_once __DIR__ . '/lib/logger.php';
+    header('Content-Type: text/html; charset=utf-8');
+    $lid = (int)(isset($_GET['id']) ? $_GET['id'] : 0);
+    if ($lid <= 0) { echo 'ID inválido'; exit; }
+
+    try {
+        $ldb = prisma_logger_db();
+        $stmt = $ldb->prepare('SELECT * FROM api_calls WHERE id = :id');
+        $stmt->execute(array(':id' => $lid));
+        $row = $stmt->fetch();
+
+        if (!$row) { echo 'No encontrado'; exit; }
+
+        echo '<div class="detail-grid">';
+        echo '<div class="d-item"><div class="d-label">Timestamp</div><div class="d-val">' . ph($row['timestamp']) . '</div></div>';
+        echo '<div class="d-item"><div class="d-label">Caller</div><div class="d-val">' . ph($row['caller'] ?: '?') . '</div></div>';
+        echo '<div class="d-item"><div class="d-label">Modelo</div><div class="d-val">' . ph($row['model']) . '</div></div>';
+        echo '<div class="d-item"><div class="d-label">HTTP</div><div class="d-val">' . ($row['http_code'] ?: '-') . '</div></div>';
+        echo '<div class="d-item"><div class="d-label">Latencia</div><div class="d-val">' . number_format($row['duration_ms']) . ' ms</div></div>';
+        echo '<div class="d-item"><div class="d-label">Coste</div><div class="d-val">$' . number_format($row['cost_usd'], 4) . '</div></div>';
+        echo '</div>';
+
+        if ($row['error']) {
+            echo '<div style="margin-top:0.6rem;padding:0.5rem;background:rgba(255,77,109,0.08);border-radius:4px;font-size:0.8rem;color:#ff4d6d"><strong>Error:</strong> ' . ph($row['error']) . '</div>';
+        }
+
+        $sections = array(
+            'System prompt' => $row['system_prompt'],
+            'User message'  => $row['user_msg'],
+            'Response'      => $row['response_raw'],
+        );
+        foreach ($sections as $label => $content) {
+            if ($content === null) continue;
+            $preview = mb_substr($content, 0, 2000, 'UTF-8');
+            $truncated = mb_strlen($content, 'UTF-8') > 2000;
+            echo '<div style="margin-top:0.6rem">';
+            echo '<div class="d-label">' . $label . ' (' . number_format(strlen($content)) . ' bytes)</div>';
+            echo '<pre style="margin:0.25rem 0 0;padding:0.5rem;background:#04040a;border:1px solid rgba(255,255,255,0.05);border-radius:4px;font-size:0.7rem;color:#9a9aaa;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all">'
+                . ph($preview) . ($truncated ? "\n\n[...truncado...]" : '') . '</pre>';
+            echo '</div>';
+        }
+
+        if ($row['metadata_json']) {
+            echo '<div style="margin-top:0.6rem"><div class="d-label">Metadata</div>';
+            echo '<pre style="margin:0.25rem 0 0;padding:0.5rem;background:#04040a;border:1px solid rgba(255,255,255,0.05);border-radius:4px;font-size:0.7rem;color:#9a9aaa;white-space:pre-wrap">'
+                . ph($row['metadata_json']) . '</pre></div>';
+        }
+    } catch (Exception $e) {
+        echo '<p style="color:#ff4d6d">Error: ' . ph($e->getMessage()) . '</p>';
+    }
+    exit;
+}
+
+// ── AJAX: purge logs ────────────────────────────────────────────────
+
+if ($authed && isset($_POST['action']) && $_POST['action'] === 'purge-logs') {
+    require_once __DIR__ . '/lib/logger.php';
+    $log_path = __DIR__ . '/data/prisma_logs.db';
+    // Close the connection first by unsetting the static
+    $ldb = prisma_logger_db();
+    $ldb = null;
+    if (file_exists($log_path)) {
+        // Remove all WAL/SHM files too
+        @unlink($log_path);
+        @unlink($log_path . '-wal');
+        @unlink($log_path . '-shm');
+    }
+    // It will be recreated on next access
+    header("Location: {$B}panel.php");
+    exit;
+}
+
 // ── Datos del dashboard ──────────────────────────────────────────────
 
 $data = array();
@@ -537,86 +770,42 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
 
   <!-- ════════ BUSCADOR DE RADAR ════════ -->
   <h2>Radar</h2>
-  <?php
-    $radar_query = isset($_GET['q']) ? trim($_GET['q']) : '';
-    $radar_results = array();
-    if ($radar_query !== '') {
-        $sq = $db->prepare("SELECT r.id, r.fecha, r.titulo_tema, r.ambito, r.h_score, r.analizado, r.articulo_id, r.relevancia, r.dominio_tematico,
-               a.veredicto, a.puntuacion
-               FROM radar r LEFT JOIN articulos a ON r.articulo_id = a.id
-               WHERE r.titulo_tema LIKE :q ORDER BY r.fecha DESC LIMIT 50");
-        $sq->execute(array(':q' => '%' . $radar_query . '%'));
-        $radar_results = $sq->fetchAll();
-    }
-  ?>
   <div class="card">
-    <form method="get" action="panel.php" style="margin-bottom:0.8rem">
+    <form id="radar-search-form" style="margin-bottom:0.8rem" onsubmit="return radarSearch(event)">
       <div class="row">
         <div style="flex:3">
           <label>Buscar en radar</label>
-          <input type="text" name="q" placeholder="Ej: Ayuso, Hungría, homeopatía..." value="<?= ph($radar_query) ?>">
+          <input type="text" id="radar-q" placeholder="Ej: Ayuso, Hungría, homeopatía..." value="">
         </div>
         <div style="flex:0">
           <label>&nbsp;</label>
-          <button class="btn btn-o">Buscar</button>
+          <button class="btn btn-o" id="radar-search-btn">Buscar</button>
         </div>
       </div>
     </form>
-
-    <?php if ($radar_query !== ''): ?>
-      <div class="stat-sub" style="margin-bottom:0.6rem"><?= count($radar_results) ?> resultados para &laquo;<?= ph($radar_query) ?>&raquo;</div>
-      <?php if (!empty($radar_results)): ?>
-        <table>
-          <thead><tr><th>Fecha</th><th style="width:45%">Tema</th><th>Ámbito</th><th>H</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-          <?php foreach ($radar_results as $rr):
-            $rr_pct = round($rr['h_score'] * 100);
-            $rr_color = $rr_pct >= 75 ? '#ff4d6d' : ($rr_pct >= 50 ? '#f2f24a' : '#4dc3ff');
-            $rr_analyzed = (bool)$rr['analizado'];
-          ?>
-            <tr>
-              <td style="white-space:nowrap;font-size:0.78rem"><?= ph($rr['fecha']) ?></td>
-              <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                <?php if ($rr_analyzed): ?><span style="color:#4ade80;margin-right:4px" title="Analizado">&#10003;</span><?php endif; ?>
-                <?= ph(mb_substr($rr['titulo_tema'], 0, 70, 'UTF-8')) ?>
-              </td>
-              <td><span class="amb-tag"><?= ph(isset($ambito_labels[$rr['ambito']]) ? $ambito_labels[$rr['ambito']] : $rr['ambito']) ?></span></td>
-              <td style="white-space:nowrap">
-                <span class="h-bar" style="width:<?= max(8, $rr_pct * 0.6) ?>px;background:<?= $rr_color ?>"></span>
-                <span style="font-size:0.78rem;font-weight:700;color:<?= $rr_color ?>"><?= $rr_pct ?>%</span>
-              </td>
-              <td>
-                <?php if ($rr_analyzed):
-                  $rv = isset($rr['veredicto']) ? $rr['veredicto'] : '';
-                  $rcls = $rv === 'APTO' ? 'ok' : ($rv === 'REVISIÓN' ? 'warn' : 'err');
-                ?>
-                  <span class="badge badge-<?= $rcls ?>"><?= ph($rv) ?></span>
-                <?php elseif ($rr['relevancia']): ?>
-                  <span style="font-size:0.72rem;color:#7a7a8a"><?= ph($rr['relevancia']) ?></span>
-                <?php else: ?>
-                  <span class="badge badge-warn">Pendiente</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if ($rr_analyzed && $rr['articulo_id']): ?>
-                  <a href="<?= $B ?>articulo.php?id=<?= urlencode($rr['articulo_id']) ?>" class="btn btn-o btn-sm">Ver</a>
-                <?php elseif (!$rr_analyzed): ?>
-                  <form method="post" style="margin:0" onsubmit="if(!confirm('Gastará tokens. ¿Continuar?'))return false;this.querySelector('button').disabled=true;this.querySelector('button').textContent='...'">
-                    <input type="hidden" name="action" value="process-radar">
-                    <input type="hidden" name="radar_id" value="<?= $rr['id'] ?>">
-                    <button class="btn btn-g btn-sm">Analizar</button>
-                  </form>
-                <?php endif; ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php else: ?>
-        <p style="color:#6a6a7a;margin:0;font-size:0.85rem">Sin resultados.</p>
-      <?php endif; ?>
-    <?php endif; ?>
+    <div id="radar-results"></div>
   </div>
+  <script>
+  function radarSearch(e){
+    e.preventDefault();
+    var q=document.getElementById('radar-q').value.trim();
+    if(!q)return false;
+    var btn=document.getElementById('radar-search-btn');
+    btn.disabled=true;btn.textContent='...';
+    var xhr=new XMLHttpRequest();
+    xhr.open('GET','panel.php?ajax=radar-search&q='+encodeURIComponent(q),true);
+    xhr.onload=function(){
+      document.getElementById('radar-results').innerHTML=xhr.responseText;
+      btn.disabled=false;btn.textContent='Buscar';
+    };
+    xhr.onerror=function(){
+      document.getElementById('radar-results').innerHTML='<p style="color:#ff4d6d">Error de conexión</p>';
+      btn.disabled=false;btn.textContent='Buscar';
+    };
+    xhr.send();
+    return false;
+  }
+  </script>
 
   <!-- Scoring v2: Anomalías -->
   <h2>Anomalías de scoring</h2>
@@ -654,15 +843,107 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
     <?php endif; ?>
   </div>
 
-  <!-- Reset DB -->
-  <h2>Mantenimiento</h2>
+  <!-- ════════ API LOGS ════════ -->
+  <h2>API Logs</h2>
+  <?php
+    require_once __DIR__ . '/lib/logger.php';
+    $log_stats = prisma_log_stats();
+  ?>
+  <div class="grid grid-4" style="margin-bottom:10px">
+    <div class="card">
+      <div class="stat-val"><?= $log_stats['total'] ?></div>
+      <div class="stat-sub">Llamadas total</div>
+    </div>
+    <div class="card">
+      <div class="stat-val"><?= $log_stats['today'] ?></div>
+      <div class="stat-sub">Hoy</div>
+    </div>
+    <div class="card">
+      <div class="stat-val" style="color:<?= $log_stats['errors_7d'] > 0 ? '#ff4d6d' : '#4ade80' ?>"><?= $log_stats['errors_7d'] ?></div>
+      <div class="stat-sub">Errores (7d)</div>
+    </div>
+    <div class="card">
+      <div class="stat-val"><?= $log_stats['db_size_mb'] ?> MB</div>
+      <div class="stat-sub">Tamaño logs DB</div>
+    </div>
+  </div>
+
   <div class="card">
-    <div class="stat-sub" style="margin-bottom:0.4rem">Resetear base de datos</div>
-    <p style="font-size:0.82rem;color:#7a7a8a">Elimina todos los registros de radar y artículos. Irreversible.</p>
-    <form method="post" onsubmit="return confirm('¿Seguro? Se borrarán TODOS los datos de radar y artículos.')">
-      <input type="hidden" name="action" value="reset-db">
-      <button class="btn btn-r">Resetear DB</button>
-    </form>
+    <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:0.8rem;flex-wrap:wrap">
+      <div>
+        <label>Filtrar por caller</label>
+        <select id="log-caller" style="width:auto">
+          <option value="">Todos</option>
+          <option value="gate_haiku">gate_haiku</option>
+          <option value="triage">triage</option>
+          <option value="synth">synth</option>
+          <option value="audit">audit</option>
+          <option value="overton">overton</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:inline;margin-right:4px">Solo errores</label>
+        <input type="checkbox" id="log-errors" style="width:auto">
+      </div>
+      <button class="btn btn-o btn-sm" onclick="loadLogs()">Cargar</button>
+    </div>
+    <div id="api-logs-results">
+      <p style="color:#6a6a7a;margin:0;font-size:0.85rem">Pulsa "Cargar" para ver los logs.</p>
+    </div>
+  </div>
+
+  <script>
+  function loadLogs(qs){
+    if(!qs){
+      var c=document.getElementById('log-caller').value;
+      var e=document.getElementById('log-errors').checked;
+      qs='ajax=api-logs'+(c?'&caller='+encodeURIComponent(c):'')+(e?'&errors=1':'');
+    }
+    var div=document.getElementById('api-logs-results');
+    div.innerHTML='<div class="stat-sub">Cargando...</div>';
+    var xhr=new XMLHttpRequest();
+    xhr.open('GET','panel.php?'+qs,true);
+    xhr.onload=function(){div.innerHTML=xhr.responseText};
+    xhr.onerror=function(){div.innerHTML='<p style="color:#ff4d6d">Error de conexión</p>'};
+    xhr.send();
+  }
+  function toggleLogDetail(id,el){
+    var row=document.getElementById('log-detail-'+id);
+    if(row.classList.contains('open')){
+      row.classList.remove('open');
+      return;
+    }
+    row.classList.add('open');
+    var cell=row.querySelector('.detail-cell');
+    if(cell.dataset.loaded)return;
+    cell.dataset.loaded='1';
+    var xhr=new XMLHttpRequest();
+    xhr.open('GET','panel.php?ajax=log-detail&id='+id,true);
+    xhr.onload=function(){cell.innerHTML=xhr.responseText};
+    xhr.onerror=function(){cell.innerHTML='<p style="color:#ff4d6d">Error</p>'};
+    xhr.send();
+  }
+  </script>
+
+  <!-- ════════ MANTENIMIENTO ════════ -->
+  <h2>Mantenimiento</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="stat-sub" style="margin-bottom:0.4rem">Resetear base de datos</div>
+      <p style="font-size:0.82rem;color:#7a7a8a">Elimina todos los registros de radar y artículos. Irreversible.</p>
+      <form method="post" onsubmit="return confirm('¿Seguro? Se borrarán TODOS los datos de radar y artículos.')">
+        <input type="hidden" name="action" value="reset-db">
+        <button class="btn btn-r">Resetear DB</button>
+      </form>
+    </div>
+    <div class="card">
+      <div class="stat-sub" style="margin-bottom:0.4rem">Purgar logs de API</div>
+      <p style="font-size:0.82rem;color:#7a7a8a">Elimina prisma_logs.db (<?= $log_stats['db_size_mb'] ?> MB). Se recrea vacía en el siguiente escaneo.</p>
+      <form method="post" onsubmit="return confirm('¿Borrar todos los logs de API?')">
+        <input type="hidden" name="action" value="purge-logs">
+        <button class="btn btn-r">Purgar logs</button>
+      </form>
+    </div>
   </div>
 
 <?php endif; ?>

@@ -67,11 +67,15 @@ function gate_haiku_clasificar(array $clusters): array {
 
     $system = 'Eres un clasificador de temas informativos. Evalúas clusters de titulares agrupados por cuadrante ideológico (izquierda, centro, derecha) y determinas:
 
-1. RELEVANCIA: si el tema genera o puede generar narrativas divergentes entre ejes ideológicos. Incluye: política, economía/trabajo, sanidad/ciencia, tecnología/regulación, cultura/identidad, medio ambiente, educación, inmigración, relaciones internacionales. Excluye: deportes, loterías, entretenimiento, curiosidades, meteorología rutinaria, crónica social.
+1. RELEVANCIA (string, obligatorio): nivel de potencial para generar narrativas divergentes entre ejes ideológicos. Valores EXACTOS permitidos: "alta", "media", "baja", "descartar". NO devuelvas true/false ni números.
+   - "alta": tema político, social o económico con marcos claramente divergentes entre cuadrantes
+   - "media": tema con potencial de divergencia pero no evidente en los titulares
+   - "baja": tema factual sin carga ideológica pero dentro del ámbito informativo
+   - "descartar": deportes, loterías, entretenimiento, curiosidades, meteorología rutinaria, crónica social
 
-2. DOMINIO TEMÁTICO: categoría del tema. Valores válidos: politica_institucional, economia_trabajo, sanidad_ciencia, tecnologia_regulacion, cultura_identidad, medio_ambiente, educacion, inmigracion, internacional, otros.
+2. DOMINIO TEMÁTICO (string, obligatorio): categoría del tema. Valores válidos: "politica_institucional", "economia_trabajo", "sanidad_ciencia", "tecnologia_regulacion", "cultura_identidad", "medio_ambiente", "educacion", "inmigracion", "internacional", "otros".
 
-3. FRAMING DIVERGENCE: grado de divergencia en el encuadre entre cuadrantes.
+3. FRAMING DIVERGENCE (integer 0-3, obligatorio): grado de divergencia en el encuadre entre cuadrantes.
    REGLAS:
    - Si solo 1 bloque ideológico cubre el tema → framing_divergence = 0
    - Si solo 2 bloques cubren → framing_divergence máximo = 2
@@ -82,9 +86,11 @@ function gate_haiku_clasificar(array $clusters): array {
    2 = marcos claramente distintos entre cuadrantes
    3 = marcos ideológicamente opuestos sobre el mismo hecho
 
-4. FRAMING EVIDENCE: cita breve (<20 palabras) de los marcos detectados, o null.
+4. FRAMING EVIDENCE (string o null): cita breve (<20 palabras) de los marcos detectados, o null.
 
-Si contains_political_actor es true, el cluster referencia actores políticos o instituciones — calibra relevancia en consecuencia.
+Si contains_political_actor es true, el cluster referencia actores políticos o instituciones — calibra relevancia en consecuencia (tiende a "alta").
+
+Cada objeto del array DEBE tener: cluster_id (int), relevancia (string), dominio_tematico (string), framing_divergence (int), framing_evidence (string o null).
 
 Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
 
@@ -109,6 +115,18 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
         return gate_haiku_fallback($clusters);
     }
 
+    // Unwrap if Haiku returned {"clusters": [...]} instead of [...]
+    if (isset($results['clusters']) && is_array($results['clusters'])) {
+        prisma_log("GATE", "Unwrapping nested 'clusters' key from Haiku response.");
+        $results = $results['clusters'];
+    }
+
+    // Debug: log first result to diagnose type issues
+    if (!empty($results)) {
+        $sample = $results[0];
+        prisma_log("GATE", "Sample Haiku result: " . json_encode($sample, JSON_UNESCAPED_UNICODE));
+    }
+
     // Map and validate results
     $indexed = array();
     foreach ($results as $r) {
@@ -118,20 +136,31 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
         // Find matching cluster to get bloques_activos for cap validation
         $bloques_activos = 3; // default
         foreach ($clusters as $cl) {
-            if ($cl['cluster_id'] === $cid) {
+            if ((int)$cl['cluster_id'] === (int)$cid) {
                 $bloques_activos = $cl['bloques_activos'];
                 break;
             }
         }
 
-        $rel = isset($r['relevancia']) ? $r['relevancia'] : 'media';
-        $dom = isset($r['dominio']) ? $r['dominio'] : 'otros';
+        $rel_raw = isset($r['relevancia']) ? $r['relevancia'] : 'media';
+        // Haiku may return 'dominio' or 'dominio_tematico'
+        $dom = isset($r['dominio_tematico']) ? (string)$r['dominio_tematico']
+             : (isset($r['dominio']) ? (string)$r['dominio'] : 'otros');
         $fd  = isset($r['framing_divergence']) ? (int)$r['framing_divergence'] : 0;
         $ev  = isset($r['framing_evidence']) ? $r['framing_evidence'] : null;
 
-        // Validate enums
-        if (!in_array($rel, PRISMA_RELEVANCIA_VALID)) $rel = 'media';
-        if (!in_array($dom, PRISMA_DOMINIO_VALID)) $dom = 'otros';
+        // Haiku sometimes returns booleans instead of strings for relevancia
+        if ($rel_raw === true) {
+            $rel = 'alta';
+        } elseif ($rel_raw === false) {
+            $rel = 'baja';
+        } else {
+            $rel = (string)$rel_raw;
+        }
+
+        // Validate enums (strict to avoid PHP type juggling)
+        if (!in_array($rel, PRISMA_RELEVANCIA_VALID, true)) $rel = 'media';
+        if (!in_array($dom, PRISMA_DOMINIO_VALID, true)) $dom = 'otros';
         if ($fd < 0) $fd = 0;
         if ($fd > 3) $fd = 3;
 
@@ -145,7 +174,7 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
             $fd = 2;
         }
 
-        $indexed[$cid] = array(
+        $indexed[(int)$cid] = array(
             'relevancia' => $rel,
             'dominio' => $dom,
             'framing_divergence' => $fd,
@@ -156,7 +185,7 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
 
     // Handle missing clusters (conservative defaults)
     foreach ($clusters as $cl) {
-        $cid = $cl['cluster_id'];
+        $cid = (int)$cl['cluster_id'];
         if (!isset($indexed[$cid])) {
             $indexed[$cid] = array(
                 'relevancia' => 'media',

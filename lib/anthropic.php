@@ -47,6 +47,8 @@ function anthropic_check_budget(): void {
  * Llama a la API de Anthropic y registra el coste.
  */
 function anthropic_call(string $model, string $system, string $user_msg, int $max_tokens = 8192): string {
+    require_once __DIR__ . '/logger.php';
+
     $cfg = prisma_cfg();
     $api_key = $cfg['anthropic_api_key'];
 
@@ -56,6 +58,9 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
 
     // Comprobar presupuesto antes de llamar
     anthropic_check_budget();
+
+    $caller = prisma_detect_caller();
+    $t_start = microtime(true);
 
     $payload = json_encode([
         'model'      => $model,
@@ -84,15 +89,46 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     $err = curl_error($ch);
     curl_close($ch);
 
+    $duration_ms = (int)((microtime(true) - $t_start) * 1000);
+
     if ($err) {
+        prisma_log_api_call(array(
+            'caller'        => $caller,
+            'model'         => $model,
+            'system_prompt' => $system,
+            'user_msg'      => $user_msg,
+            'http_code'     => 0,
+            'error'         => "cURL error: $err",
+            'duration_ms'   => $duration_ms,
+        ));
         throw new RuntimeException("cURL error: $err");
     }
     if ($http_code !== 200) {
+        prisma_log_api_call(array(
+            'caller'        => $caller,
+            'model'         => $model,
+            'system_prompt' => $system,
+            'user_msg'      => $user_msg,
+            'response_raw'  => $response,
+            'http_code'     => $http_code,
+            'error'         => "HTTP $http_code",
+            'duration_ms'   => $duration_ms,
+        ));
         throw new RuntimeException("Anthropic API HTTP $http_code: $response");
     }
 
     $data = json_decode($response, true);
     if (!$data || empty($data['content'][0]['text'])) {
+        prisma_log_api_call(array(
+            'caller'        => $caller,
+            'model'         => $model,
+            'system_prompt' => $system,
+            'user_msg'      => $user_msg,
+            'response_raw'  => $response,
+            'http_code'     => $http_code,
+            'error'         => 'Unexpected response format',
+            'duration_ms'   => $duration_ms,
+        ));
         throw new RuntimeException("Respuesta inesperada de Anthropic: $response");
     }
 
@@ -103,15 +139,30 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
 
     anthropic_record_usage($model, $input_tokens, $output_tokens, $cost);
 
+    // Log to isolated DB
+    $text = $data['content'][0]['text'];
+    prisma_log_api_call(array(
+        'caller'        => $caller,
+        'model'         => $model,
+        'system_prompt' => $system,
+        'user_msg'      => $user_msg,
+        'response_raw'  => $text,
+        'http_code'     => $http_code,
+        'input_tokens'  => $input_tokens,
+        'output_tokens' => $output_tokens,
+        'cost_usd'      => $cost,
+        'duration_ms'   => $duration_ms,
+    ));
+
     $spent = anthropic_daily_spend();
     $budget = $cfg['daily_budget_usd'] ?? 999;
 
     prisma_log("API", sprintf(
-        "%s — %d in / %d out — $%.4f (hoy: $%.2f / $%.2f)",
-        $model, $input_tokens, $output_tokens, $cost, $spent, $budget
+        "%s — %d in / %d out — $%.4f (hoy: $%.2f / $%.2f) [%dms]",
+        $model, $input_tokens, $output_tokens, $cost, $spent, $budget, $duration_ms
     ));
 
-    return $data['content'][0]['text'];
+    return $text;
 }
 
 /**
