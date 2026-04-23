@@ -132,20 +132,34 @@ Funciones puras, sin estado, sin dependencias externas más allá de cURL + libx
 function captura_portada_fetch($fuente_cfg)
 ```
 
-Recibe el array de config del medio. Devuelve el mismo formato normalizado que `rss_fetch_feed()`:
+Recibe el array de config del medio. Devuelve una estructura informativa que permite al llamador distinguir el motivo del resultado:
 
 ```php
 array(
-    array(
-        'titulo'         => 'Titular del artículo',
-        'url'            => 'https://medio.com/articulo-completo',
-        'fecha'          => '2026-04-24 14:30:00',
-        'fecha_ts'       => 1745502600,
-        'descripcion'    => '',     // Siempre vacío — nunca extraemos entradilla (art. 15)
-        'fecha_inferida' => false,  // true si la fecha no pudo extraerse y se usó la actual
+    'items' => array(
+        array(
+            'titulo'         => 'Titular del artículo',
+            'url'            => 'https://medio.com/articulo-completo',
+            'fecha'          => '2026-04-24 14:30:00',
+            'fecha_ts'       => 1745502600,
+            'descripcion'    => '',     // Siempre vacío — nunca extraemos entradilla (art. 15)
+            'fecha_inferida' => false,  // true si la fecha no pudo extraerse y se usó la actual
+        ),
+    ),
+    'resultado' => 'ok',    // ok / fail / throttle / skip
+    'extras' => array(
+        'http_status'  => 200,
+        'error'        => null,
+        'latencia_ms'  => 340,
     ),
 )
 ```
+
+Valores de `resultado`:
+- `ok`: fetch exitoso con items
+- `fail`: error HTTP, parse fallido, o 0 items tras parse exitoso
+- `throttle`: rate limit activo, no se hizo fetch (esperado, no es error)
+- `skip`: robots.txt deniega acceso
 
 Nota: `fecha_inferida` indica que la fecha de publicación no pudo extraerse del HTML y se usó la fecha actual como aproximación. El curador puede usar este flag para penalizar items con fecha incierta en el clustering (menor confianza en la ventana temporal).
 
@@ -183,7 +197,7 @@ Nota: `fecha_inferida` indica que la fecha de publicación no pudo extraerse del
 | `captura_portada_rate_check($dominio)` | Verifica rate limit contra feed_health |
 | `captura_portada_css_to_xpath($selector)` | Convierte selector CSS simple a XPath |
 | `captura_portada_parse($html, $selectores)` | Extrae items de HTML según selectores |
-| `captura_portada_normalizar_url($rel, $base)` | Normaliza URL relativa a absoluta |
+| `captura_portada_normalizar_url($rel, $base)` | Normaliza URL relativa a absoluta. Cubre 3 casos: absoluta (`https://...`) se retorna tal cual; relativa (`/ruta`) se prepende esquema+dominio de base; protocol-relative (`//cdn.ejemplo/...`) hereda esquema de la URL base. |
 
 ### Limitaciones explícitas
 
@@ -212,16 +226,19 @@ function rss_fetch_all($ambito = null) {
         }
 
         if ($cfg['modalidad'] === 'captura_portada') {
-            $items = captura_portada_fetch($cfg);
+            $resp = captura_portada_fetch($cfg);
+            $items = $resp['items'];
+            $resultado = $resp['resultado'];
+            $extras = $resp['extras'];
         } else {
             $items = rss_fetch_feed($cfg['url']);
-            if ($items === null) $items = array();
+            if ($items === null) { $items = array(); $resultado = 'fail'; }
+            else { $resultado = count($items) > 0 ? 'ok' : 'fail'; }
+            $extras = array();
         }
 
         feed_health_registrar($cfg['medio'], $ambito_actual,
-            count($items) > 0 ? 'ok' : 'fail',
-            $cfg['modalidad'],
-            count($items)
+            $resultado, $cfg['modalidad'], count($items), $extras
         );
 
         // ... resto del pipeline igual ...
@@ -272,7 +289,7 @@ SELECT medio, modalidad,
     ROUND(100.0 * SUM(CASE WHEN resultado = 'ok' THEN 1 ELSE 0 END) / COUNT(*), 1) as tasa_exito
 FROM feed_health
 WHERE created_at >= datetime('now', '-30 days')
-  AND resultado != 'skip'
+  AND resultado NOT IN ('skip', 'throttle', 'started')
 GROUP BY medio;
 
 -- Fuentes sin actividad exitosa > 7 días
