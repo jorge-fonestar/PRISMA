@@ -6,6 +6,8 @@
  * Sin dependencias externas: parsea XML nativo.
  */
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/fuentes/normalizar.php';
+require_once __DIR__ . '/fuentes/feed_health.php';
 
 /**
  * Lee los RSS del ámbito indicado y devuelve artículos de las últimas 24h.
@@ -38,41 +40,75 @@ function rss_fetch_all(string $ambito = ''): array {
         prisma_log("RSS", "═ Ámbito: $amb ═");
         foreach ($cuadrantes as $cuadrante => $medios) {
             foreach ($medios as $medio_arr) {
-            // Support both ['name', 'url'] and ['name', 'url', 'transparencia']
-            $nombre = $medio_arr[0];
-            $rss_url = $medio_arr[1];
-            // $transparencia = isset($medio_arr[2]) ? $medio_arr[2] : null;
-            // Rate limit por dominio
-            $domain = parse_url($rss_url, PHP_URL_HOST);
-            if ($domain === $last_domain) {
-                $wait = $rate_limit - (time() - $last_time);
-                if ($wait > 0) sleep($wait);
+            // Normalize legacy or new format
+            $cfg_medio = rss_normalizar_fuente($medio_arr, $cuadrante, $amb);
+            $nombre = $cfg_medio['medio'];
+
+            // Skip no_disponible sources
+            if ($cfg_medio['modalidad'] === 'no_disponible') {
+                feed_health_registrar($nombre, $amb, 'skip', 'no_disponible');
+                prisma_log("RSS", "  $nombre: no disponible — saltando");
+                continue;
             }
-            $last_domain = $domain;
-            $last_time = time();
 
-            prisma_log("RSS", "Leyendo $nombre ($cuadrante)...");
+            // Dispatch by modalidad
+            if ($cfg_medio['modalidad'] === 'captura_portada') {
+                // Lazy-load captura_portada module
+                if (!function_exists('captura_portada_fetch')) {
+                    require_once __DIR__ . '/fuentes/captura_portada.php';
+                }
+                $resp = captura_portada_fetch($cfg_medio);
+                $items = $resp['items'];
+                $resultado = $resp['resultado'];
+                $extras = $resp['extras'];
+            } else {
+                // RSS nativo — existing rss_fetch_feed()
+                $rss_url = $cfg_medio['url'];
+                // Rate limit por dominio
+                $domain = parse_url($rss_url, PHP_URL_HOST);
+                if ($domain === $last_domain) {
+                    $wait = $rate_limit - (time() - $last_time);
+                    if ($wait > 0) sleep($wait);
+                }
+                $last_domain = $domain;
+                $last_time = time();
 
-            $items = rss_fetch_feed($rss_url, $timeout);
-            if ($items === null) {
+                prisma_log("RSS", "Leyendo $nombre ($cuadrante)...");
+                $items = rss_fetch_feed($rss_url, $timeout);
+                if ($items === null) { $items = array(); $resultado = 'fail'; }
+                else { $resultado = count($items) > 0 ? 'ok' : 'fail'; }
+                $extras = array();
+            }
+
+            // Register health (captura_portada handles its own registration internally)
+            if ($cfg_medio['modalidad'] !== 'captura_portada') {
+                feed_health_registrar($nombre, $amb, $resultado, $cfg_medio['modalidad'], count($items), $extras);
+            }
+
+            if ($resultado === 'fail') {
                 prisma_log("RSS", "  ERROR leyendo $nombre — saltando");
+                continue;
+            }
+            if ($resultado === 'throttle' || $resultado === 'skip') {
+                prisma_log("RSS", "  $nombre: $resultado — saltando");
                 continue;
             }
 
             $count = 0;
             foreach ($items as $item) {
                 // Filtrar por fecha (últimas 24h)
-                $ts = $item['fecha_ts'] ?? 0;
+                $ts = isset($item['fecha_ts']) ? $item['fecha_ts'] : 0;
                 if ($ts > 0 && $ts < $cutoff) continue;
 
-                $articles[] = [
-                    'titulo'      => $item['titulo'],
-                    'url'         => $item['url'],
-                    'fecha'       => $item['fecha'],
-                    'medio'       => $nombre,
-                    'cuadrante'   => $cuadrante,
-                    'descripcion' => $item['descripcion'] ?? '',
-                ];
+                $articles[] = array(
+                    'titulo'        => $item['titulo'],
+                    'url'           => $item['url'],
+                    'fecha'         => $item['fecha'],
+                    'medio'         => $nombre,
+                    'cuadrante'     => $cuadrante,
+                    'descripcion'   => isset($item['descripcion']) ? $item['descripcion'] : '',
+                    'fecha_inferida'=> isset($item['fecha_inferida']) ? $item['fecha_inferida'] : false,
+                );
                 $count++;
             }
 
@@ -98,7 +134,7 @@ function rss_fetch_feed(string $url, int $timeout = 15): ?array {
         CURLOPT_TIMEOUT        => $timeout,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS      => 5,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; Prisma/1.0; +https://prisma.example)',
+        CURLOPT_USERAGENT      => PRISMA_BOT_UA,
         CURLOPT_ENCODING       => '',  // Accept gzip/deflate
         CURLOPT_SSL_VERIFYPEER => true,
     ));
