@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lib/fuentes/feed_health.php';
 
 $B = prisma_base();
 $cfg = prisma_cfg();
@@ -629,6 +630,33 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
       <div class="stat-val"><?= $data['articulos_total'] ?></div>
       <div class="stat-sub">Artículos publicados</div>
     </div>
+  </div>
+
+  <!-- ════════ SALUD DE FUENTES ════════ -->
+  <?php
+  $fh_resumen = feed_health_resumen(30);
+  $fh_alertas = feed_health_alertas(7);
+  $fh_total_fuentes = count($fh_resumen);
+  $fh_operativas = 0;
+  foreach ($fh_resumen as $fh) {
+      if ($fh['tasa_exito'] > 0) $fh_operativas++;
+  }
+  $fh_pct = $fh_total_fuentes > 0 ? round(100 * $fh_operativas / $fh_total_fuentes) : 0;
+  $fh_color = $fh_pct > 90 ? '#4ade80' : ($fh_pct > 70 ? '#f2f24a' : '#ff4d6d');
+  ?>
+  <div style="margin:1rem 0;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+    <strong style="color:<?= $fh_color ?>">Fuentes: <?= $fh_operativas ?>/<?= $fh_total_fuentes ?> operativas</strong>
+    <?php if ($fh_total_fuentes === 0): ?>
+      <p style="margin:0.5rem 0 0;font-size:0.82rem;color:#7a7a8a">Sin datos de salud. Ejecuta un escaneo para inicializar.</p>
+    <?php endif; ?>
+    <?php if (!empty($fh_alertas)): ?>
+      <ul style="margin:0.5rem 0 0;padding-left:1.2rem;font-size:0.85rem;color:#999">
+        <?php foreach (array_slice($fh_alertas, 0, 5) as $alerta): ?>
+          <li><?= htmlspecialchars($alerta['medio']) ?> — sin actividad desde <?= htmlspecialchars($alerta['ultimo_exito']) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <p style="margin:0.5rem 0 0;font-size:0.8rem"><a href="validar_feeds.php?pass=<?= urlencode($cfg['panel_pass']) ?>&mode=salud" style="color:#6c8aff">Ver salud completa de fuentes →</a></p>
   </div>
 
   <!-- ════════ CONSUMO ════════ -->
