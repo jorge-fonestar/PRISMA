@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/lib/layout.php';
+require_once __DIR__ . '/lib/fuentes/normalizar.php';
 
 $cfg = prisma_cfg();
 page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideológico que Prisma consulta diariamente.');
@@ -9,7 +10,8 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
 <div class="page-top">
   <p class="eyebrow">Transparencia</p>
   <h1>Fuentes consultadas</h1>
-  <p>Prisma consulta diariamente los RSS públicos de estos medios, clasificados por ámbito geográfico y cuadrante ideológico.</p>
+  <p>Prisma consulta diariamente estos medios, clasificados por ámbito geográfico y cuadrante ideológico.</p>
+  <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.6;margin-top:0.5rem">Prisma accede al contenido público de los medios mediante tres vías: RSS nativo cuando el medio lo ofrece; captura de portada (solo titulares y enlaces, respetando robots.txt y con user-agent identificable) cuando el medio no ha implementado RSS; y autorización explícita solicitada por correo cuando el medio ha retirado su RSS deliberadamente. Cualquier medio que desee no ser incluido puede escribir a contacto@prisma.example y será retirado del corpus en 48 horas.</p>
 </div>
 
 <div class="content">
@@ -42,16 +44,28 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
     <h3><?= htmlspecialchars($label) ?></h3>
     <p style="font-size:0.88rem;color:var(--text-faint);margin-bottom:1rem"><?= $n_cuad ?> cuadrantes · <?= $n_medios ?> medios</p>
     <table>
-      <thead><tr><th>Cuadrante</th><th>Medio</th><th>Propiedad y financiación</th></tr></thead>
+      <thead><tr><th>Cuadrante</th><th>Medio</th><th>Acceso</th><th>Propiedad y financiación</th></tr></thead>
       <tbody>
       <?php foreach ($cuadrantes as $cuadrante => $medios): ?>
         <?php foreach ($medios as $i => $medio): ?>
+          <?php $cfg_m = rss_normalizar_fuente($medio, $cuadrante, $ambito); ?>
           <tr>
             <?php if ($i === 0): ?>
               <td style="white-space:nowrap;vertical-align:top" rowspan="<?= count($medios) ?>"><strong><?= htmlspecialchars(ucfirst($cuadrante)) ?></strong></td>
             <?php endif; ?>
-            <td style="white-space:nowrap;vertical-align:top"><strong><?= htmlspecialchars($medio[0]) ?></strong></td>
-            <td style="font-size:0.85rem;color:var(--text-muted);line-height:1.5"><?= htmlspecialchars(isset($medio[2]) ? $medio[2] : '—') ?></td>
+            <td style="white-space:nowrap;vertical-align:top"><strong><?= htmlspecialchars($cfg_m['medio']) ?></strong></td>
+            <td style="white-space:nowrap;vertical-align:top;font-size:0.8rem"><?php
+              $mod = isset($cfg_m['modalidad']) ? $cfg_m['modalidad'] : 'rss_nativo';
+              if ($mod === 'rss_nativo') echo '<span style="color:var(--ok,#4ade80)">RSS</span>';
+              elseif ($mod === 'captura_portada') echo '<span style="color:var(--warn,#f2f24a)">Portada</span>';
+              else echo '<span style="color:var(--err,#ff4d6d)">No disponible</span>';
+            ?></td>
+            <td style="font-size:0.85rem;color:var(--text-muted);line-height:1.5"><?php
+              $trans = isset($cfg_m['transparencia']) ? $cfg_m['transparencia'] : '';
+              $perfil = isset($cfg_m['perfil_editorial']) ? $cfg_m['perfil_editorial'] : '';
+              if ($perfil) echo '<em style="color:var(--text-faint,#888)">' . htmlspecialchars($perfil) . '</em><br>';
+              echo htmlspecialchars($trans ? $trans : '—');
+            ?></td>
           </tr>
         <?php endforeach; ?>
       <?php endforeach; ?>
@@ -99,11 +113,12 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
 
   <h2>Política de acceso</h2>
   <ul>
-    <li>Solo RSS públicos y APIs oficiales.</li>
-    <li>Solo titulares, fragmentos y metadatos (uso legítimo de feed público).</li>
+    <li><strong>RSS nativo:</strong> lectura de feeds RSS/Atom públicos.</li>
+    <li><strong>Captura de portada:</strong> solo titulares y URLs de portada, respetando robots.txt, con User-Agent identificable (PrismaBot/1.0), máximo 1 petición por medio por hora.</li>
+    <li><strong>Medios sin acceso:</strong> cuando un medio retira su RSS deliberadamente, se solicita autorización explícita. Sin respuesta o denegación se declara públicamente.</li>
     <li>Siempre se cita la fuente original con enlace directo.</li>
     <li>Nunca se republica el texto íntegro del artículo.</li>
-    <li>Rate limiting: máximo 1 petición por segundo por dominio.</li>
+    <li>Cualquier medio puede solicitar su exclusión del corpus.</li>
   </ul>
 </div>
 
