@@ -20,6 +20,13 @@ require_once __DIR__ . '/lib/curador.php';
 require_once __DIR__ . '/lib/scoring.php';
 require_once __DIR__ . '/lib/diccionarios.php';
 require_once __DIR__ . '/lib/gate_haiku.php';
+require_once __DIR__ . '/lib/fuentes/feed_health.php';
+
+// Purge old feed_health records (>90 days)
+$purged = feed_health_purgar(90);
+if ($purged > 0) {
+    prisma_log("SCAN", "Purgados $purged registros de feed_health (>90 días)");
+}
 
 // ── Args ─────────────────────────────────────────────────────────────
 
