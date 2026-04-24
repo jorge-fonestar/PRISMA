@@ -109,14 +109,32 @@ $GLOBALS['_PRISMA_CFG'] = array(
                     'Cooperativa de trabajadores y lectores. 70% financiado por ~10.000 socios suscriptores. Publicidad limitada al 20% por estatutos. Sin accionistas externos.'),
             ),
             'izquierda' => array(
-                // Público: no RSS feed found in source — may have discontinued RSS
+                array(
+                    'medio' => 'Público',
+                    'url' => null,
+                    'modalidad' => 'no_disponible',
+                    'categoria_acceso' => 'C',
+                    'transparencia' => 'Medio sin RSS nativo (política editorial). Autorización pendiente de solicitud.',
+                    'perfil_editorial' => 'Generalista progresista español.',
+                    'ejes_cubiertos' => array(),
+                ),
                 array('elDiario.es', 'https://www.eldiario.es/rss/',
                     '70% propiedad de sus trabajadores. ~35% de ingresos por 75.000+ socios lectores, resto publicidad. Sin deuda. Fundado 2012 por Ignacio Escolar.'),
+                array('CTXT', 'https://ctxt.es/es/rss.xml'),
+                array('La Marea', 'https://www.lamarea.com/feed/'),
             ),
             'centro-izquierda' => array(
                 array('El País', 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada',
                     'Grupo PRISA. Accionistas principales: Amber Capital (Joseph Oughourlian, 29,6%), Vivendi (11,9%), Global Alconaba (ex-Telefónica, 7,6%), familia Polanco (7,3%), Carlos Slim (6,5%). Cotiza en bolsa.'),
-                // InfoLibre: no RSS feed found in source — may have discontinued RSS
+                array(
+                    'medio' => 'InfoLibre',
+                    'url' => null,
+                    'modalidad' => 'no_disponible',
+                    'categoria_acceso' => 'C',
+                    'transparencia' => 'RSS descontinuado (política editorial). Autorización pendiente de solicitud.',
+                    'perfil_editorial' => 'Progresista, modelo suscripción.',
+                    'ejes_cubiertos' => array(),
+                ),
             ),
             'centro' => array(
                 // EFE: 429 rate limit — kept but expect sporadic failures
