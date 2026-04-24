@@ -19,6 +19,8 @@
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/fuentes/feed_health.php';
+require_once __DIR__ . '/lib/fuentes/normalizar.php';
 
 // ── Web mode ────────────────────────────────────────────────────────
 $is_web = php_sapi_name() !== 'cli';
@@ -76,15 +78,17 @@ if ($is_web) {
     $mode = isset($_GET['mode']) ? $_GET['mode'] : '';
     if ($mode === 'candidatos') $opts['candidatos'] = true;
     if ($mode === 'todos') $opts['todos'] = true;
+    if ($mode === 'salud') $opts['salud'] = true;
     if (isset($_GET['url']) && $_GET['url'] !== '') $opts['url'] = $_GET['url'];
 } else {
-    $opts = getopt('', array('candidatos', 'todos', 'url:', 'help'));
+    $opts = getopt('', array('candidatos', 'todos', 'salud', 'url:', 'help'));
 
     if (isset($opts['help'])) {
-        echo "Uso: php validar_feeds.php [--candidatos] [--todos] [--url URL]\n";
+        echo "Uso: php validar_feeds.php [--candidatos] [--todos] [--salud] [--url URL]\n";
         echo "  (sin args)     Valida feeds de config.php\n";
         echo "  --candidatos   Valida solo candidatos para ampliación\n";
         echo "  --todos        Valida existentes + candidatos\n";
+        echo "  --salud        Muestra salud de fuentes (últimos 30 días)\n";
         echo "  --url URL      Valida una URL concreta\n";
         exit(0);
     }
@@ -97,6 +101,98 @@ if (isset($opts['url'])) {
     print_result('(manual)', '(manual)', $opts['url'], $result);
     if ($is_web) echo '</body></html>';
     exit($result['ok'] ? 0 : 1);
+}
+
+// ── Salud mode ──────────────────────────────────────────────────────
+
+if (isset($opts['salud'])) {
+    $resumen = feed_health_resumen(30);
+    $alertas = feed_health_alertas(7);
+
+    if ($is_web) {
+        echo '<h3>Salud de fuentes (últimos 30 días)</h3>';
+        if (empty($resumen)) {
+            echo '<p class="dim">Sin datos de salud. Ejecuta un escaneo para inicializar.</p>';
+        } else {
+            echo '<table><thead><tr><th>Medio</th><th>Modalidad</th><th>Fetches</th><th>Éxitos</th><th>Tasa</th></tr></thead><tbody>';
+            usort($resumen, function($a, $b) { return $a['tasa_exito'] - $b['tasa_exito']; });
+            foreach ($resumen as $r) {
+                $color = $r['tasa_exito'] > 90 ? 'ok' : ($r['tasa_exito'] > 70 ? 'warn' : 'err');
+                echo '<tr>';
+                echo '<td>' . htmlspecialchars($r['medio']) . '</td>';
+                echo '<td>' . htmlspecialchars($r['modalidad']) . '</td>';
+                echo '<td>' . (int)$r['total'] . '</td>';
+                echo '<td>' . (int)$r['exitos'] . '</td>';
+                echo '<td class="' . $color . '">' . $r['tasa_exito'] . '%</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+
+        if (!empty($alertas)) {
+            echo '<h3 style="margin-top:2rem">Alertas (>7 días sin éxito)</h3>';
+            echo '<ul>';
+            foreach ($alertas as $a) {
+                echo '<li class="err">' . htmlspecialchars($a['medio']) . ' — último éxito: ' . htmlspecialchars($a['ultimo_exito']) . '</li>';
+            }
+            echo '</ul>';
+        }
+
+        // Ejes x cuadrantes matrix
+        $cfg_fuentes = prisma_cfg();
+        $ejes_matrix = array();
+        $all_cuads = array();
+        foreach ($cfg_fuentes['fuentes'] as $amb => $cuads) {
+            foreach ($cuads as $cuad => $medios_arr) {
+                if (!in_array($cuad, $all_cuads)) $all_cuads[] = $cuad;
+                foreach ($medios_arr as $m) {
+                    $cfg_m = rss_normalizar_fuente($m, $cuad, $amb);
+                    $ejes = isset($cfg_m['ejes_cubiertos']) ? $cfg_m['ejes_cubiertos'] : array();
+                    foreach ($ejes as $eje) {
+                        if (!isset($ejes_matrix[$eje])) $ejes_matrix[$eje] = array();
+                        if (!isset($ejes_matrix[$eje][$cuad])) $ejes_matrix[$eje][$cuad] = 0;
+                        $ejes_matrix[$eje][$cuad]++;
+                    }
+                }
+            }
+        }
+
+        if (!empty($ejes_matrix)) {
+            echo '<h3 style="margin-top:2rem">Matriz ejes × cuadrantes</h3>';
+            echo '<table><thead><tr><th>Eje</th>';
+            foreach ($all_cuads as $c) echo '<th>' . htmlspecialchars($c) . '</th>';
+            echo '</tr></thead><tbody>';
+            foreach ($ejes_matrix as $eje => $cuads_data) {
+                echo '<tr><td>' . htmlspecialchars($eje) . '</td>';
+                foreach ($all_cuads as $c) {
+                    $n = isset($cuads_data[$c]) ? $cuads_data[$c] : 0;
+                    $style = $n === 0 ? ' class="err"' : '';
+                    echo '<td' . $style . '>' . $n . '</td>';
+                }
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+
+        echo '</body></html>';
+    } else {
+        echo "=== Salud de fuentes (30 días) ===\n";
+        if (empty($resumen)) {
+            echo "  Sin datos. Ejecuta un escaneo para inicializar.\n";
+        } else {
+            foreach ($resumen as $r) {
+                printf("%-25s %-18s %3d fetches  %3d ok  %5.1f%%\n",
+                    $r['medio'], $r['modalidad'], $r['total'], $r['exitos'], $r['tasa_exito']);
+            }
+        }
+        if (!empty($alertas)) {
+            echo "\n=== Alertas (>7 días sin éxito) ===\n";
+            foreach ($alertas as $a) {
+                echo "  {$a['medio']} — último éxito: {$a['ultimo_exito']}\n";
+            }
+        }
+    }
+    exit;
 }
 
 // ── Build feed list ─────────────────────────────────────────────────
