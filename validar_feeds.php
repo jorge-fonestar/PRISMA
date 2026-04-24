@@ -207,9 +207,12 @@ if ($check_existing) {
     foreach ($cfg['fuentes'] as $ambito => $cuadrantes) {
         foreach ($cuadrantes as $cuadrante => $medios) {
             foreach ($medios as $medio) {
+                $cfg_m = rss_normalizar_fuente($medio, $cuadrante, $ambito);
+                // Skip no_disponible sources (no URL to validate)
+                if ($cfg_m['modalidad'] === 'no_disponible') continue;
                 $feeds_to_check[] = array(
-                    'nombre'    => $medio[0],
-                    'url'       => $medio[1],
+                    'nombre'    => $cfg_m['medio'],
+                    'url'       => $cfg_m['url'],
                     'ambito'    => $ambito,
                     'cuadrante' => $cuadrante,
                     'tipo'      => 'existente',

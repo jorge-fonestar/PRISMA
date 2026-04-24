@@ -111,7 +111,7 @@ function feed_health_resumen($dias = 30) {
         FROM feed_health
         WHERE created_at >= datetime('now', ?)
           AND resultado NOT IN ('skip', 'throttle', 'started')
-        GROUP BY medio");
+        GROUP BY medio, modalidad");
     $stmt->execute(array($interval));
     return $stmt->fetchAll();
 }
