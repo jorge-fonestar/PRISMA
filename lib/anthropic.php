@@ -65,7 +65,10 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     $messages = [
         ['role' => 'user', 'content' => $user_msg],
     ];
-    if ($prefill !== '') {
+    // Claude 4.x models (sonnet-4, opus-4) do not support assistant prefill
+    $supports_prefill = (strpos($model, 'claude-sonnet-4') === false
+                      && strpos($model, 'claude-opus-4') === false);
+    if ($prefill !== '' && $supports_prefill) {
         $messages[] = ['role' => 'assistant', 'content' => $prefill];
     }
 
@@ -144,9 +147,9 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
 
     anthropic_record_usage($model, $input_tokens, $output_tokens, $cost);
 
-    // Log to isolated DB — prepend prefill to reconstruct full response
+    // Log to isolated DB — prepend prefill to reconstruct full response (only if prefill was actually sent)
     $text = $data['content'][0]['text'];
-    if ($prefill !== '') {
+    if ($prefill !== '' && $supports_prefill) {
         $text = $prefill . $text;
     }
     prisma_log_api_call(array(

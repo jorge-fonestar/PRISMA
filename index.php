@@ -5,76 +5,6 @@ require_once __DIR__ . '/lib/theme.php';
 require_once __DIR__ . '/lib/layout.php';
 
 ini_set('default_charset', 'UTF-8');
-$db = prisma_db();
-
-// Available dates for date picker
-$fechas_rows = $db->query("SELECT DISTINCT fecha FROM radar ORDER BY fecha DESC LIMIT 30")->fetchAll();
-$fechas_disponibles = array_column($fechas_rows, 'fecha');
-
-// Selected date (from query param or latest)
-$fecha_sel = isset($_GET['fecha']) && in_array($_GET['fecha'], $fechas_disponibles)
-    ? $_GET['fecha']
-    : (isset($fechas_disponibles[0]) ? $fechas_disponibles[0] : null);
-
-// Selected ambito filter — validate against actual DB values, not hardcoded list
-$ambito_sel = 'all';
-if (isset($_GET['ambito']) && $_GET['ambito'] !== '') {
-    $ambito_sel = $_GET['ambito'];
-}
-
-// Fetch radar topics for selected date
-$temas = [];
-$ambitos_count = [];
-if ($fecha_sel) {
-    $stmt = $db->prepare("SELECT * FROM radar WHERE fecha = :f ORDER BY h_score DESC");
-    $stmt->execute(array(':f' => $fecha_sel));
-    $temas = $stmt->fetchAll();
-    foreach ($temas as $t) {
-        $a = $t['ambito'];
-        $ambitos_count[$a] = isset($ambitos_count[$a]) ? $ambitos_count[$a] + 1 : 1;
-    }
-}
-
-// Fallback: articles mode
-$articles = [];
-if (empty($temas)) {
-    $rows = $db->query('SELECT id, fecha_publicacion, ambito, titular_neutral, resumen, payload, veredicto FROM articulos ORDER BY fecha_publicacion DESC LIMIT 50')->fetchAll();
-    foreach ($rows as $row) {
-        $art = json_decode($row['payload'], true);
-        $art['_id'] = $row['id'];
-        $articles[] = $art;
-        $a = isset($art['ambito']) ? $art['ambito'] : '';
-        $ambitos_count[$a] = isset($ambitos_count[$a]) ? $ambitos_count[$a] + 1 : 1;
-    }
-}
-
-// Validate ambito against actual values from DB
-if ($ambito_sel !== 'all' && !isset($ambitos_count[$ambito_sel])) {
-    $ambito_sel = 'all';
-}
-
-function format_fecha($iso) {
-    $ts = strtotime($iso);
-    $meses = array('enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre');
-    return date('j', $ts) . ' de ' . $meses[date('n', $ts) - 1] . ' de ' . date('Y', $ts);
-}
-
-function format_fecha_corta($iso) {
-    $ts = strtotime($iso);
-    $dias = array('dom','lun','mar','mié','jue','vie','sáb');
-    $meses = array('ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic');
-    return $dias[date('w', $ts)] . ' ' . date('j', $ts) . ' ' . $meses[date('n', $ts) - 1];
-}
-
-function ambito_label($ambito) {
-    $map = array(
-        'españa' => 'España', 'espana' => 'España', 'espa\xc3\xb1a' => 'España',
-        'europa' => 'Europa',
-        'global' => 'Global'
-    );
-    $key = mb_strtolower(trim($ambito), 'UTF-8');
-    return isset($map[$key]) ? $map[$key] : ucfirst($ambito);
-}
 
 function h($str) {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
@@ -82,7 +12,7 @@ function h($str) {
 
 $B = prisma_base();
 $cfg = prisma_cfg();
-$total_temas = !empty($temas) ? count($temas) : count($articles);
+$today = date('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -107,12 +37,6 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
-    .skip-link {
-      position: absolute; top: -40px; left: 0;
-      padding: 12px 20px; background: #fff; color: #0a0a12;
-      text-decoration: none; z-index: 1000; font-weight: 600; transition: top 0.2s;
-    }
-    .skip-link:focus { top: 0; }
     :focus-visible { outline: 3px solid #f2f24a; outline-offset: 3px; border-radius: 2px; }
     h1, h2, h3 {
       font-family: 'Canela', 'Playfair Display', 'Didot', Georgia, serif;
@@ -152,106 +76,120 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
     /* Main content */
     main { padding-top: 5rem; min-height: 100vh; }
 
-    /* Compact banner */
+    /* Banner */
     .banner {
       padding: 1.2rem 0;
       border-bottom: 1px solid var(--border);
       margin-bottom: 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 1rem; flex-wrap: wrap;
     }
-    .banner-text {
-      flex: 1; min-width: 280px;
-    }
-    .banner-text h1 {
+    .banner h1 {
       font-size: clamp(1.3rem, 3vw, 1.8rem); margin: 0 0 0.15em 0;
       color: var(--text);
     }
-    .banner-text h1 em {
+    .banner h1 em {
       font-style: italic;
       background: linear-gradient(90deg, #ff4d6d, #ff9e4d, #f2f24a, #4ade80, #4dc3ff, #a855f7);
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .banner-text p {
+    .banner p {
       color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin: 0;
     }
-    .banner-text a {
+    .banner a {
       color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.82rem;
       font-family: 'Inter', Arial, sans-serif;
     }
-    .banner-text a:hover { color: var(--text); }
+    .banner a:hover { color: var(--text); }
 
-    /* Toolbar: filters + date */
-    .toolbar {
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-      margin-bottom: 1.5rem; padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
+    /* Filters panel */
+    .filters-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 0; cursor: pointer;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
+      border: none; background: none; width: 100%;
     }
-    .toolbar-group {
-      display: flex; align-items: center; gap: 6px;
+    .filters-toggle:hover { color: var(--text); }
+    .filters-toggle svg {
+      transition: transform 0.2s;
     }
-    .toolbar-label {
-      font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint);
-      margin-right: 4px; white-space: nowrap;
+    .filters-toggle.open svg {
+      transform: rotate(180deg);
     }
-    .toolbar-sep {
-      width: 1px; height: 20px; background: var(--border); margin: 0 4px;
+    .filters-toggle .filter-count {
+      display: inline-block; padding: 1px 7px; border-radius: 99px;
+      background: var(--accent-bg); color: var(--accent);
+      font-size: 0.7rem; font-weight: 700;
     }
-    .filter-btn {
-      padding: 5px 14px; border: 1px solid var(--border-card); border-radius: 999px;
-      background: transparent; color: var(--text-muted); font-family: 'Inter', Arial, sans-serif;
-      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer;
-      transition: all 0.15s; white-space: nowrap;
+    .filters-panel {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease;
     }
-    .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
-    .filter-btn.active {
-      background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent);
+    .filters-panel.open {
+      max-height: 500px;
     }
-    .filter-btn .count {
-      display: inline-block; margin-left: 3px; padding: 1px 5px;
-      border-radius: 99px; background: var(--chip-bg);
-      font-size: 0.65rem; font-weight: 700; color: var(--text-faint);
+    .filters-inner {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px 24px; padding: 12px 0 20px 0;
+      border-bottom: 1px solid var(--border); margin-bottom: 1rem;
     }
-    .filter-btn.active .count { background: var(--accent-bg); color: var(--accent); }
+    .filter-group label {
+      display: block; font-family: 'Inter', Arial, sans-serif;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px;
+    }
+    .filter-group input[type="date"],
+    .filter-group input[type="text"],
+    .filter-group select {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--border-card); border-radius: 6px;
+      background: var(--bg-card); color: var(--text);
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.85rem;
+      transition: border-color 0.15s;
+    }
+    .filter-group input:focus,
+    .filter-group select:focus {
+      border-color: var(--accent); outline: none;
+    }
+    .filter-group .check-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 0; cursor: pointer;
+    }
+    .filter-group .check-row input[type="checkbox"] {
+      accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;
+    }
+    .filter-group .check-label {
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.85rem;
+      color: var(--text-muted); cursor: pointer;
+    }
+    .filters-actions {
+      display: flex; gap: 10px; align-items: center;
+      padding: 6px 0 16px 0;
+    }
+    .btn-apply {
+      padding: 7px 20px; border: none; border-radius: 6px;
+      background: var(--accent); color: #fff;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-apply:hover { opacity: 0.85; }
+    .btn-clear {
+      padding: 7px 16px; border: 1px solid var(--border-card); border-radius: 6px;
+      background: transparent; color: var(--text-muted);
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-clear:hover { border-color: var(--border-hover); color: var(--text); }
 
-    /* Date scroller */
-    .date-scroll {
-      display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; padding: 2px 0;
+    /* Stats bar */
+    .stats-bar {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.78rem;
+      color: var(--text-faint); margin-bottom: 1rem; min-height: 24px;
     }
-    .date-scroll::-webkit-scrollbar { display: none; }
-    .date-btn {
-      padding: 5px 12px; border: 1px solid var(--border-card); border-radius: 999px;
-      background: transparent; color: var(--text-muted); font-family: 'Inter', Arial, sans-serif;
-      font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
-      white-space: nowrap; text-decoration: none; text-transform: capitalize;
-    }
-    .date-btn:hover { border-color: var(--border-hover); color: var(--text); }
-    .date-btn.active {
-      background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent);
-    }
-    .date-btn .date-today {
-      display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-      background: var(--green); margin-right: 3px; vertical-align: middle;
-    }
-
-    /* Day group header */
-    .day-header {
-      display: flex; align-items: center; gap: 12px;
-      padding: 0.6rem 0; margin-top: 0.5rem;
-    }
-    .day-header span {
-      font-family: 'Inter', Arial, sans-serif; font-size: 0.78rem; font-weight: 600;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint);
-      white-space: nowrap;
-    }
-    .day-header::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
-    }
+    .stats-bar strong { color: var(--text-muted); }
 
     /* Article cards */
-    .articles-list { display: flex; flex-direction: column; gap: 16px; padding-bottom: 5rem; }
+    .articles-list { display: flex; flex-direction: column; gap: 16px; padding-bottom: 2rem; }
     .article-card {
       display: flex; gap: 16px; align-items: flex-start;
       padding: 1.4rem; text-decoration: none; color: inherit;
@@ -261,7 +199,6 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
     .article-card:hover {
       border-color: var(--border-hover); background: var(--bg-card-hover);
     }
-    .article-card.hidden, .article-card.hidden-polar, .article-card.hidden-analyzed { display: none; }
     .article-card.card-analyzed {
       border-left: 3px solid var(--accent);
     }
@@ -276,8 +213,8 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; flex-wrap: wrap;
     }
     .article-date {
-      font-family: 'Inter', Arial, sans-serif; font-size: 0.78rem;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint);
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint);
     }
     .badge-ambito {
       display: inline-block; padding: 2px 8px;
@@ -285,26 +222,11 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       letter-spacing: 0.08em; text-transform: uppercase;
       border-radius: 999px; border: 1px solid var(--border-card); color: var(--text-muted);
     }
-    .badge-apto {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 2px 8px; background: var(--green-bg); color: var(--green);
-      border: 1px solid var(--green-border); border-radius: 999px;
-      font-family: 'Inter', Arial, sans-serif; font-size: 0.68rem; font-weight: 600;
-      letter-spacing: 0.05em;
-    }
-    .badge-apto::before {
-      content: ""; width: 5px; height: 5px; border-radius: 50%;
-      background: var(--green); box-shadow: 0 0 6px var(--green);
-    }
     .article-card h2 {
       font-size: clamp(1rem, 2vw, 1.25rem); margin-bottom: 0.2em; color: var(--text);
     }
     .article-card .frase {
       color: var(--text-faint); font-size: 0.84rem; font-style: italic; margin: 0 0 0.6em 0;
-    }
-    .article-card .resumen {
-      color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin: 0;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .fuentes-row {
       display: flex; gap: 5px; flex-wrap: wrap; margin-top: 0.6rem;
@@ -314,35 +236,35 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
       font-size: 0.68rem; font-weight: 500; letter-spacing: 0.03em;
       border-radius: 999px; background: var(--chip-bg); color: var(--text-muted);
     }
-    .posturas-preview {
-      display: flex; gap: 6px; margin-top: 0.8rem; flex-wrap: wrap;
-    }
 
-    /* Stats bar */
-    .stats-bar {
-      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-      font-family: 'Inter', Arial, sans-serif; font-size: 0.78rem;
-      color: var(--text-faint); margin-bottom: 1rem;
+    /* Load more */
+    .load-more-wrap {
+      text-align: center; padding: 1.5rem 0 3rem 0;
     }
-    .stats-bar strong { color: var(--text-muted); }
-
-    /* Sort toggle */
-    .sort-toggle {
-      margin-left: auto; display: flex; align-items: center; gap: 6px;
+    .btn-load-more {
+      padding: 10px 32px; border: 1px solid var(--border-card); border-radius: 6px;
+      background: var(--bg-card); color: var(--text-muted);
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
     }
-    .sort-btn {
-      padding: 4px 10px; border: 1px solid var(--border-card); border-radius: 999px;
-      background: transparent; color: var(--text-faint); font-family: 'Inter', Arial, sans-serif;
-      font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    .btn-load-more:hover {
+      border-color: var(--border-hover); color: var(--text); background: var(--bg-card-hover);
     }
-    .sort-btn:hover { border-color: var(--border-hover); color: var(--text); }
-    .sort-btn.active { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); }
+    .btn-load-more:disabled {
+      opacity: 0.5; cursor: default;
+    }
 
     /* Empty state */
     .empty-state {
       text-align: center; padding: 4rem 2rem; color: var(--text-faint);
     }
     .empty-state h2 { color: var(--text); font-size: 1.3rem; }
+
+    /* Loading spinner */
+    .loading-indicator {
+      text-align: center; padding: 2rem 0;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.85rem; color: var(--text-faint);
+    }
 
     /* Footer */
     footer[role="contentinfo"] {
@@ -367,9 +289,7 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
     }
 
     @media (max-width: 640px) {
-      .toolbar { gap: 8px; }
-      .toolbar-sep { display: none; }
-      .banner { flex-direction: column; }
+      .filters-inner { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -380,196 +300,98 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
   </style>
 </head>
 <body>
-  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
-
   <?= render_nav('', array('' => 'Radar')) ?>
 
   <main id="main-content" role="main">
     <div class="container">
 
-      <!-- Compact banner -->
+      <!-- Banner -->
       <div class="banner">
-        <div class="banner-text">
-          <h1>Tu algoritmo te encierra. Prisma te da el <em>contexto</em>.</h1>
-          <p>Las redes te muestran lo que ya crees. Aquí, cada noticia se analiza desde todas las posturas enfrentadas
-            y se audita contra 11 criterios de neutralidad. Sin editorial. Sin personalización. Sin decirte qué pensar.
-            <a href="<?= $B ?>presentacion.php">Cómo funciona &rarr;</a>
-          </p>
+        <h1>Tu algoritmo te encierra. Prisma te da el <em>contexto</em>.</h1>
+        <p>Las redes te muestran lo que ya crees. Aquí, cada noticia se analiza desde todas las posturas enfrentadas
+          y se audita contra 11 criterios de neutralidad. Sin editorial. Sin personalización. Sin decirte qué pensar.
+          <a href="<?= $B ?>presentacion.php">Cómo funciona &rarr;</a>
+        </p>
+      </div>
+
+      <!-- Collapsible Filters -->
+      <button class="filters-toggle" id="filters-toggle" type="button" aria-expanded="false" aria-controls="filters-panel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        Filtros
+        <span class="filter-count" id="filter-count" style="display:none">0</span>
+      </button>
+
+      <div class="filters-panel" id="filters-panel">
+        <div class="filters-inner">
+          <div class="filter-group">
+            <label for="f-desde">Fecha desde</label>
+            <input type="date" id="f-desde" value="<?= h($today) ?>">
+          </div>
+          <div class="filter-group">
+            <label for="f-hasta">Fecha hasta</label>
+            <input type="date" id="f-hasta" value="<?= h($today) ?>">
+          </div>
+          <div class="filter-group">
+            <label for="f-buscar">Buscar</label>
+            <input type="text" id="f-buscar" placeholder="Palabra clave...">
+          </div>
+          <div class="filter-group">
+            <label for="f-polar">Polarización mínima</label>
+            <select id="f-polar">
+              <option value="0">Todas</option>
+              <option value="10">&ge; 10%</option>
+              <option value="20">&ge; 20%</option>
+              <option value="30">&ge; 30%</option>
+              <option value="40">&ge; 40%</option>
+              <option value="50" selected>&ge; 50%</option>
+              <option value="60">&ge; 60%</option>
+              <option value="70">&ge; 70%</option>
+              <option value="80">&ge; 80%</option>
+              <option value="90">&ge; 90%</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>&nbsp;</label>
+            <label class="check-row">
+              <input type="checkbox" id="f-analizados">
+              <span class="check-label">Solo analizados</span>
+            </label>
+          </div>
+          <div class="filter-group">
+            <label for="f-orden">Ordenar por</label>
+            <select id="f-orden">
+              <option value="polarizacion">Polarización (mayor a menor)</option>
+              <option value="fecha">Fecha (más reciente)</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-actions">
+          <button class="btn-apply" id="btn-apply" type="button">Aplicar filtros</button>
+          <button class="btn-clear" id="btn-clear" type="button">Limpiar</button>
         </div>
       </div>
 
-      <!-- Toolbar: date + ambito filters -->
-      <?php
-        $analizados = 0;
-        if (!empty($temas)) {
-          foreach ($temas as $t) { if ($t['analizado']) $analizados++; }
-        }
-      ?>
-      <?php if (!empty($temas) || !empty($articles)): ?>
-        <div class="toolbar">
-          <?php if (!empty($fechas_disponibles) && count($fechas_disponibles) > 1): ?>
-            <div class="toolbar-group">
-              <span class="toolbar-label">Fecha</span>
-              <div class="date-scroll">
-                <?php foreach (array_slice($fechas_disponibles, 0, 10) as $fd): ?>
-                  <a href="?fecha=<?= urlencode($fd) ?><?= $ambito_sel !== 'all' ? '&ambito=' . urlencode($ambito_sel) : '' ?>"
-                     class="date-btn <?= $fd === $fecha_sel ? 'active' : '' ?>">
-                    <?php if ($fd === date('Y-m-d')): ?><span class="date-today"></span><?php endif; ?>
-                    <?= $fd === date('Y-m-d') ? 'Hoy' : h(format_fecha_corta($fd)) ?>
-                  </a>
-                <?php endforeach; ?>
-              </div>
-            </div>
-            <div class="toolbar-sep"></div>
-          <?php endif; ?>
+      <!-- Stats -->
+      <div class="stats-bar" id="stats-bar">
+        <span id="stats-text"></span>
+      </div>
 
-          <div class="toolbar-group">
-            <span class="toolbar-label">Ámbito</span>
-            <a href="?<?= $fecha_sel ? 'fecha=' . urlencode($fecha_sel) : '' ?>"
-               class="filter-btn <?= $ambito_sel === 'all' ? 'active' : '' ?>" data-filter="all">
-              Todos <span class="count"><?= $total_temas ?></span>
-            </a>
-            <?php foreach ($ambitos_count as $amb => $cnt): ?>
-              <a href="?<?= $fecha_sel ? 'fecha=' . urlencode($fecha_sel) . '&' : '' ?>ambito=<?= urlencode($amb) ?>"
-                 class="filter-btn <?= $ambito_sel === $amb ? 'active' : '' ?>" data-filter="<?= h($amb) ?>">
-                <?= h(ambito_label($amb)) ?> <span class="count"><?= $cnt ?></span>
-              </a>
-            <?php endforeach; ?>
-          </div>
+      <!-- Results -->
+      <div class="articles-list" id="articles-list"></div>
 
-          <div class="toolbar-sep"></div>
+      <!-- Load more -->
+      <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+        <button class="btn-load-more" id="btn-load-more" type="button">Ver más</button>
+      </div>
 
-          <div class="toolbar-group">
-            <span class="toolbar-label">Polarización</span>
-            <button class="filter-btn polar-btn" data-min="0" data-max="100">Todas</button>
-            <button class="filter-btn polar-btn active" data-min="50" data-max="100">&ge;50%</button>
-            <button class="filter-btn polar-btn" data-min="0" data-max="49">&lt;50%</button>
-          </div>
+      <!-- Loading -->
+      <div class="loading-indicator" id="loading" style="display:none">Cargando...</div>
 
-          <div class="toolbar-sep"></div>
-
-          <div class="toolbar-group">
-            <button class="filter-btn analyzed-btn" id="btn-analyzed" title="Mostrar solo temas con análisis multi-postura completado">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px"><path d="M20 6L9 17l-5-5"/></svg>
-              Analizados <span class="count"><?= $analizados ?></span>
-            </button>
-          </div>
-
-          <div class="sort-toggle">
-            <button class="sort-btn active" data-sort="tension" title="Ordenar por polarización">Polarización</button>
-            <button class="sort-btn" data-sort="alpha" title="Ordenar alfabéticamente">A-Z</button>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-bar">
-          <span><strong id="polar-count"><?= $total_temas ?></strong> temas visibles de <?= $total_temas ?></span>
-          <?php if ($fecha_sel): ?>
-            <span><?= format_fecha($fecha_sel) ?></span>
-          <?php endif; ?>
-          <?php if ($analizados > 0): ?>
-            <span><strong><?= $analizados ?></strong> analizados en profundidad</span>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
-
-      <?php if (empty($temas) && empty($articles)): ?>
-        <div class="empty-state">
-          <h2>No hay noticias disponibles</h2>
-          <p>Todavía no se han detectado temas. Vuelve pronto.</p>
-        </div>
-
-      <?php elseif (!empty($temas)): ?>
-        <div class="articles-list" id="articles-list">
-          <?php
-            // Filter by ambito if selected
-            $temas_filtrados = $temas;
-            if ($ambito_sel !== 'all') {
-              $temas_filtrados = array_filter($temas, function($t) use ($ambito_sel) {
-                return $t['ambito'] === $ambito_sel;
-              });
-            }
-          ?>
-          <?php foreach ($temas_filtrados as $tema):
-            $fuentes = json_decode($tema['fuentes_json'], true);
-            if (!$fuentes) $fuentes = array();
-            $link = $tema['analizado'] && $tema['articulo_id']
-                ? $B . 'articulo.php?id=' . urlencode($tema['articulo_id'])
-                : $B . 'articulo.php?radar=' . urlencode($tema['id']);
-            $sv = isset($tema['scoring_version']) ? $tema['scoring_version'] : 'v1';
-            $m1 = ($sv === 'v2' && $tema['h_cobertura_mutua'] !== null) ? (float)$tema['h_cobertura_mutua'] : (float)$tema['h_asimetria'];
-            $m2 = ($sv === 'v2' && $tema['h_framing'] !== null) ? (float)$tema['h_framing'] : (float)$tema['h_divergencia'];
-            $rel = isset($tema['relevancia']) ? $tema['relevancia'] : null;
-            $fd = isset($tema['framing_divergence']) ? (int)$tema['framing_divergence'] : null;
-            $frase = $tema['haiku_frase'] ? $tema['haiku_frase'] : tension_frase_generica($m1, $m2, $rel, $fd);
-          ?>
-            <a href="<?= $link ?>" class="article-card<?= $tema['analizado'] ? ' card-analyzed' : '' ?>"
-               data-ambito="<?= h($tema['ambito']) ?>"
-               data-score="<?= $tema['h_score'] ?>"
-               data-analyzed="<?= $tema['analizado'] ? '1' : '0' ?>"
-               data-title="<?= h($tema['titulo_tema']) ?>">
-              <?= render_circulo_tension($tema['h_score']) ?>
-              <div style="flex:1;min-width:0">
-                <div class="article-meta">
-                  <span class="badge-ambito"><?= h(ambito_label($tema['ambito'])) ?></span>
-                  <?php if ($tema['analizado']): ?>
-                    <span class="badge-analyzed">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:-1px"><path d="M20 6L9 17l-5-5"/></svg>
-                      Análisis multi-postura
-                    </span>
-                  <?php endif; ?>
-                  <span style="font-family:'Inter',Arial,sans-serif;font-size:0.7rem;color:var(--text-faint);margin-left:auto">
-                    H <?= number_format($tema['h_score'] * 100, 0) ?>%
-                  </span>
-                </div>
-                <h2><?= h($tema['titulo_tema']) ?></h2>
-                <p class="frase"><?= h($frase) ?></p>
-                <div class="fuentes-row">
-                  <?php foreach ($fuentes as $f): ?>
-                    <span class="postura-chip" style="border-left:3px solid <?= cuadrante_color($f['cuadrante']) ?>;padding-left:7px">
-                      <?= h($f['medio']) ?>
-                    </span>
-                  <?php endforeach; ?>
-                </div>
-              </div>
-            </a>
-          <?php endforeach; ?>
-
-          <?php if (empty($temas_filtrados)): ?>
-            <div class="empty-state">
-              <p>No hay temas para este ámbito en la fecha seleccionada.</p>
-            </div>
-          <?php endif; ?>
-        </div>
-
-      <?php else: ?>
-        <!-- Fallback: articles mode -->
-        <div class="articles-list" id="articles-list">
-          <?php foreach ($articles as $art): ?>
-            <a href="<?= $B ?>articulo.php?id=<?= urlencode($art['_id']) ?>" class="article-card"
-               data-ambito="<?= h(isset($art['ambito']) ? $art['ambito'] : '') ?>">
-              <div style="flex:1;min-width:0">
-                <div class="article-meta">
-                  <span class="article-date"><?= format_fecha($art['fecha_publicacion']) ?></span>
-                  <span class="badge-ambito"><?= h(ambito_label($art['ambito'])) ?></span>
-                  <?php if ((isset($art['auditoria_moralcore']['veredicto']) ? $art['auditoria_moralcore']['veredicto'] : '') === 'APTO'): ?>
-                    <span class="badge-apto">Moral Core · APTO</span>
-                  <?php endif; ?>
-                </div>
-                <h2><?= h($art['titular_neutral']) ?></h2>
-                <p class="resumen"><?= h($art['resumen']) ?></p>
-                <?php if (!empty($art['mapa_posturas'])): ?>
-                  <div class="posturas-preview">
-                    <?php foreach ($art['mapa_posturas'] as $postura): ?>
-                      <span class="postura-chip"><?= h($postura['etiqueta']) ?></span>
-                    <?php endforeach; ?>
-                  </div>
-                <?php endif; ?>
-              </div>
-            </a>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state" style="display:none">
+        <h2>No hay noticias disponibles</h2>
+        <p>No se encontraron temas con los filtros aplicados.</p>
+      </div>
     </div>
   </main>
 
@@ -580,69 +402,217 @@ $total_temas = !empty($temas) ? count($temas) : count($articles);
   </footer>
 
   <script>
-  // Filter state
-  var polarMin = 50, polarMax = 100;
-  var onlyAnalyzed = false;
+  (function() {
+    var apiUrl = <?= json_encode($B . 'api_radar.php') ?>;
+    var currentOffset = 0;
+    var currentTotal = 0;
+    var isLoading = false;
 
-  function applyFilters() {
-    var list = document.getElementById('articles-list');
-    if (!list) return;
-    var cards = Array.prototype.slice.call(list.querySelectorAll('.article-card'));
-    cards.forEach(function(card) {
-      var score = Math.round(parseFloat(card.dataset.score || 0) * 100);
-      var hiddenPolar = score < polarMin || score > polarMax;
-      var hiddenAnalyzed = onlyAnalyzed && card.dataset.analyzed !== '1';
-      card.classList.toggle('hidden-polar', hiddenPolar);
-      card.classList.toggle('hidden-analyzed', hiddenAnalyzed);
+    var $list = document.getElementById('articles-list');
+    var $loadMore = document.getElementById('load-more-wrap');
+    var $btnMore = document.getElementById('btn-load-more');
+    var $loading = document.getElementById('loading');
+    var $empty = document.getElementById('empty-state');
+    var $stats = document.getElementById('stats-text');
+    var $filterCount = document.getElementById('filter-count');
+
+    // Filter elements
+    var $desde = document.getElementById('f-desde');
+    var $hasta = document.getElementById('f-hasta');
+    var $buscar = document.getElementById('f-buscar');
+    var $polar = document.getElementById('f-polar');
+    var $analizados = document.getElementById('f-analizados');
+    var $orden = document.getElementById('f-orden');
+
+    // Toggle filters panel
+    var $toggle = document.getElementById('filters-toggle');
+    var $panel = document.getElementById('filters-panel');
+    $toggle.addEventListener('click', function() {
+      var open = $panel.classList.toggle('open');
+      $toggle.classList.toggle('open', open);
+      $toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
-    var visible = list.querySelectorAll('.article-card:not(.hidden-polar):not(.hidden-analyzed)').length;
-    var counter = document.getElementById('polar-count');
-    if (counter) counter.textContent = visible;
-  }
 
-  // Polarization filter buttons
-  document.querySelectorAll('.polar-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.polar-btn').forEach(function(b) { b.classList.remove('active'); });
-      this.classList.add('active');
-      polarMin = parseInt(this.dataset.min, 10);
-      polarMax = parseInt(this.dataset.max, 10);
-      applyFilters();
-    });
-  });
+    function getFilters() {
+      return {
+        fecha_desde: $desde.value,
+        fecha_hasta: $hasta.value,
+        q: $buscar.value.trim(),
+        polar_min: $polar.value,
+        solo_analizados: $analizados.checked ? '1' : '0',
+        orden: $orden.value
+      };
+    }
 
-  // Analyzed toggle
-  var analyzedBtn = document.getElementById('btn-analyzed');
-  if (analyzedBtn) {
-    analyzedBtn.addEventListener('click', function() {
-      onlyAnalyzed = !onlyAnalyzed;
-      this.classList.toggle('active', onlyAnalyzed);
-      applyFilters();
-    });
-  }
+    function countActiveFilters() {
+      var today = <?= json_encode($today) ?>;
+      var n = 0;
+      if ($desde.value !== today || $hasta.value !== today) n++;
+      if ($buscar.value.trim() !== '') n++;
+      if ($polar.value !== '50') n++;
+      if ($analizados.checked) n++;
+      if ($orden.value !== 'polarizacion') n++;
+      return n;
+    }
 
-  // Apply default filter on load
-  applyFilters();
+    function updateFilterBadge() {
+      var n = countActiveFilters();
+      if (n > 0) {
+        $filterCount.textContent = n;
+        $filterCount.style.display = '';
+      } else {
+        $filterCount.style.display = 'none';
+      }
+    }
 
-  // Client-side sort (tension vs alphabetical)
-  document.querySelectorAll('.sort-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.sort-btn').forEach(function(b) { b.classList.remove('active'); });
-      this.classList.add('active');
-      var mode = this.dataset.sort;
-      var list = document.getElementById('articles-list');
-      if (!list) return;
-      var cards = Array.prototype.slice.call(list.querySelectorAll('.article-card:not(.hidden-polar):not(.hidden-analyzed)'));
-      cards.sort(function(a, b) {
-        if (mode === 'tension') {
-          return parseFloat(b.dataset.score || 0) - parseFloat(a.dataset.score || 0);
-        } else {
-          return (a.dataset.title || '').localeCompare(b.dataset.title || '', 'es');
+    function buildQueryString(filters, offset) {
+      var parts = [
+        'fecha_desde=' + encodeURIComponent(filters.fecha_desde),
+        'fecha_hasta=' + encodeURIComponent(filters.fecha_hasta)
+      ];
+      if (filters.q) parts.push('q=' + encodeURIComponent(filters.q));
+      if (filters.polar_min !== '0') parts.push('polar_min=' + encodeURIComponent(filters.polar_min));
+      if (filters.solo_analizados === '1') parts.push('solo_analizados=1');
+      parts.push('orden=' + encodeURIComponent(filters.orden));
+      parts.push('offset=' + offset);
+      parts.push('limit=10');
+      return parts.join('&');
+    }
+
+    function renderCard(item) {
+      var card = document.createElement('a');
+      card.href = item.link;
+      card.className = 'article-card' + (item.analizado ? ' card-analyzed' : '');
+
+      var analyzedBadge = '';
+      if (item.analizado) {
+        analyzedBadge = '<span class="badge-analyzed">'
+          + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:-1px"><path d="M20 6L9 17l-5-5"/></svg>'
+          + ' Análisis multi-postura</span>';
+      }
+
+      card.innerHTML = item.circulo_html
+        + '<div style="flex:1;min-width:0">'
+        + '<div class="article-meta">'
+        + '<span class="article-date">' + escapeHtml(item.fecha) + '</span>'
+        + '<span class="badge-ambito">' + escapeHtml(item.ambito_label) + '</span>'
+        + analyzedBadge
+        + '<span style="font-family:\'Inter\',Arial,sans-serif;font-size:0.7rem;color:var(--text-faint);margin-left:auto">'
+        + 'H ' + item.h_pct + '%</span>'
+        + '</div>'
+        + '<h2>' + escapeHtml(item.titulo) + '</h2>'
+        + '<p class="frase">' + escapeHtml(item.frase) + '</p>'
+        + '<div class="fuentes-row">' + item.fuentes_html + '</div>'
+        + '</div>';
+
+      return card;
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    function loadResults(append) {
+      if (isLoading) return;
+      isLoading = true;
+
+      var filters = getFilters();
+      if (!append) {
+        currentOffset = 0;
+        $list.innerHTML = '';
+      }
+
+      $loading.style.display = '';
+      $loadMore.style.display = 'none';
+      $empty.style.display = 'none';
+
+      var qs = buildQueryString(filters, currentOffset);
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', apiUrl + '?' + qs, true);
+      xhr.onload = function() {
+        isLoading = false;
+        $loading.style.display = 'none';
+
+        if (xhr.status !== 200) {
+          $empty.querySelector('p').textContent = 'Error al cargar los resultados.';
+          $empty.style.display = '';
+          return;
         }
-      });
-      cards.forEach(function(card) { list.appendChild(card); });
+
+        var data;
+        try { data = JSON.parse(xhr.responseText); } catch(e) {
+          $empty.querySelector('p').textContent = 'Error al procesar los resultados.';
+          $empty.style.display = '';
+          return;
+        }
+
+        currentTotal = data.total;
+        currentOffset += data.items.length;
+
+        // Stats
+        $stats.innerHTML = '<strong>' + currentTotal + '</strong> temas encontrados';
+
+        if (data.items.length === 0 && !append) {
+          $empty.querySelector('p').textContent = 'No se encontraron temas con los filtros aplicados.';
+          $empty.style.display = '';
+          return;
+        }
+
+        // Render cards
+        data.items.forEach(function(item) {
+          $list.appendChild(renderCard(item));
+        });
+
+        // Show/hide load more
+        if (data.has_more) {
+          $loadMore.style.display = '';
+        } else {
+          $loadMore.style.display = 'none';
+        }
+
+        updateFilterBadge();
+      };
+      xhr.onerror = function() {
+        isLoading = false;
+        $loading.style.display = 'none';
+        $empty.querySelector('p').textContent = 'Error de conexión.';
+        $empty.style.display = '';
+      };
+      xhr.send();
+    }
+
+    // Apply filters
+    document.getElementById('btn-apply').addEventListener('click', function() {
+      loadResults(false);
     });
-  });
+
+    // Clear filters
+    document.getElementById('btn-clear').addEventListener('click', function() {
+      var today = <?= json_encode($today) ?>;
+      $desde.value = today;
+      $hasta.value = today;
+      $buscar.value = '';
+      $polar.value = '50';
+      $analizados.checked = false;
+      $orden.value = 'polarizacion';
+      loadResults(false);
+    });
+
+    // Load more
+    $btnMore.addEventListener('click', function() {
+      loadResults(true);
+    });
+
+    // Enter key on search field
+    $buscar.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') loadResults(false);
+    });
+
+    // Initial load
+    loadResults(false);
+  })();
   </script>
   <?= theme_js() ?>
 </body>
