@@ -11,6 +11,9 @@ data/api_key.txt
 data/usage.json
 data/panel_bans.json
 .env
+.env_srv
+.env.*
+.env_*
 
 # Pipeline output
 output/
