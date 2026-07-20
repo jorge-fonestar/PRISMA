@@ -25,7 +25,10 @@
 - **Síntesis Sonnet**: genera artefacto multi-postura con fuentes citadas
 - **Auditoría Moral Core**: segundo agente evalúa contra 11 axiomas
 - Publica en tabla `articulos` si veredicto = APTO; reintenta o descarta si no
-- **Coste: ~$0.15-0.50 por tema** — ejecutar selectivamente
+- **Desde jul-2026 corre sobre la Message Batches API** (`lib/pipeline_batch.php`,
+  flag `use_batch_api`): síntesis y auditorías agrupadas en batches por rondas,
+  al 50% del precio. `--sync`, `--id` (panel) y temas manuales van por la vía directa.
+- **Coste: ~$0.08-0.25 por tema con batch** — ejecutar selectivamente
 
 ---
 
@@ -122,25 +125,32 @@ lib/
 
 | Parámetro | Default | Descripción |
 |-----------|---------|-------------|
-| umbral_tension | 0.55 | H-score mínimo para Fase 2 |
+| umbral_tension | 0.40 | H-score mínimo para Fase 2 |
 | min_cuadrantes | 3 | Cuadrantes mínimos para análisis |
 | articulos_dia | 1 | Máximo análisis por ejecución |
-| daily_budget_usd | 4.00 | Límite gasto API diario |
+| daily_budget_usd | 3.00 | Límite gasto API diario |
+| use_batch_api | true | Fase 2 vía Batches API (50% coste) |
 | model_synth | claude-sonnet-4-6 | Modelo síntesis |
 | model_audit | claude-sonnet-4-6 | Modelo auditoría |
 | model_triage | claude-haiku-4-5 | Modelo triage |
+| cluster_usar_descripcion | true | Clustering con descripción RSS (Jaccard ponderado) |
+| cluster_desc_peso | 0.5 | Peso de keywords de descripción vs titular (1.0) |
+| cluster_umbral | 0.3 | Similitud mínima para agrupar artículos |
 
 ---
 
-## Cron recomendado
+## Cron (producción: Ofelia en serviyorch)
 
-```cron
-# Escaneo cada 4 horas (gratis)
-0 */4 * * * cd /ruta/prisma && php escanear.php >> logs/escaneo.log 2>&1
+Los jobs viven como labels del contenedor en
+`serviyorch/sites/polarprisma/docker-compose.yml` (repo de infraestructura):
 
-# Análisis una vez al día (tokens)
-0 17 * * * cd /ruta/prisma && php analizar.php >> logs/analisis.log 2>&1
 ```
+prisma-escanear  0 0 */4 * * *   php /var/www/html/escanear.php   (user www-data)
+prisma-analizar  0 30 17 * * *   php /var/www/html/analizar.php   (user www-data)
+```
+
+Horarios en UTC. Ver ejecuciones: `docker logs -f ofelia`. Tras recrear el
+contenedor polarprisma hay que `docker restart ofelia` para que re-registre.
 
 ---
 
@@ -166,5 +176,5 @@ lib/
 
 ---
 
-*Última actualización: 2026-04-21*
+*Última actualización: 2026-07-20*
 *Para actualizar este documento: revisar tras cambios en schema, pipeline o config.*

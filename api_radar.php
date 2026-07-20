@@ -18,6 +18,15 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/layout.php';
 
+/**
+ * Etiqueta legible del ámbito (local al endpoint: articulo.php define la suya
+ * propia y este script no puede incluir páginas).
+ */
+function api_radar_ambito_label($ambito) {
+    $labels = ['españa' => 'España', 'europa' => 'Europa', 'global' => 'Global'];
+    return isset($labels[$ambito]) ? $labels[$ambito] : ucfirst($ambito);
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 $db = prisma_db();
@@ -106,7 +115,7 @@ foreach ($rows as $tema) {
         'frase' => $frase,
         'circulo_html' => render_circulo_tension((float)$tema['h_score']),
         'fuentes_html' => $fuentes_html,
-        'ambito_label' => ambito_label($tema['ambito']),
+        'ambito_label' => api_radar_ambito_label($tema['ambito']),
     ];
 }
 
