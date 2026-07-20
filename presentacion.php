@@ -853,11 +853,51 @@ $B = prisma_base();
             mostrando todas las posturas enfrentadas con sus argumentos y fuentes originales.</p>
           </article>
           <article class="step">
-            <h3>Auditoría independiente</h3>
-            <p>Un segundo agente, en contexto completamente separado, audita el resultado contra
-            <a href="<?= prisma_base() ?>axiomas.php">11 axiomas verificables</a>. Si no
-            pasa, se regenera o se descarta. Solo se publica lo verificado.</p>
+            <h3>Auditoría Moral Core</h3>
+            <p>Un segundo agente, en contexto completamente separado y sin acceso al
+            proceso de síntesis, audita el resultado contra los
+            <a href="<?= prisma_base() ?>axiomas.php">11 axiomas del estándar Moral Core</a>:
+            pluralidad de posturas y de fuentes, simetría de extensión y de lenguaje,
+            atribución verificable, separación hecho/opinión… Si el artefacto no pasa
+            al menos 10 de los 11, se regenera con las correcciones del auditor o se
+            descarta. Solo se publica lo verificado, y el veredicto de cada auditoría
+            es público en la ficha del artículo.</p>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRINCIPIOS ============ -->
+    <section id="principios" aria-labelledby="principios-heading">
+      <div class="container">
+        <p class="eyebrow">El estándar</p>
+        <h2 id="principios-heading">Dos principios que no negociamos</h2>
+        <p style="font-size:0.95rem;color:var(--text-muted);margin-bottom:2rem">
+          Mostrar varias posturas no basta — hay que hacerlo con método. Estos dos
+          principios definen qué hace Prisma y, sobre todo, qué se niega a hacer.
+        </p>
+
+        <div class="pillars">
+          <div class="pillar">
+            <div class="pillar-num" aria-hidden="true">MC</div>
+            <h3>Auditoría Moral Core</h3>
+            <p>Ninguna publicación depende del criterio de quien la genera. Un auditor
+            independiente evalúa cada artefacto contra <a href="<?= prisma_base() ?>axiomas.php">11
+            axiomas verificables</a> — de la pluralidad de posturas a la simetría del
+            lenguaje — y su veredicto acompaña al artículo publicado. Si un texto no
+            supera la auditoría, no existe. La neutralidad no es una promesa editorial:
+            es un requisito técnico con criterios públicos.</p>
+          </div>
+          <div class="pillar">
+            <div class="pillar-num" aria-hidden="true">≠</div>
+            <h3>Cartografía, no juicio</h3>
+            <p>Prisma describe el mapa del debate: quién sostiene qué, con qué argumentos,
+            con qué fuentes y qué calla cada lado. No reparte razones ni equilibra
+            artificialmente lo que no es equivalente: los hechos verificables se presentan
+            como hechos, con atribución, y las interpretaciones como interpretaciones de
+            quien las sostiene. Mostrar una postura nunca es avalarla — es documentar que
+            existe y dejar que el lector saque sus conclusiones con el mapa completo delante.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -903,6 +943,18 @@ $B = prisma_base();
             entre cómo los cuenta cada lado — son seleccionados automáticamente para
             análisis. El índice es una fórmula matemática transparente, no una decisión
             editorial. Puedes ver el porcentaje de polarización y su desglose en cada tema.</p>
+          </details>
+          <details>
+            <summary>Mostrar "todas las posturas", ¿no es dar falsa equivalencia a posiciones sin base?</summary>
+            <p>Es la crítica más seria que se le puede hacer a un proyecto como este, y
+            la respuesta está en el método. Prisma no equilibra: <strong>cartografía</strong>.
+            Los hechos verificables se presentan como hechos, con su fuente; las
+            interpretaciones se presentan como interpretaciones atribuidas a quien las
+            sostiene. Documentar que una postura existe en el debate público — cuánto
+            espacio ocupa, quién la defiende y con qué argumentos — no es concederle
+            razón: es darte el mapa real del debate en lugar de la mitad que ya conoces.
+            Y dos axiomas de la auditoría vigilan exactamente esto: la separación
+            hecho/opinión (A6) y la coherencia con las fuentes citadas (A10).</p>
           </details>
           <details>
             <summary>¿Por qué debería confiar en vosotros y no en mi medio habitual?</summary>
