@@ -21,12 +21,31 @@ function prisma_log($cat, $msg) {
 
 /**
  * Genera un ID de artículo: YYYY-MM-DD-NNN
+ *
+ * Continúa la numeración ya publicada hoy: antes numeraba solo por posición
+ * en la ejecución, y una segunda ejecución el mismo día (cron + panel/--id)
+ * sobrescribía los artículos de la primera vía INSERT OR REPLACE.
+ *
+ * @param int $seq Desplazamiento dentro de la misma ejecución (1-based):
+ *                 el lote reserva N ids consecutivos a partir del siguiente libre.
  */
 function prisma_gen_id(int $seq = 1): string {
     $cfg = prisma_cfg();
     $tz = new DateTimeZone($cfg['timezone']);
     $today = (new DateTime('now', $tz))->format('Y-m-d');
-    return sprintf('%s-%03d', $today, $seq);
+
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    $stmt = $db->prepare('SELECT id FROM articulos WHERE id LIKE :pref ORDER BY id DESC LIMIT 1');
+    $stmt->execute([':pref' => $today . '-%']);
+    $last = $stmt->fetchColumn();
+
+    $next = 1;
+    if ($last && preg_match('/-(\d{3})$/', $last, $m)) {
+        $next = (int)$m[1] + 1;
+    }
+
+    return sprintf('%s-%03d', $today, $next + $seq - 1);
 }
 
 /**
