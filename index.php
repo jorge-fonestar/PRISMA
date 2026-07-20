@@ -339,11 +339,11 @@ $today = date('Y-m-d');
             <label for="f-polar">Polarización mínima</label>
             <select id="f-polar">
               <option value="0">Todas</option>
-              <option value="10">&ge; 10%</option>
+              <option value="10" selected>&ge; 10%</option>
               <option value="20">&ge; 20%</option>
               <option value="30">&ge; 30%</option>
               <option value="40">&ge; 40%</option>
-              <option value="50" selected>&ge; 50%</option>
+              <option value="50">&ge; 50%</option>
               <option value="60">&ge; 60%</option>
               <option value="70">&ge; 70%</option>
               <option value="80">&ge; 80%</option>
@@ -449,7 +449,7 @@ $today = date('Y-m-d');
       var n = 0;
       if ($desde.value !== today || $hasta.value !== today) n++;
       if ($buscar.value.trim() !== '') n++;
-      if ($polar.value !== '50') n++;
+      if ($polar.value !== '10') n++;
       if ($analizados.checked) n++;
       if ($orden.value !== 'polarizacion') n++;
       return n;
@@ -594,7 +594,7 @@ $today = date('Y-m-d');
       $desde.value = today;
       $hasta.value = today;
       $buscar.value = '';
-      $polar.value = '50';
+      $polar.value = '10';
       $analizados.checked = false;
       $orden.value = 'polarizacion';
       loadResults(false);
