@@ -67,7 +67,7 @@ function prisma_procesar_temas_batch(array $temas): array {
                 'model'      => $cfg['model_synth'],
                 'system'     => $req['system'],
                 'user_msg'   => $req['user_msg'],
-                'max_tokens' => 4096,
+                'max_tokens' => isset($cfg['max_tokens_pipeline']) ? $cfg['max_tokens_pipeline'] : 4096,
             );
         }
 
@@ -118,7 +118,7 @@ function prisma_procesar_temas_batch(array $temas): array {
                 'model'      => $cfg['model_audit'],
                 'system'     => $req['system'],
                 'user_msg'   => $req['user_msg'],
-                'max_tokens' => 4096,
+                'max_tokens' => isset($cfg['max_tokens_pipeline']) ? $cfg['max_tokens_pipeline'] : 4096,
             );
         }
 

@@ -103,7 +103,8 @@ function auditar(array $artifact, string $ambito = ''): array {
     $req = auditor_build($artifact, $ambito);
     $user_msg = $req['user_msg'];
 
-    $raw = anthropic_call($cfg['model_audit'], AUDITOR_SYSTEM, $user_msg, 4096);
+    $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
+    $raw = anthropic_call($cfg['model_audit'], AUDITOR_SYSTEM, $user_msg, $max_tok);
     $audit = parse_json_response($raw);
 
     $passed = 0;

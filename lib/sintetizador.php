@@ -133,7 +133,8 @@ function sintetizar(string $contexto, string $article_id, string $ambito = 'espa
 
     prisma_log("SYNTH", "Llamando a Sintetizador ({$cfg['model_synth']})...");
 
-    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, 4096, '{');
+    $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
+    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, $max_tok, '{');
     $artifact = parse_json_response($raw);
 
     $n_posturas = count($artifact['mapa_posturas'] ?? []);
@@ -172,7 +173,8 @@ function sintetizar_manual(string $tema, string $article_id, string $ambito = 'e
 
     prisma_log("SYNTH", "Llamando a Sintetizador en modo manual ({$cfg['model_synth']})...");
 
-    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, 4096, '{');
+    $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
+    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, $max_tok, '{');
     $artifact = parse_json_response($raw);
 
     $n_posturas = count($artifact['mapa_posturas'] ?? []);

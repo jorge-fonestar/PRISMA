@@ -33,9 +33,15 @@ $GLOBALS['_PRISMA_CFG'] = array(
 
     // ── API Anthropic ───────────────────────────────────────────────
     'anthropic_api_key'   => getenv('ANTHROPIC_API_KEY') ?: '',
-    'model_synth'         => 'claude-sonnet-4-6',
-    'model_audit'         => 'claude-sonnet-4-6',
+    // sonnet-5 desde jul-2026: mejor calidad, mismo precio de tarifa (intro
+    // $2/$10 hasta 31-ago-2026). Ojo: tokenizador nuevo (~30% más tokens) y
+    // thinking adaptativo por defecto — por eso max_tokens de síntesis y
+    // auditoría van a 8192 (el thinking consume presupuesto de salida).
+    'model_synth'         => 'claude-sonnet-5',
+    'model_audit'         => 'claude-sonnet-5',
     'model_triage'        => 'claude-haiku-4-5-20251001',
+    // Presupuesto de salida para síntesis/auditoría (sync y batch)
+    'max_tokens_pipeline' => 8192,
 
     // ── Ingest ──────────────────────────────────────────────────────
     'ingest_key'          => getenv('PRISMA_INGEST_KEY') ?: '',
@@ -51,7 +57,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
 
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',
-    'articulos_dia'       => 1,
+    'articulos_dia'       => 2,
     'min_cuadrantes'      => 3,             // Mínimo de cuadrantes para ir al pipeline Sonnet
     'umbral_tension'      => 0.40,          // H mínimo para ser candidato a análisis (v2: era 0.55)
 
@@ -71,6 +77,12 @@ $GLOBALS['_PRISMA_CFG'] = array(
     'scoring_mapeo'       => 'B',
     'gate_haiku_enabled'  => true,
     'gate_haiku_cache'    => true,
+    // Incluir la entradilla (truncada) junto a cada titular en el input del
+    // gate: mejora el juicio de framing_divergence a cambio de ~2-3× el coste
+    // del gate (que es ~céntimos/día). Activado en pruebas desde 20-jul-2026;
+    // evaluar a los pocos días comparando fd/relevancia con el histórico.
+    'gate_incluir_descripcion' => true,
+    'gate_desc_max_chars'      => 160,
     // gate_haiku_batch_api deferred for later iteration (Anthropic Batch API, 50% discount)
 
     // ── Listas de filtrado scoring v2 ────────────────────────────
