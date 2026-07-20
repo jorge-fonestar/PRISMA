@@ -13,13 +13,25 @@ function h($str) {
 $B = prisma_base();
 $cfg = prisma_cfg();
 $today = date('Y-m-d');
+
+// Vista: '' = Hoy (solo hoy, polarización ≥10%) | 'radar' = últimos 7 días, ≥50%.
+// Misma página y mismos filtros; solo cambian los valores por defecto.
+$vista = (isset($_GET['vista']) && $_GET['vista'] === 'radar') ? 'radar' : '';
+$def_hasta = $today;
+if ($vista === 'radar') {
+    $def_desde = date('Y-m-d', strtotime('-6 days'));
+    $def_polar = '50';
+} else {
+    $def_desde = $today;
+    $def_polar = '10';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prisma — Radar informativo</title>
+  <title>PolarPrisma — <?= $vista === 'radar' ? 'Radar de la semana' : 'Radar informativo' ?></title>
   <meta name="description" content="Radar informativo: todos los temas políticos del día puntuados por polarización informativa. Sin editorial, sin cámaras de eco.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
@@ -71,7 +83,16 @@ $today = date('Y-m-d');
     }
     header .nav-links a:hover { color: var(--text); }
     header .nav-links a.active { color: var(--accent); }
-    @media (max-width: 640px) { header .nav-links { display: none; } }
+    @media (max-width: 640px) {
+      header nav { flex-wrap: wrap; padding: 12px 16px; gap: 6px; }
+      header .nav-links {
+        order: 3; width: 100%; gap: 18px; overflow-x: auto;
+        -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+      }
+      header .nav-links::-webkit-scrollbar { display: none; }
+      header .nav-links a { white-space: nowrap; font-size: 0.88rem; }
+      main { padding-top: 6.5rem !important; }
+    }
 
     /* Main content */
     main { padding-top: 5rem; min-height: 100vh; }
@@ -300,18 +321,26 @@ $today = date('Y-m-d');
   </style>
 </head>
 <body>
-  <?= render_nav('', array('' => 'Radar')) ?>
+  <?= render_nav($vista) ?>
 
   <main id="main-content" role="main">
     <div class="container">
 
       <!-- Banner -->
       <div class="banner">
-        <h1>Tu algoritmo te encierra. Prisma te da el <em>contexto</em>.</h1>
+      <?php if ($vista === 'radar'): ?>
+        <h1>Lo más polarizado de los <em>últimos 7 días</em>.</h1>
+        <p>Los temas de la semana donde los bloques ideológicos más divergen al contar la misma
+          historia (polarización &ge; 50%). El índice es una fórmula pública, no una decisión editorial.
+          <a href="<?= $B ?>presentacion.php">Cómo se mide &rarr;</a>
+        </p>
+      <?php else: ?>
+        <h1>Tu algoritmo te encierra. PolarPrisma te da el <em>contexto</em>.</h1>
         <p>Las redes te muestran lo que ya crees. Aquí, cada noticia se analiza desde todas las posturas enfrentadas
           y se audita contra 11 criterios de neutralidad. Sin editorial. Sin personalización. Sin decirte qué pensar.
           <a href="<?= $B ?>presentacion.php">Cómo funciona &rarr;</a>
         </p>
+      <?php endif; ?>
       </div>
 
       <!-- Collapsible Filters -->
@@ -325,11 +354,11 @@ $today = date('Y-m-d');
         <div class="filters-inner">
           <div class="filter-group">
             <label for="f-desde">Fecha desde</label>
-            <input type="date" id="f-desde" value="<?= h($today) ?>">
+            <input type="date" id="f-desde" value="<?= h($def_desde) ?>">
           </div>
           <div class="filter-group">
             <label for="f-hasta">Fecha hasta</label>
-            <input type="date" id="f-hasta" value="<?= h($today) ?>">
+            <input type="date" id="f-hasta" value="<?= h($def_hasta) ?>">
           </div>
           <div class="filter-group">
             <label for="f-buscar">Buscar</label>
@@ -339,11 +368,11 @@ $today = date('Y-m-d');
             <label for="f-polar">Polarización mínima</label>
             <select id="f-polar">
               <option value="0">Todas</option>
-              <option value="10" selected>&ge; 10%</option>
+              <option value="10"<?= $def_polar === '10' ? ' selected' : '' ?>>&ge; 10%</option>
               <option value="20">&ge; 20%</option>
               <option value="30">&ge; 30%</option>
               <option value="40">&ge; 40%</option>
-              <option value="50">&ge; 50%</option>
+              <option value="50"<?= $def_polar === '50' ? ' selected' : '' ?>>&ge; 50%</option>
               <option value="60">&ge; 60%</option>
               <option value="70">&ge; 70%</option>
               <option value="80">&ge; 80%</option>
@@ -444,12 +473,14 @@ $today = date('Y-m-d');
       };
     }
 
+    // Valores por defecto de la vista actual (Hoy o Radar 7 días)
+    var DEF = <?= json_encode(array('desde' => $def_desde, 'hasta' => $def_hasta, 'polar' => $def_polar)) ?>;
+
     function countActiveFilters() {
-      var today = <?= json_encode($today) ?>;
       var n = 0;
-      if ($desde.value !== today || $hasta.value !== today) n++;
+      if ($desde.value !== DEF.desde || $hasta.value !== DEF.hasta) n++;
       if ($buscar.value.trim() !== '') n++;
-      if ($polar.value !== '10') n++;
+      if ($polar.value !== DEF.polar) n++;
       if ($analizados.checked) n++;
       if ($orden.value !== 'polarizacion') n++;
       return n;
@@ -590,11 +621,10 @@ $today = date('Y-m-d');
 
     // Clear filters
     document.getElementById('btn-clear').addEventListener('click', function() {
-      var today = <?= json_encode($today) ?>;
-      $desde.value = today;
-      $hasta.value = today;
+      $desde.value = DEF.desde;
+      $hasta.value = DEF.hasta;
       $buscar.value = '';
-      $polar.value = '10';
+      $polar.value = DEF.polar;
       $analizados.checked = false;
       $orden.value = 'polarizacion';
       loadResults(false);

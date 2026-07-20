@@ -10,12 +10,12 @@ $B = prisma_base();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Prisma — Rompe tu burbuja informativa. Recupera el criterio.</title>
-  <meta name="description" content="Cada día sintetizamos las noticias más relevantes desde todas las posturas enfrentadas. Sin editorial, sin algoritmo, sin cámaras de eco. Únete a Prisma.">
+  <title>¿Qué es PolarPrisma? — Rompe tu burbuja informativa. Recupera el criterio.</title>
+  <meta name="description" content="Cada día sintetizamos las noticias más relevantes desde todas las posturas enfrentadas. Sin editorial, sin algoritmo, sin cámaras de eco. Así funciona PolarPrisma.">
 
-  <link rel="canonical" href="https://prisma.example/">
+  <link rel="canonical" href="https://polarprisma.org/presentacion.php">
   <meta name="robots" content="index, follow">
-  <meta name="author" content="Equipo Prisma">
+  <meta name="author" content="PolarPrisma">
   <meta name="theme-color" content="#0a0a12">
   <?= theme_head_script() ?>
   <?= theme_css() ?>
@@ -266,7 +266,13 @@ $B = prisma_base();
     header .nav-links a:hover { color: var(--text); }
     header .nav-links a.active { color: var(--accent); }
     @media (max-width: 640px) {
-      header .nav-links { display: none; }
+      header nav { flex-wrap: wrap; padding: 12px 16px; gap: 6px; }
+      header .nav-links {
+        order: 3; width: 100%; gap: 18px; overflow-x: auto;
+        -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+      }
+      header .nav-links::-webkit-scrollbar { display: none; }
+      header .nav-links a { white-space: nowrap; font-size: 0.88rem; }
     }
 
     /* ============ HERO ============ */

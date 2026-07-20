@@ -45,11 +45,11 @@ if ($art) {
 
 if (!$art && !$radar) {
     http_response_code(404);
-    $page_title = 'Articulo no encontrado — Prisma';
+    $page_title = 'Articulo no encontrado — PolarPrisma';
 } elseif ($radar) {
-    $page_title = htmlspecialchars($radar['titulo_tema']) . ' — Radar Prisma';
+    $page_title = htmlspecialchars($radar['titulo_tema']) . ' — Radar PolarPrisma';
 } else {
-    $page_title = htmlspecialchars($art['titular_neutral']) . ' — Prisma';
+    $page_title = htmlspecialchars($art['titular_neutral']) . ' — PolarPrisma';
 }
 
 function format_fecha($iso) {
@@ -165,7 +165,16 @@ $axiom_names = [
     }
     header .nav-links a:hover { color: var(--text); }
     header .nav-links a.active { color: var(--accent); }
-    @media (max-width: 640px) { header .nav-links { display: none; } }
+    @media (max-width: 640px) {
+      header nav { flex-wrap: wrap; padding: 12px 16px; gap: 6px; }
+      header .nav-links {
+        order: 3; width: 100%; gap: 18px; overflow-x: auto;
+        -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+      }
+      header .nav-links::-webkit-scrollbar { display: none; }
+      header .nav-links a { white-space: nowrap; font-size: 0.88rem; }
+      main { padding-top: 6.5rem !important; }
+    }
 
     /* Article */
     main { padding-top: 5rem; min-height: 100vh; }

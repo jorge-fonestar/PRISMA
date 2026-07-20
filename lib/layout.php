@@ -13,7 +13,8 @@ require_once __DIR__ . '/../db.php';
 /**
  * Renders the <header> navigation bar.
  *
- * @param string $active_nav  Key of active nav item ('' for home, 'presentacion', 'manifiesto')
+ * @param string $active_nav  Key of active nav item: '' (Hoy), 'radar',
+ *                            'silencios', 'presentacion'
  * @param array  $overrides   Override labels, e.g. ['' => 'Radar'] renames "Hoy"
  * @return string HTML
  */
@@ -21,8 +22,9 @@ function render_nav($active_nav = '', $overrides = array()) {
     $B = prisma_base();
     $nav_items = array(
         ''             => array('Hoy', $B),
-        'presentacion' => array('El proyecto', $B . 'presentacion.php'),
-        'manifiesto'   => array('Manifiesto', $B . 'manifiesto.php'),
+        'radar'        => array('Radar', $B . '?vista=radar'),
+        'silencios'    => array('Silencios', $B . 'silencios.php'),
+        'presentacion' => array('¿Qué es PolarPrisma?', $B . 'presentacion.php'),
     );
     foreach ($overrides as $key => $label) {
         if (isset($nav_items[$key])) {
@@ -32,7 +34,7 @@ function render_nav($active_nav = '', $overrides = array()) {
 
     $html = '<header role="banner">'
         . '<nav aria-label="Navegación principal">'
-        . '<a href="' . $B . '" class="logo" aria-label="Prisma - Inicio">'
+        . '<a href="' . $B . '" class="logo" aria-label="PolarPrisma - Inicio">'
         . '<svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
         . '<defs><linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">'
         . '<stop offset="0%" stop-color="#ff4d6d"/><stop offset="25%" stop-color="#f2f24a"/>'
@@ -41,7 +43,7 @@ function render_nav($active_nav = '', $overrides = array()) {
         . '</linearGradient></defs>'
         . '<polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>'
         . '</svg>'
-        . '<span>Prisma</span></a>'
+        . '<span>PolarPrisma</span></a>'
         . '<ul class="nav-links">';
     foreach ($nav_items as $key => $item) {
         $label = $item[0];
@@ -64,18 +66,21 @@ function render_footer_grid() {
         . '<div class="logo" style="pointer-events:none">'
         . '<svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
         . '<polygon points="16,4 28,26 4,26" fill="none" stroke="url(#prismGrad)" stroke-width="1.8" stroke-linejoin="round"/>'
-        . '</svg><span>Prisma</span></div>'
+        . '</svg><span>PolarPrisma</span></div>'
         . '<p>Servicio público de información neutral. Sin editorial, sin algoritmo, sin cámaras de eco.</p>'
         . '</div>'
-        . '<div><h4>Proyecto</h4><ul>'
+        . '<div><h4>Secciones</h4><ul>'
         . '<li><a href="' . $B . '">Hoy</a></li>'
-        . '<li><a href="' . $B . 'presentacion.php">El proyecto</a></li>'
-        . '<li><a href="' . $B . 'manifiesto.php">Manifiesto</a></li>'
-        . '<li><a href="' . $B . 'ia.php">Aviso de IA</a></li>'
+        . '<li><a href="' . $B . '?vista=radar">Radar (7 días)</a></li>'
+        . '<li><a href="' . $B . 'silencios.php">Los silencios de la semana</a></li>'
+        . '<li><a href="' . $B . 'archivo.php">Archivo</a></li>'
         . '</ul></div>'
-        . '<div><h4>Estándar</h4><ul>'
+        . '<div><h4>Proyecto</h4><ul>'
+        . '<li><a href="' . $B . 'presentacion.php">¿Qué es PolarPrisma?</a></li>'
+        . '<li><a href="' . $B . 'manifiesto.php">Manifiesto</a></li>'
         . '<li><a href="' . $B . 'axiomas.php">Los 11 axiomas</a></li>'
         . '<li><a href="' . $B . 'fuentes.php">Fuentes consultadas</a></li>'
+        . '<li><a href="' . $B . 'ia.php">Aviso de IA</a></li>'
         . '</ul></div>'
         . '<div><h4>Legal</h4><ul>'
         . '<li><a href="' . $B . 'aviso-legal.php">Aviso legal</a></li>'
@@ -91,7 +96,7 @@ function render_footer_grid() {
  */
 function render_footer_bottom() {
     return '<div class="footer-bottom">'
-        . '<p>&copy; ' . date('Y') . ' Prisma &middot; Proyecto independiente &middot; CC BY-SA 4.0</p>'
+        . '<p>&copy; ' . date('Y') . ' PolarPrisma &middot; Proyecto independiente &middot; CC BY-SA 4.0</p>'
         . '<span class="ai-notice">Contenido generado y auditado por IA</span>'
         . '</div>';
 }
@@ -105,7 +110,7 @@ function page_header($title, $description = '', $active_nav = '') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars($title) ?> — Prisma</title>
+  <title><?= htmlspecialchars($title) ?> — PolarPrisma</title>
   <?php if ($description): ?><meta name="description" content="<?= htmlspecialchars($description) ?>"><?php endif; ?>
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
@@ -159,8 +164,18 @@ function page_header($title, $description = '', $active_nav = '') {
     }
     header .nav-links a:hover { color: var(--text); }
     header .nav-links a.active { color: var(--accent); }
-    @media (max-width: 640px) { header .nav-links { display: none; } }
-    main { padding-top: 5rem; min-height: 80vh; }
+    /* Móvil: el menú se mantiene visible con scroll horizontal (antes desaparecía) */
+    @media (max-width: 640px) {
+      header nav { flex-wrap: wrap; padding: 12px 16px; gap: 6px; }
+      header .nav-links {
+        order: 3; width: 100%; gap: 18px; overflow-x: auto;
+        -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+      }
+      header .nav-links::-webkit-scrollbar { display: none; }
+      header .nav-links a { white-space: nowrap; font-size: 0.88rem; }
+    }
+    main { padding-top: 6.5rem; min-height: 80vh; }
+    @media (min-width: 641px) { main { padding-top: 5rem; } }
     .page-top { padding: 3rem 0 2rem 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
     .page-top h1 { color: var(--text); }
     .page-top p { color: var(--text-muted); max-width: 640px; }
