@@ -1,0 +1,13 @@
+# Prisma — imagen web para producción (serviyorch).
+# El código NO va en la imagen: se monta /home/yorch/sites/polarprisma
+# como /var/www/html (ver serviyorch/sites/polarprisma/docker-compose.yml).
+# La imagen solo aporta el endurecimiento de Apache, que debe sobrevivir
+# a recreaciones del contenedor.
+FROM php:8.2-apache
+
+# pdo_sqlite, sqlite3, curl y mbstring ya vienen en la imagen oficial.
+
+COPY deploy/apache-hardening.conf /etc/apache2/conf-available/prisma-hardening.conf
+RUN a2enconf prisma-hardening \
+    && sed -i 's/^ServerTokens .*/ServerTokens Prod/' /etc/apache2/conf-available/security.conf \
+    && sed -i 's/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf
