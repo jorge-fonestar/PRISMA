@@ -103,7 +103,13 @@ function sintetizador_fuentes_ref(): string {
  * @param string $feedback Feedback del Auditor para reintentos
  * @return array Artefacto JSON parseado
  */
-function sintetizar(string $contexto, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
+/**
+ * Construye los prompts de síntesis sin llamar a la API.
+ * Compartido entre la vía síncrona (sintetizar) y la Batches API.
+ *
+ * @return array ['system' => string, 'user_msg' => string]
+ */
+function sintetizador_build(string $contexto, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
     $cfg = prisma_cfg();
     $tz = new DateTimeZone($cfg['timezone']);
     $now = new DateTime('now', $tz);
@@ -115,6 +121,15 @@ function sintetizar(string $contexto, string $article_id, string $ambito = 'espa
     if ($feedback) {
         $user_msg .= "\n\n--- FEEDBACK DEL AUDITOR (corrige estos problemas) ---\n$feedback";
     }
+
+    return ['system' => $system, 'user_msg' => $user_msg];
+}
+
+function sintetizar(string $contexto, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
+    $cfg = prisma_cfg();
+    $req = sintetizador_build($contexto, $article_id, $ambito, $feedback);
+    $system = $req['system'];
+    $user_msg = $req['user_msg'];
 
     prisma_log("SYNTH", "Llamando a Sintetizador ({$cfg['model_synth']})...");
 

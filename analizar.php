@@ -23,15 +23,17 @@ require_once __DIR__ . '/lib/common.php';
 require_once __DIR__ . '/lib/curador.php';
 require_once __DIR__ . '/lib/sintetizador.php';
 require_once __DIR__ . '/lib/auditor.php';
+require_once __DIR__ . '/lib/pipeline_batch.php';
 
 // ── Args ─────────────────────────────────────────────────────────────
 
-$opts = getopt('', array('temas:', 'ambito:', 'id:', 'tema:', 'help'));
+$opts = getopt('', array('temas:', 'ambito:', 'id:', 'tema:', 'sync', 'help'));
 
 if (isset($opts['help'])) {
-    echo "Uso: php analizar.php [--temas N] [--ambito españa|europa|global] [--id RADAR_ID]\n";
+    echo "Uso: php analizar.php [--temas N] [--ambito españa|europa|global] [--id RADAR_ID] [--sync]\n";
     echo "      php analizar.php --tema \"Descripción del tema\" [--ambito españa]\n";
     echo "Fase 2: triage Haiku + síntesis Sonnet + auditoría Moral Core.\n";
+    echo "Por defecto usa la Batches API (50% de coste, tarda minutos). --sync fuerza la vía directa.\n";
     echo "GASTA TOKENS. Ejecutar con criterio.\n";
     exit(0);
 }
@@ -154,7 +156,7 @@ foreach ($candidatos_raw as $row) {
             'titulo'    => $f['titulo'],
             'url'       => $f['url'],
             'cuadrante' => $f['cuadrante'],
-            'descripcion' => '',
+            'descripcion' => isset($f['descripcion']) ? $f['descripcion'] : '',
         );
     }
 
@@ -193,7 +195,24 @@ if (empty($to_process)) {
 
 prisma_log("ANALYZE", count($to_process) . " temas a procesar.");
 
-// ── Process each topic ───────────────────────────────────────────────
+// ── Process topics ───────────────────────────────────────────────────
+
+// Batches API (50% de coste) para ejecuciones de cron/CLI. El modo síncrono
+// queda para --sync, --id (panel, el usuario espera) y temas manuales.
+$use_batch = !empty($cfg['use_batch_api']) && !isset($opts['sync']) && $specific_id === 0;
+
+if ($use_batch) {
+    prisma_log("ANALYZE", "Modo Batches API (50% de coste) — " . count($to_process) . " temas.");
+    $stats = prisma_procesar_temas_batch($to_process);
+
+    prisma_log("ANALYZE", "");
+    prisma_log("ANALYZE", "═══════════════════════════════════════════════");
+    prisma_log("ANALYZE", sprintf("ANÁLISIS COMPLETO (batch): %d publicados, %d rechazados, %d errores de %d",
+        $stats['publicados'], $stats['rechazados'], $stats['errores'], count($to_process)));
+    prisma_log("ANALYZE", "═══════════════════════════════════════════════");
+
+    exit($stats['publicados'] > 0 ? 0 : 1);
+}
 
 $publicados = 0;
 $rechazados = 0;

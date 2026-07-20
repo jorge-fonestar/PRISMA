@@ -63,10 +63,14 @@ SYSTEM);
  * @param string $ambito Ámbito para contextualizar la evaluación
  * @return array Resultado de la auditoría
  */
-function auditar(array $artifact, string $ambito = ''): array {
+/**
+ * Construye el user_msg de auditoría sin llamar a la API.
+ * Compartido entre la vía síncrona (auditar) y la Batches API.
+ *
+ * @return array ['system' => string, 'user_msg' => string]
+ */
+function auditor_build(array $artifact, string $ambito = ''): array {
     $cfg = prisma_cfg();
-
-    prisma_log("AUDIT", "Llamando al Auditor ({$cfg['model_audit']})...");
 
     // Contexto sobre limitaciones de fuentes según ámbito
     $context = '';
@@ -87,6 +91,17 @@ function auditar(array $artifact, string $ambito = ''): array {
     $user_msg = "Evalúa el siguiente artefacto Prisma:\n\n"
         . json_encode($artifact, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
         . $context;
+
+    return ['system' => AUDITOR_SYSTEM, 'user_msg' => $user_msg];
+}
+
+function auditar(array $artifact, string $ambito = ''): array {
+    $cfg = prisma_cfg();
+
+    prisma_log("AUDIT", "Llamando al Auditor ({$cfg['model_audit']})...");
+
+    $req = auditor_build($artifact, $ambito);
+    $user_msg = $req['user_msg'];
 
     $raw = anthropic_call($cfg['model_audit'], AUDITOR_SYSTEM, $user_msg, 4096);
     $audit = parse_json_response($raw);

@@ -45,12 +45,24 @@ $GLOBALS['_PRISMA_CFG'] = array(
 
     // ── Límites de coste ────────────────────────────────────────────
     'daily_budget_usd'    => 3.00,
+    // Fase 2 vía Message Batches API (50% de coste; el cron tarda minutos más).
+    // El panel y los temas manuales siguen usando la vía síncrona.
+    'use_batch_api'       => true,
 
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',
     'articulos_dia'       => 1,
     'min_cuadrantes'      => 3,             // Mínimo de cuadrantes para ir al pipeline Sonnet
     'umbral_tension'      => 0.40,          // H mínimo para ser candidato a análisis (v2: era 0.55)
+
+    // ── Clustering semántico ────────────────────────────────────
+    // Usar también la descripción RSS (no solo el titular) para agrupar
+    // artículos y para la señal de divergencia léxica. Jaccard ponderado:
+    // keywords del titular pesan 1.0, las de la descripción cluster_desc_peso.
+    'cluster_usar_descripcion' => true,
+    'cluster_desc_peso'        => 0.5,
+    'cluster_desc_max_chars'   => 500,
+    'cluster_umbral'           => 0.3,   // similitud mínima para agrupar
 
     // ── Scoring v2 ──────────────────────────────────────────────
     'scoring_alpha'       => 0.4,

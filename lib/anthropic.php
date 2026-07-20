@@ -7,15 +7,31 @@
  */
 
 // Precios por millón de tokens (USD) — actualizar si cambian
-// https://docs.anthropic.com/en/docs/about-claude/models
+// https://platform.claude.com/docs/en/pricing
 define('ANTHROPIC_PRICING', [
+    'claude-sonnet-5'            => ['input' => 3.00,  'output' => 15.00],
     'claude-sonnet-4-6'          => ['input' => 3.00,  'output' => 15.00],
-    'claude-opus-4-7'            => ['input' => 15.00, 'output' => 75.00],
+    'claude-opus-4-8'            => ['input' => 5.00,  'output' => 25.00],
+    'claude-opus-4-7'            => ['input' => 5.00,  'output' => 25.00],
     'claude-sonnet-4-20250514'   => ['input' => 3.00,  'output' => 15.00],
-    'claude-opus-4-20250514'     => ['input' => 15.00, 'output' => 75.00],
-    'claude-haiku-4-5-20251001'  => ['input' => 0.80,  'output' => 4.00],
+    'claude-haiku-4-5-20251001'  => ['input' => 1.00,  'output' => 5.00],
+    'claude-haiku-4-5'           => ['input' => 1.00,  'output' => 5.00],
     'default'                    => ['input' => 3.00,  'output' => 15.00],
 ]);
+
+// Descuento de la Message Batches API (50% sobre precio estándar)
+define('ANTHROPIC_BATCH_DISCOUNT', 0.5);
+
+/**
+ * ¿Soporta el modelo prefill de assistant?
+ * La API lo rechaza (400) en la familia 4.6+ (sonnet-4-6, opus-4-6/4-7/4-8),
+ * sonnet-5 y fable/mythos. Allowlist conservadora: solo modelos legacy 3.x
+ * y haiku lo mantienen. Ante la duda, no enviar prefill.
+ */
+function anthropic_supports_prefill(string $model): bool {
+    return strpos($model, 'claude-3') === 0
+        || strpos($model, 'claude-haiku') === 0;
+}
 
 /**
  * Devuelve el gasto acumulado del día actual (UTC).
@@ -65,12 +81,10 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     $messages = [
         ['role' => 'user', 'content' => $user_msg],
     ];
-    // Claude 4.x models (sonnet-4, opus-4) do not support assistant prefill
-    $supports_prefill = (strpos($model, 'claude-sonnet-4') === false
-                      && strpos($model, 'claude-opus-4') === false);
-    if ($prefill !== '' && $supports_prefill) {
+    if ($prefill !== '' && anthropic_supports_prefill($model)) {
         $messages[] = ['role' => 'assistant', 'content' => $prefill];
     }
+    $supports_prefill = anthropic_supports_prefill($model);
 
     $payload = json_encode([
         'model'      => $model,
@@ -230,6 +244,175 @@ function anthropic_record_usage(string $model, int $input, int $output, float $c
     }
 
     file_put_contents(anthropic_usage_path(), json_encode($usage, JSON_PRETTY_PRINT));
+}
+
+// ── Message Batches API (50% de descuento) ──────────────────────────
+// https://platform.claude.com/docs/en/build-with-claude/batch-processing
+// Pensado para la Fase 2 (cron nocturno, sin exigencia de latencia).
+
+/**
+ * Helper cURL para los endpoints de batches.
+ */
+function anthropic_batch_http(string $method, string $url, $payload = null): array {
+    $cfg = prisma_cfg();
+    $api_key = $cfg['anthropic_api_key'];
+    if (!$api_key) {
+        throw new RuntimeException('ANTHROPIC_API_KEY no configurada.');
+    }
+
+    $ch = curl_init($url);
+    $headers = [
+        'Content-Type: application/json',
+        'x-api-key: ' . $api_key,
+        'anthropic-version: 2023-06-01',
+    ];
+    $opts = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 120,
+        CURLOPT_HTTPHEADER     => $headers,
+    ];
+    if ($method === 'POST') {
+        $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+    }
+    curl_setopt_array($ch, $opts);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($err) throw new RuntimeException("cURL error (batch): $err");
+    if ($http_code < 200 || $http_code >= 300) {
+        throw new RuntimeException("Anthropic Batches HTTP $http_code: " . substr($response, 0, 800));
+    }
+    return ['body' => $response, 'code' => $http_code];
+}
+
+/**
+ * Envía un batch de peticiones.
+ *
+ * @param array $requests Cada una: ['custom_id'=>string, 'model'=>string,
+ *                        'system'=>string, 'user_msg'=>string, 'max_tokens'=>int]
+ * @return string batch_id
+ */
+function anthropic_batch_submit(array $requests): string {
+    anthropic_check_budget();
+
+    $items = [];
+    foreach ($requests as $r) {
+        $items[] = [
+            'custom_id' => $r['custom_id'],
+            'params' => [
+                'model'      => $r['model'],
+                'max_tokens' => isset($r['max_tokens']) ? $r['max_tokens'] : 4096,
+                'system'     => $r['system'],
+                'messages'   => [['role' => 'user', 'content' => $r['user_msg']]],
+            ],
+        ];
+    }
+
+    $res = anthropic_batch_http('POST', 'https://api.anthropic.com/v1/messages/batches', ['requests' => $items]);
+    $data = json_decode($res['body'], true);
+    if (!$data || empty($data['id'])) {
+        throw new RuntimeException('Respuesta inesperada al crear batch: ' . substr($res['body'], 0, 500));
+    }
+
+    prisma_log("BATCH", sprintf("Batch %s enviado (%d peticiones).", $data['id'], count($items)));
+    return $data['id'];
+}
+
+/**
+ * Espera a que un batch termine (poll cada $poll_s segundos).
+ *
+ * @return array Objeto batch final (con results_url)
+ */
+function anthropic_batch_wait(string $batch_id, int $timeout_s = 14400, int $poll_s = 30): array {
+    $t0 = time();
+    $last_status = '';
+    while (true) {
+        $res = anthropic_batch_http('GET', "https://api.anthropic.com/v1/messages/batches/$batch_id");
+        $data = json_decode($res['body'], true);
+        $status = isset($data['processing_status']) ? $data['processing_status'] : '?';
+
+        if ($status !== $last_status) {
+            prisma_log("BATCH", "Batch $batch_id: $status");
+            $last_status = $status;
+        }
+        if ($status === 'ended') return $data;
+
+        if (time() - $t0 > $timeout_s) {
+            throw new RuntimeException("Batch $batch_id no terminó en {$timeout_s}s (estado: $status).");
+        }
+        sleep($poll_s);
+    }
+}
+
+/**
+ * Descarga y parsea los resultados de un batch terminado.
+ * Registra usage/coste (con descuento batch) y loguea cada item.
+ *
+ * @param array $batch Objeto batch devuelto por anthropic_batch_wait()
+ * @param string $caller Etiqueta para el log de API (ej. 'synth', 'audit')
+ * @return array custom_id => ['ok'=>bool, 'text'=>string|null, 'error'=>string|null]
+ */
+function anthropic_batch_results(array $batch, string $caller = 'batch'): array {
+    require_once __DIR__ . '/logger.php';
+
+    if (empty($batch['results_url'])) {
+        throw new RuntimeException('Batch sin results_url (¿terminó correctamente?).');
+    }
+
+    $res = anthropic_batch_http('GET', $batch['results_url']);
+    $out = [];
+
+    foreach (explode("\n", trim($res['body'])) as $line) {
+        $line = trim($line);
+        if ($line === '') continue;
+        $item = json_decode($line, true);
+        if (!$item || empty($item['custom_id'])) continue;
+
+        $cid = $item['custom_id'];
+        $rtype = isset($item['result']['type']) ? $item['result']['type'] : 'errored';
+
+        if ($rtype === 'succeeded') {
+            $msg = $item['result']['message'];
+            $text = '';
+            foreach ($msg['content'] as $block) {
+                if ($block['type'] === 'text') { $text = $block['text']; break; }
+            }
+            $in_tok  = isset($msg['usage']['input_tokens']) ? $msg['usage']['input_tokens'] : 0;
+            $out_tok = isset($msg['usage']['output_tokens']) ? $msg['usage']['output_tokens'] : 0;
+            $model   = isset($msg['model']) ? $msg['model'] : 'default';
+            $cost = anthropic_calc_cost($model, $in_tok, $out_tok) * ANTHROPIC_BATCH_DISCOUNT;
+
+            anthropic_record_usage($model, $in_tok, $out_tok, $cost);
+            prisma_log_api_call(array(
+                'caller'        => $caller,
+                'model'         => $model,
+                'system_prompt' => '(batch) ' . $cid,
+                'user_msg'      => '(batch) ' . $cid,
+                'response_raw'  => $text,
+                'http_code'     => 200,
+                'input_tokens'  => $in_tok,
+                'output_tokens' => $out_tok,
+                'cost_usd'      => $cost,
+                'duration_ms'   => 0,
+            ));
+
+            $out[$cid] = ['ok' => true, 'text' => $text, 'error' => null];
+        } else {
+            $err_msg = $rtype;
+            if (isset($item['result']['error'])) {
+                $err_msg .= ': ' . json_encode($item['result']['error'], JSON_UNESCAPED_UNICODE);
+            }
+            prisma_log("BATCH", "Item $cid falló ($err_msg)");
+            $out[$cid] = ['ok' => false, 'text' => null, 'error' => $err_msg];
+        }
+    }
+
+    prisma_log("BATCH", count($out) . " resultados recuperados (hoy: $" . sprintf('%.2f', anthropic_daily_spend()) . ")");
+    return $out;
 }
 
 /**
