@@ -127,15 +127,17 @@ lib/
 |-----------|---------|-------------|
 | umbral_tension | 0.40 | H-score mínimo para Fase 2 |
 | min_cuadrantes | 3 | Cuadrantes mínimos para análisis |
-| articulos_dia | 1 | Máximo análisis por ejecución |
+| articulos_dia | 2 | Máximo análisis por ejecución |
 | daily_budget_usd | 3.00 | Límite gasto API diario |
 | use_batch_api | true | Fase 2 vía Batches API (50% coste) |
-| model_synth | claude-sonnet-4-6 | Modelo síntesis |
-| model_audit | claude-sonnet-4-6 | Modelo auditoría |
+| model_synth | claude-sonnet-5 | Modelo síntesis |
+| model_audit | claude-sonnet-5 | Modelo auditoría |
 | model_triage | claude-haiku-4-5 | Modelo triage |
+| max_tokens_pipeline | 8192 | Salida síntesis/auditoría (incluye thinking adaptativo) |
 | cluster_usar_descripcion | true | Clustering con descripción RSS (Jaccard ponderado) |
 | cluster_desc_peso | 0.5 | Peso de keywords de descripción vs titular (1.0) |
 | cluster_umbral | 0.3 | Similitud mínima para agrupar artículos |
+| gate_incluir_descripcion | true | Gate Haiku ve entradillas truncadas (en pruebas) |
 
 ---
 

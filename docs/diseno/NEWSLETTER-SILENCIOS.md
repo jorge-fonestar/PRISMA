@@ -1,19 +1,27 @@
-# Newsletter semanal "Los silencios de la semana" — Documento de diseño
+# Newsletter semanal de Prisma — Documento de diseño
 
-> **Estado:** Propuesta pendiente de validación (2026-07-20)
+> **Estado:** Validada la dirección por Jorge (20-jul-2026): dos secciones —
+> ranking semanal de polarización + silencios editoriales. Pendientes los
+> detalles del §5.
 > **Inspiración:** El "Blindspot Report" es la función más reconocida de Ground News
-> (newsletter semanal de historias que un lado ignora). Prisma ya calcula la señal
-> equivalente (`h_silencio`) en cada escaneo — empaquetarla como producto semanal
-> es casi gratis y es un gancho de difusión natural.
+> (newsletter semanal de historias que un lado ignora). Prisma ya calcula las dos
+> señales (`h_score`, `h_silencio`) en cada escaneo — empaquetarlas como producto
+> semanal es casi gratis y es un gancho de difusión natural.
 
 ---
 
-## 1. Concepto
+## 1. Concepto y estructura
 
-Boletín semanal que responde una sola pregunta: **¿qué historias contó un bloque
-ideológico esta semana mientras el otro callaba?**
+Boletín semanal con dos secciones fijas, ambas derivadas del radar:
 
-No es un resumen de actualidad ni un "lo más leído": es la materialización más
+**§A — Lo más polarizado de la semana.** Resumen de los titulares con mayor
+polarización detectada, en orden descendente de `h_score` (top 5-7 de la semana).
+Cada ítem: titular del tema, % de polarización, qué bloques lo cubrieron y la
+`haiku_frase` explicativa. Es la foto semanal del termómetro: qué historias
+dividieron más el relato.
+
+**§B — Los silencios de la semana.** La parte tipo Blindspot: **¿qué historias
+contó un bloque ideológico mientras el otro callaba?** La materialización más
 visceral del propósito de Prisma — hacer visible la selección editorial, que es
 la forma de sesgo más difícil de percibir para el lector (nadie nota lo que su
 medio *no* le cuenta).
@@ -38,7 +46,11 @@ Todo sale de la tabla `radar` sin tocar el pipeline:
 | `haiku_frase` | Frase explicativa ya generada para los temas triados |
 | `fecha`, `ambito`, `dominio_tematico` | Agrupación y contexto |
 
-**Consulta base:** radar de los últimos 7 días, `h_silencio > 0`, `relevancia IN
+**Consulta §A:** radar de los últimos 7 días, `relevancia IN ('alta','media')`,
+`ORDER BY h_score DESC LIMIT 5-7`, dedup de temas repetidos entre días (mismo
+título ≈ mismo tema: quedarse con el de mayor h_score).
+
+**Consulta §B:** radar de los últimos 7 días, `h_silencio > 0`, `relevancia IN
 ('alta','media')`, ordenado por `h_score`. Se clasifica cada tema según el bloque
 ausente (izquierda / derecha / centro) y se toman los **top 3 de cada lado**.
 
@@ -71,12 +83,14 @@ y decidir F2 cuando haya tráfico que lo justifique.
 
 ## 5. Decisiones pendientes (para Jorge)
 
-1. **Nombre**: "Los silencios de la semana" / "El punto ciego" / "Lo que no te contaron" / otro.
+Decidido el 20-jul-2026: estructura de dos secciones (§A ranking de polarización
++ §B silencios); "Los silencios de la semana" funciona como nombre de la sección §B.
+
+1. **Nombre del boletín** (propuesta: "El Radar semanal de Prisma").
 2. **Cadencia y momento**: ¿lunes 08:00? ¿domingo tarde?
-3. **Nº de ítems**: ¿3+3 (izq/der)? ¿Incluir silencios del centro?
+3. **Nº de ítems**: §A ¿top 5 o 7?; §B ¿3+3 (izq/der)? ¿Incluir silencios del centro?
 4. **¿Frase explicativa con IA o solo datos** (titular + medios + % cobertura)?
 5. **Fase 2 email**: ¿se activa desde ya, se espera, o se descarta (solo RSS)?
-6. **¿Incluir también el "tema más polarizado de la semana"** como cierre de cada edición?
 
 ## 6. No-objetivos
 
