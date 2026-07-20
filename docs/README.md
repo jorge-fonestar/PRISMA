@@ -5,6 +5,7 @@ Toda la documentación del proyecto vive aquí. Estructura:
 | Ruta | Contenido |
 |---|---|
 | [STATUS.md](STATUS.md) | **Empieza aquí**: estado actual, qué está desplegado y decisiones pendientes |
+| [CHANGELOG.md](CHANGELOG.md) | Histórico breve con fechas, redactado para los seguidores (canal de Telegram) |
 | [ARQUITECTURA.md](ARQUITECTURA.md) | Pipeline de dos fases, esquema de BD, ficheros, config y cron |
 | [manifiesto-prisma.md](manifiesto-prisma.md) | Manifiesto público (lo renderiza `manifiesto.php`) |
 | `diseno/` | Documentos de diseño vivos |
