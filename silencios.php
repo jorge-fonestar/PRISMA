@@ -83,7 +83,8 @@ function silencio_item_html($item, $B) {
 page_header(
     'Los silencios de la semana',
     'Qué historias cubrió un bloque ideológico mientras el otro callaba, según el radar de PolarPrisma de los últimos 7 días.',
-    'silencios'
+    'silencios',
+    true // ancho de listado (1100px), como el index
 );
 ?>
 

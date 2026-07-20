@@ -103,7 +103,7 @@ function render_footer_bottom() {
 
 // ── Composite page layout (used by simple content pages) ─────────────
 
-function page_header($title, $description = '', $active_nav = '') {
+function page_header($title, $description = '', $active_nav = '', $wide = false) {
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -137,7 +137,8 @@ function page_header($title, $description = '', $active_nav = '') {
     ul, ol { padding-left: 1.5rem; }
     li { margin-bottom: 0.4rem; color: var(--text-muted); }
     strong { color: var(--text); }
-    .container { width: 100%; max-width: 820px; margin: 0 auto; padding: 0 24px; }
+    /* 820px para páginas de lectura; las de listado (wide) usan 1100px como el index */
+    .container { width: 100%; max-width: <?= $wide ? '1100px' : '820px' ?>; margin: 0 auto; padding: 0 24px; }
     .eyebrow {
       font-family: 'Inter', Arial, sans-serif; font-size: 0.72rem; font-weight: 600;
       letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.8rem;

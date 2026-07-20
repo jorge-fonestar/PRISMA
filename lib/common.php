@@ -75,6 +75,11 @@ function prisma_publicar(array $artifact): bool {
     ]);
 
     prisma_log("PUB", "Publicado: {$data['id']}");
+
+    // Aviso al grupo de Telegram (no-op sin config; nunca rompe la publicación)
+    require_once __DIR__ . '/telegram.php';
+    telegram_notificar_articulo($data);
+
     return true;
 }
 

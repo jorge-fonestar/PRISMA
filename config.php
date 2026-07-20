@@ -46,6 +46,13 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // ── Ingest ──────────────────────────────────────────────────────
     'ingest_key'          => getenv('PRISMA_INGEST_KEY') ?: '',
 
+    // ── Sitio / notificaciones ──────────────────────────────────────
+    'site_url'            => getenv('PRISMA_SITE_URL') ?: 'https://polarprisma.org',
+    // Aviso por Telegram al publicar un artículo (lib/telegram.php).
+    // Sin token/chat_id queda desactivado.
+    'telegram_bot_token'  => getenv('TELEGRAM_BOT_TOKEN') ?: '',
+    'telegram_chat_id'    => getenv('TELEGRAM_CHAT_ID') ?: '',
+
     // ── Panel ───────────────────────────────────────────────────────
     'panel_pass'          => getenv('PRISMA_PANEL_PASS') ?: 'prisma2026',
 
