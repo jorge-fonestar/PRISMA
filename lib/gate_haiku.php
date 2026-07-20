@@ -40,6 +40,9 @@ function gate_haiku_clasificar(array $clusters): array {
     }
 
     // Build input for prompt
+    $incluir_desc = !empty($cfg['gate_incluir_descripcion']);
+    $desc_max = isset($cfg['gate_desc_max_chars']) ? (int)$cfg['gate_desc_max_chars'] : 160;
+
     $clusters_json = array();
     foreach ($clusters as $cluster) {
         $por_bloque = array();
@@ -50,7 +53,13 @@ function gate_haiku_clasificar(array $clusters): array {
             else $bloque = 'centro';
 
             if (!isset($por_bloque[$bloque])) $por_bloque[$bloque] = array();
-            $por_bloque[$bloque][] = $art['titulo'] . ' (' . $art['medio'] . ')';
+            $linea = $art['titulo'] . ' (' . $art['medio'] . ')';
+            // Entradilla truncada: da señal real de encuadre, no solo el titular
+            if ($incluir_desc && !empty($art['descripcion'])) {
+                $snippet = trim(mb_substr(strip_tags($art['descripcion']), 0, $desc_max, 'UTF-8'));
+                if ($snippet !== '') $linea .= ' — ' . $snippet;
+            }
+            $por_bloque[$bloque][] = $linea;
         }
 
         // Limit to 3 headlines per bloc to control token usage
@@ -65,7 +74,7 @@ function gate_haiku_clasificar(array $clusters): array {
         );
     }
 
-    $system = 'Eres un clasificador de temas informativos. Evalúas clusters de titulares agrupados por cuadrante ideológico (izquierda, centro, derecha) y determinas:
+    $system = 'Eres un clasificador de temas informativos. Evalúas clusters de titulares agrupados por cuadrante ideológico (izquierda, centro, derecha) y determinas lo siguiente. Cada entrada puede incluir, tras un guión largo, la entradilla del artículo: úsala para juzgar el encuadre real, no solo el titular.
 
 1. RELEVANCIA (string, obligatorio): nivel de potencial para generar narrativas divergentes entre ejes ideológicos. Valores EXACTOS permitidos: "alta", "media", "baja", "descartar". NO devuelvas true/false ni números.
    - "alta": tema político, social o económico con marcos claramente divergentes entre cuadrantes
