@@ -36,6 +36,10 @@
 | Gate Haiku con entradillas (en pruebas, evaluar en unos días) | `lib/gate_haiku.php`, flags `gate_incluir_descripcion`/`gate_desc_max_chars` |
 | Credenciales del panel e ingest **rotadas** (20-jul, tras la exposición) | `.env` del servidor |
 | Borrador email opt-out a medios | `comunicacion/EMAIL-MEDIOS-OPTOUT.md` |
+| Menú Hoy/Radar/Silencios/¿Qué es? + página silencios.php + rebrand PolarPrisma + nav móvil | `lib/layout.php`, `index.php` (`?vista=radar`), `silencios.php` |
+| **Fix cola Fase 2 (21-jul)**: ventana de recencia (`analizar_ventana_dias=2`), columna `radar.triage` (el triage ya no consume la cola ni se repaga), top N por h_score | `analizar.php`, `lib/common.php`, `db.php` |
+| **Fix ids de artículo (21-jul)**: numeración continúa la del día (no pisa artículos entre ejecuciones) y el id/ámbito los impone el servidor (el modelo llegó a "corregir" el id) | `lib/common.php`, `lib/pipeline_batch.php` |
+| **Fix Sonnet 5 (21-jul)**: `anthropic_call` busca el primer bloque `text` (con thinking adaptativo, `content[0]` es thinking) | `lib/anthropic.php` |
 
 ## Aparcado
 
