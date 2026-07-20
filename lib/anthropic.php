@@ -140,7 +140,20 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     }
 
     $data = json_decode($response, true);
-    if (!$data || empty($data['content'][0]['text'])) {
+
+    // El texto puede no ser el primer bloque: con thinking adaptativo
+    // (sonnet-5+) content[0] es un bloque 'thinking' y el texto va después.
+    $text = '';
+    if ($data && !empty($data['content']) && is_array($data['content'])) {
+        foreach ($data['content'] as $block) {
+            if (isset($block['type']) && $block['type'] === 'text' && isset($block['text']) && $block['text'] !== '') {
+                $text = $block['text'];
+                break;
+            }
+        }
+    }
+
+    if ($text === '') {
         prisma_log_api_call(array(
             'caller'        => $caller,
             'model'         => $model,
@@ -162,7 +175,6 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     anthropic_record_usage($model, $input_tokens, $output_tokens, $cost);
 
     // Log to isolated DB — prepend prefill to reconstruct full response (only if prefill was actually sent)
-    $text = $data['content'][0]['text'];
     if ($prefill !== '' && $supports_prefill) {
         $text = $prefill . $text;
     }
