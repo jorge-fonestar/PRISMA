@@ -270,12 +270,33 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
 
 /**
  * Updates a radar record with Haiku triage results.
+ *
+ * Guarda la frase y el estado del triage SIN tocar `analizado`: un tema
+ * confirmado que no entre en el top N del día debe seguir en cola (antes se
+ * marcaba analizado=1 y se perdía sin llegar a sintetizarse).
+ *
+ * @param bool $confirma true = polarización genuina, false = falso positivo
  */
-function radar_actualizar_triage(int $radar_id, string $frase, bool $analizado): void {
+function radar_actualizar_triage(int $radar_id, string $frase, bool $confirma): void {
     require_once __DIR__ . '/../db.php';
     $db = prisma_db();
-    $stmt = $db->prepare('UPDATE radar SET haiku_frase = :frase, analizado = :anal WHERE id = :id');
-    $stmt->execute([':frase' => $frase, ':anal' => $analizado ? 1 : 0, ':id' => $radar_id]);
+    $stmt = $db->prepare('UPDATE radar SET haiku_frase = :frase, triage = :triage WHERE id = :id');
+    $stmt->execute([
+        ':frase'  => $frase,
+        ':triage' => $confirma ? 'confirmado' : 'descartado',
+        ':id'     => $radar_id,
+    ]);
+}
+
+/**
+ * Marca un tema como consumido tras RECHAZO de la auditoría Moral Core:
+ * sale de la cola de pendientes y no se reintenta en ejecuciones futuras.
+ */
+function radar_marcar_rechazado(int $radar_id): void {
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    $stmt = $db->prepare("UPDATE radar SET analizado = 1, triage = 'rechazado' WHERE id = :id");
+    $stmt->execute([':id' => $radar_id]);
 }
 
 /**

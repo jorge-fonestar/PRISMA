@@ -183,6 +183,7 @@ function prisma_procesar_temas_batch(array $temas): array {
 
             // RECHAZO
             prisma_guardar_rechazado($artifact, $audit);
+            radar_marcar_rechazado($rid);
             $estado[$rid]['done'] = true;
             $estado[$rid]['resultado'] = 'rechazado';
             $stats['rechazados']++;

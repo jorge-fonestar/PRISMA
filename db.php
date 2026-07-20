@@ -62,6 +62,12 @@ function prisma_db(): PDO {
         'relevancia TEXT',
         'dominio_tematico TEXT',
         "scoring_version TEXT DEFAULT 'v1'",
+        // Estado del triage de Fase 2: NULL (sin triar), 'confirmado',
+        // 'descartado' (falso positivo de triage) o 'rechazado' (auditoría).
+        // Independiente de `analizado` (que ahora solo marca publicado o
+        // rechazado): los confirmados que no entran en el top N del día
+        // permanecen en cola en lugar de perderse.
+        'triage TEXT',
     );
     foreach ($v2_columns as $col) {
         try {

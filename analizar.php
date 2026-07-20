@@ -113,9 +113,17 @@ if ($specific_id > 0) {
     }
     prisma_log("ANALYZE", "Modo: tema específico #$specific_id");
 } else {
-    // Find pending topics above threshold
-    $sql = 'SELECT * FROM radar WHERE analizado = 0 AND h_score >= :umbral';
-    $params = array(':umbral' => $umbral);
+    // Find pending topics above threshold.
+    // Ventana de recencia: solo temas de los últimos N días — sin ella, el
+    // backlog antiguo (p.ej. la cola de abril-mayo tras el parón) compite por
+    // h_score con la actualidad y le roba las plazas del día.
+    $ventana = isset($cfg['analizar_ventana_dias']) ? (int)$cfg['analizar_ventana_dias'] : 2;
+    $fecha_min = date('Y-m-d', strtotime('-' . max(0, $ventana - 1) . ' days'));
+
+    $sql = 'SELECT * FROM radar WHERE analizado = 0 AND h_score >= :umbral
+        AND fecha >= :fecha_min
+        AND (triage IS NULL OR triage = \'confirmado\')';
+    $params = array(':umbral' => $umbral, ':fecha_min' => $fecha_min);
 
     if ($ambito_filter) {
         $sql .= ' AND ambito = :ambito';
@@ -131,8 +139,8 @@ if ($specific_id > 0) {
     $stmt->execute();
     $candidatos_raw = $stmt->fetchAll();
 
-    prisma_log("ANALYZE", sprintf("Modo: top %d temas | Umbral: %.0f%% | Ámbito: %s",
-        $max_temas, $umbral * 100, $ambito_filter ?: 'todos'));
+    prisma_log("ANALYZE", sprintf("Modo: top %d temas | Umbral: %.0f%% | Desde: %s | Ámbito: %s",
+        $max_temas, $umbral * 100, $fecha_min, $ambito_filter ?: 'todos'));
 }
 
 if (empty($candidatos_raw)) {
@@ -170,6 +178,8 @@ foreach ($candidatos_raw as $row) {
         'ambito'        => $row['ambito'],
         'articulos'     => $articulos,
         'n_cuadrantes'  => count(array_unique(array_column($fuentes, 'cuadrante'))),
+        'triage'        => isset($row['triage']) ? $row['triage'] : null,
+        'haiku_frase'   => isset($row['haiku_frase']) ? $row['haiku_frase'] : null,
     );
 }
 
@@ -180,12 +190,27 @@ if ($specific_id > 0) {
     $confirmados = $candidatos;
     prisma_log("ANALYZE", "Triage omitido (selección manual).");
 } else {
-    prisma_log("ANALYZE", "Triage Haiku (" . count($candidatos) . " candidatos)...");
-    $confirmados = triage_haiku($candidatos);
-    prisma_log("ANALYZE", count($confirmados) . " confirmados tras triage.");
+    // Los confirmados en ejecuciones anteriores no repagan el triage
+    $pre_confirmados = array();
+    $sin_triar = array();
+    foreach ($candidatos as $c) {
+        if ($c['triage'] === 'confirmado') $pre_confirmados[] = $c;
+        else $sin_triar[] = $c;
+    }
+    if (!empty($pre_confirmados)) {
+        prisma_log("ANALYZE", count($pre_confirmados) . " candidatos ya confirmados en ejecuciones previas.");
+    }
+
+    $confirmados = $pre_confirmados;
+    if (!empty($sin_triar)) {
+        prisma_log("ANALYZE", "Triage Haiku (" . count($sin_triar) . " candidatos)...");
+        $confirmados = array_merge($confirmados, triage_haiku($sin_triar));
+    }
+    prisma_log("ANALYZE", count($confirmados) . " confirmados en total.");
 }
 
-// Limit to max_temas
+// Top N por polarización (el orden de respuesta del triage no es fiable)
+usort($confirmados, function ($a, $b) { return $b['h_score'] <=> $a['h_score']; });
 $to_process = array_slice($confirmados, 0, $max_temas);
 
 if (empty($to_process)) {
@@ -241,6 +266,7 @@ foreach ($to_process as $i => $tema) {
             prisma_log("ANALYZE", "PUBLICADO: $article_id");
         } else {
             $rechazados++;
+            radar_marcar_rechazado($tema['radar_id']);
             prisma_log("ANALYZE", "DESCARTADO tras auditoría.");
         }
     } catch (Exception $e) {

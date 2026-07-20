@@ -58,6 +58,9 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',
     'articulos_dia'       => 2,
+    // Solo se analizan temas del radar de los últimos N días: sin esta
+    // ventana, el backlog antiguo compite por h_score con la actualidad.
+    'analizar_ventana_dias' => 2,
     'min_cuadrantes'      => 3,             // Mínimo de cuadrantes para ir al pipeline Sonnet
     'umbral_tension'      => 0.40,          // H mínimo para ser candidato a análisis (v2: era 0.55)
 
