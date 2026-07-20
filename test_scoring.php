@@ -2,7 +2,7 @@
 /**
  * Prisma — Verification script for scoring v2 functions.
  *
- * Runs all test cases from DISEÑO_POLARIZACION.md section 4 table.
+ * Runs all test cases from docs/diseno/DISEÑO_POLARIZACION.md section 4 table.
  * Usage: php test_scoring.php
  */
 

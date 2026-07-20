@@ -1,12 +1,12 @@
 <?php
 /**
  * Prisma — Manifiesto
- * Renders info/manifiesto-prisma.md as a styled web page using the shared layout.
+ * Renders docs/manifiesto-prisma.md as a styled web page using the shared layout.
  */
 require_once __DIR__ . '/lib/layout.php';
 
 // ── Read and convert MD to HTML ──────────────────────────────────────
-$md_path = __DIR__ . '/info/manifiesto-prisma.md';
+$md_path = __DIR__ . '/docs/manifiesto-prisma.md';
 $md = file_exists($md_path) ? file_get_contents($md_path) : '';
 
 /**
