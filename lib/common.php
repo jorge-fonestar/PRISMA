@@ -116,6 +116,11 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
             } else {
                 $artifact = sintetizar($contexto, $article_id, $ambito, $feedback);
             }
+            // El id y el ámbito son autoridad del servidor: el modelo a veces
+            // los "corrige" (p.ej. pone la fecha de la noticia en el id), y
+            // publicar con otro id rompe el enlace del radar o pisa artículos.
+            $artifact['id'] = $article_id;
+            $artifact['ambito'] = $ambito;
         } catch (RuntimeException $e) {
             // JSON parse failure — retry with format feedback
             if (strpos($e->getMessage(), 'JSON inválido') !== false && $attempt <= $max_retries) {

@@ -103,6 +103,10 @@ function prisma_procesar_temas_batch(array $temas): array {
                 continue;
             }
 
+            // Autoridad del servidor sobre id y ámbito (el modelo a veces los altera)
+            $artifact['id'] = $e['article_id'];
+            $artifact['ambito'] = $e['tema']['ambito'];
+
             $estado[$rid]['artifact'] = $artifact;
             $a_auditar[$rid] = $artifact;
         }
