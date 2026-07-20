@@ -98,7 +98,7 @@ function normalizar_framing($fd) {
 /**
  * Computes the full H-score v2 for a cluster.
  *
- * Implements the complete flow from DISEÑO_POLARIZACION.md section 4:
+ * Implements the complete flow from docs/diseno/DISEÑO_POLARIZACION.md section 4:
  * PASO 1 (pre-filter) and PASO 3 (Haiku) are handled upstream.
  * This function handles PASOs 4-8.
  *

@@ -42,16 +42,17 @@ function curador_seleccionar(array $articles): array {
         prisma_log("CURADOR", "Cuadrantes disponibles: $available → mínimo exigido: $min_cuadrantes");
     }
 
-    // 1. Extraer palabras clave de cada titular
+    // 1. Extraer palabras clave ponderadas (titular + descripción si está activo)
+    $umbral_sim = isset($cfg['cluster_umbral']) ? (float)$cfg['cluster_umbral'] : 0.3;
     $indexed = [];
     foreach ($articles as $i => $art) {
         $indexed[$i] = [
             'article'  => $art,
-            'keywords' => extraer_keywords($art['titulo']),
+            'keywords' => extraer_keywords_articulo($art),
         ];
     }
 
-    // 2. Agrupar por similitud de keywords
+    // 2. Agrupar por similitud de keywords (Jaccard ponderado)
     $clusters = [];
     $assigned = [];
 
@@ -63,7 +64,7 @@ function curador_seleccionar(array $articles): array {
 
         foreach ($indexed as $j => $other) {
             if ($i === $j || isset($assigned[$j])) continue;
-            if (keywords_similarity($item['keywords'], $other['keywords']) >= 0.3) {
+            if (keywords_similarity_w($item['keywords'], $other['keywords']) >= $umbral_sim) {
                 $cluster[] = $j;
                 $assigned[$j] = true;
             }
@@ -132,10 +133,12 @@ function calcular_tension(array $articles): array {
     $asimetria = ($total > 0) ? abs($izq_n - $der_n) / $total : 0.0;
 
     // --- Signal B: Lexical Divergence (25%) ---
+    // Con cluster_usar_descripcion activo compara el vocabulario completo
+    // (titular + entradilla) de cada bloque, no solo los titulares.
     $kw_izq = [];
     $kw_der = [];
     foreach ($articles as $art) {
-        $kw = extraer_keywords($art['titulo']);
+        $kw = extraer_keywords_articulo($art);
         $c = $art['cuadrante'];
         if (in_array($c, PRISMA_GRUPO_IZQ)) {
             $kw_izq = array_merge($kw_izq, array_keys($kw));
@@ -227,6 +230,69 @@ function keywords_similarity(array $a, array $b): float {
     $union = count($a) + count($b) - $intersection;
 
     return $union > 0 ? $intersection / $union : 0.0;
+}
+
+/**
+ * Extrae keywords ponderadas de un artículo completo.
+ *
+ * Titular → peso 1.0; descripción RSS (truncada) → peso cluster_desc_peso.
+ * Si una palabra aparece en ambos, prevalece el peso del titular.
+ * Con cluster_usar_descripcion=false equivale a extraer_keywords(titulo)
+ * con peso 1.0 en todo (y el Jaccard ponderado se reduce al clásico).
+ *
+ * @param array $art Artículo con 'titulo' y opcionalmente 'descripcion'
+ * @return array [palabra => peso]
+ */
+function extraer_keywords_articulo(array $art): array {
+    $cfg = prisma_cfg();
+
+    $kw = [];
+    foreach (extraer_keywords($art['titulo']) as $w => $_) {
+        $kw[$w] = 1.0;
+    }
+
+    if (!empty($cfg['cluster_usar_descripcion']) && !empty($art['descripcion'])) {
+        $peso = isset($cfg['cluster_desc_peso']) ? (float)$cfg['cluster_desc_peso'] : 0.5;
+        $max_chars = isset($cfg['cluster_desc_max_chars']) ? (int)$cfg['cluster_desc_max_chars'] : 500;
+        $desc = mb_substr(strip_tags($art['descripcion']), 0, $max_chars, 'UTF-8');
+        foreach (extraer_keywords($desc) as $w => $_) {
+            if (!isset($kw[$w])) $kw[$w] = $peso;
+        }
+    }
+
+    return $kw;
+}
+
+/**
+ * Jaccard ponderado: sum(min(peso_a, peso_b)) / sum(max(peso_a, peso_b)).
+ *
+ * Con pesos binarios (1.0/ausente) se reduce al Jaccard clásico, así que
+ * es un reemplazo directo de keywords_similarity para mapas ponderados.
+ * Acepta también mapas [palabra => true] (true cuenta como 1.0).
+ */
+function keywords_similarity_w(array $a, array $b): float {
+    if (empty($a) || empty($b)) return 0.0;
+
+    $min_sum = 0.0;
+    $max_sum = 0.0;
+
+    foreach ($a as $w => $wa) {
+        $wa = ($wa === true) ? 1.0 : (float)$wa;
+        if (isset($b[$w])) {
+            $wb = ($b[$w] === true) ? 1.0 : (float)$b[$w];
+            $min_sum += min($wa, $wb);
+            $max_sum += max($wa, $wb);
+        } else {
+            $max_sum += $wa;
+        }
+    }
+    foreach ($b as $w => $wb) {
+        if (!isset($a[$w])) {
+            $max_sum += ($wb === true) ? 1.0 : (float)$wb;
+        }
+    }
+
+    return $max_sum > 0 ? $min_sum / $max_sum : 0.0;
 }
 
 /**

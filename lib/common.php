@@ -222,12 +222,18 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
 
         $fuentes = array();
         foreach ($tema['articulos'] as $art) {
-            $fuentes[] = array(
+            $f = array(
                 'medio'     => $art['medio'],
                 'titulo'    => $art['titulo'],
                 'url'       => $art['url'],
                 'cuadrante' => $art['cuadrante'],
             );
+            // Entradilla truncada: enriquece el contexto de la Fase 2
+            // (curador_preparar_contexto) cuando el tema viene del radar.
+            if (!empty($art['descripcion'])) {
+                $f['descripcion'] = mb_substr(strip_tags($art['descripcion']), 0, 300, 'UTF-8');
+            }
+            $fuentes[] = $f;
         }
 
         $stmt->execute(array(
