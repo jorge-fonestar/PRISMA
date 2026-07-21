@@ -68,6 +68,8 @@ function prisma_db(): PDO {
         // rechazado): los confirmados que no entran en el top N del día
         // permanecen en cola en lugar de perderse.
         'triage TEXT',
+        // Aviso de titular polarizado ya enviado a Telegram (una vez por tema)
+        'tg_notificado INTEGER DEFAULT 0',
     );
     foreach ($v2_columns as $col) {
         try {

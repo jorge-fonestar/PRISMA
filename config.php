@@ -48,10 +48,13 @@ $GLOBALS['_PRISMA_CFG'] = array(
 
     // ── Sitio / notificaciones ──────────────────────────────────────
     'site_url'            => getenv('PRISMA_SITE_URL') ?: 'https://polarprisma.org',
-    // Aviso por Telegram al publicar un artículo (lib/telegram.php).
-    // Sin token/chat_id queda desactivado.
-    'telegram_bot_token'  => getenv('TELEGRAM_BOT_TOKEN') ?: '',
-    'telegram_chat_id'    => getenv('TELEGRAM_CHAT_ID') ?: '',
+    // Avisos por Telegram (lib/telegram.php). Sin token/chat_id, desactivados.
+    // 1) Al publicar un análisis (siempre que haya config).
+    // 2) Al detectar un titular con polarización >= umbral (una vez por tema).
+    'telegram_bot_token'      => getenv('TELEGRAM_BOT_TOKEN') ?: '',
+    'telegram_chat_id'        => getenv('TELEGRAM_CHAT_ID') ?: '',
+    'telegram_avisar_titulares' => true,
+    'telegram_umbral_titular'   => 0.50,
 
     // ── Panel ───────────────────────────────────────────────────────
     'panel_pass'          => getenv('PRISMA_PANEL_PASS') ?: 'prisma2026',

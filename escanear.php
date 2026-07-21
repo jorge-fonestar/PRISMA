@@ -271,4 +271,13 @@ prisma_log("SCAN", sprintf("ESCANEO COMPLETO: %d temas en radar, %d candidatos a
     $total_radar, $total_candidatos));
 prisma_log("SCAN", "═══════════════════════════════════════════════");
 
+// Aviso Telegram de titulares que cruzan el umbral de polarización
+// (una vez por tema; no-op sin config)
+require_once __DIR__ . '/lib/telegram.php';
+try {
+    telegram_notificar_titulares();
+} catch (Throwable $e) {
+    prisma_log("TG", "Error en avisos de titulares: " . $e->getMessage());
+}
+
 exit(0);
