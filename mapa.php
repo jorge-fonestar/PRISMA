@@ -139,14 +139,15 @@ page_header(
           <strong style="color:var(--text)">Propiedad:</strong> <?= htmlspecialchars($d['propiedad']) ?>
           &nbsp;·&nbsp; <strong style="color:var(--text)">Financiación:</strong> <?= htmlspecialchars($d['financiacion']) ?>
         </div>
+        <?php if (!empty($d['info'])): ?>
+        <div style="font-size:0.88rem;color:var(--text-faint);margin-top:0.3rem">
+          <strong style="color:var(--text-muted)">+Info:</strong> <?= htmlspecialchars($d['info']) ?>
+        </div>
+        <?php endif; ?>
+        <?php elseif ($ficha !== ''): ?>
+        <div style="font-size:0.9rem;color:var(--text-muted);margin-top:0.35rem"><?= htmlspecialchars($ficha) ?></div>
         <?php else: ?>
         <div style="font-size:0.9rem;color:var(--text-faint);margin-top:0.35rem">Ficha estructurada pendiente.</div>
-        <?php endif; ?>
-        <?php if ($ficha !== ''): ?>
-        <details style="margin-top:0.4rem">
-          <summary style="font-family:Inter,Arial,sans-serif;font-size:0.78rem;color:var(--text-faint);cursor:pointer">Ficha completa</summary>
-          <p style="font-size:0.88rem;margin:0.4rem 0 0 0"><?= htmlspecialchars($ficha) ?></p>
-        </details>
         <?php endif; ?>
       </div>
       <?php endforeach; ?>

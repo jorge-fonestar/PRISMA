@@ -192,14 +192,28 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
  */
 function radar_insertar_todos(array $temas, string $ambito, string $fecha): array {
     require_once __DIR__ . '/../db.php';
+    require_once __DIR__ . '/curador.php'; // extraer_keywords / keywords_similarity
     $db = prisma_db();
 
-    // Check existing topics for this date+ambito to avoid duplicates on re-run
+    // Filas de HOY (dedup exacto por título en re-escaneos del mismo día)
     $check = $db->prepare('SELECT id, titulo_tema FROM radar WHERE fecha = :fecha AND ambito = :ambito');
     $check->execute(array(':fecha' => $fecha, ':ambito' => $ambito));
     $existentes = array();
     while ($row = $check->fetch()) {
         $existentes[mb_strtolower(trim($row['titulo_tema']), 'UTF-8')] = $row['id'];
+    }
+
+    // Filas de AYER (dedup cross-día: la misma historia que sigue viva hoy
+    // se actualiza y se trae a hoy en lugar de crear una fila duplicada)
+    $ayer = date('Y-m-d', strtotime($fecha . ' -1 day'));
+    $chk2 = $db->prepare('SELECT id, titulo_tema FROM radar WHERE fecha = :ayer AND ambito = :ambito');
+    $chk2->execute(array(':ayer' => $ayer, ':ambito' => $ambito));
+    $ayer_rows = array();
+    while ($row = $chk2->fetch()) {
+        $ayer_rows[$row['id']] = array(
+            'id' => (int)$row['id'],
+            'kw' => extraer_keywords($row['titulo_tema']),
+        );
     }
 
     $stmt = $db->prepare('INSERT INTO radar
@@ -209,45 +223,35 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
         VALUES (:fecha, :titulo, :ambito, :h_score, :h_asim, :h_div, :h_var,
                 :h_cob, :h_frm, :h_sil, :fd, :fev, :rel, :dom, :sv, :fuentes)');
 
+    // UPDATE de señales + fuentes: la lista de fuentes DEBE refrescarse con el
+    // cluster actual — antes se congelaba en la primera foto del día y la
+    // Fase 2 / página de silencios trabajaban con datos desactualizados.
+    $upd_hoy = $db->prepare('UPDATE radar SET
+        h_score = :h_score, h_asimetria = :h_asim, h_divergencia = :h_div, h_varianza = :h_var,
+        h_cobertura_mutua = :h_cob, h_framing = :h_frm, h_silencio = :h_sil,
+        framing_divergence = :fd, framing_evidence = :fev,
+        relevancia = :rel, dominio_tematico = :dom, scoring_version = :sv,
+        fuentes_json = :fuentes
+        WHERE id = :id');
+
+    // Igual que el anterior pero trayendo la fila de ayer a hoy (fecha+título).
+    // No toca analizado / triage / haiku_frase / articulo_id: si ya estaba
+    // confirmada sigue en cola; si ya tiene artículo, sigue enlazada.
+    $upd_ayer = $db->prepare('UPDATE radar SET
+        fecha = :fecha, titulo_tema = :titulo,
+        h_score = :h_score, h_asimetria = :h_asim, h_divergencia = :h_div, h_varianza = :h_var,
+        h_cobertura_mutua = :h_cob, h_framing = :h_frm, h_silencio = :h_sil,
+        framing_divergence = :fd, framing_evidence = :fev,
+        relevancia = :rel, dominio_tematico = :dom, scoring_version = :sv,
+        fuentes_json = :fuentes
+        WHERE id = :id');
+
     $insertados = 0;
     $duplicados = 0;
+    $arrastrados = 0;
 
     foreach ($temas as &$tema) {
         $key = mb_strtolower(trim($tema['titulo_tema']), 'UTF-8');
-
-        // Skip if already exists for this date+ambito
-        if (isset($existentes[$key])) {
-            $tema['radar_id'] = $existentes[$key];
-            $duplicados++;
-
-            // If we have v2 data and existing record doesn't, update it
-            $sv = isset($tema['scoring_version']) ? $tema['scoring_version'] : null;
-            if ($sv === 'v2') {
-                $upd = $db->prepare('UPDATE radar SET
-                    h_score = :h_score, h_asimetria = :h_asim, h_divergencia = :h_div, h_varianza = :h_var,
-                    h_cobertura_mutua = :h_cob, h_framing = :h_frm, h_silencio = :h_sil,
-                    framing_divergence = :fd, framing_evidence = :fev,
-                    relevancia = :rel, dominio_tematico = :dom, scoring_version = :sv
-                    WHERE id = :id');
-                $upd->execute(array(
-                    ':h_score' => $tema['h_score'],
-                    ':h_asim'  => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : $tema['h_asimetria'],
-                    ':h_div'   => isset($tema['h_framing']) ? $tema['h_framing'] : $tema['h_divergencia'],
-                    ':h_var'   => isset($tema['h_silencio']) ? $tema['h_silencio'] : $tema['h_varianza'],
-                    ':h_cob'   => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : null,
-                    ':h_frm'   => isset($tema['h_framing']) ? $tema['h_framing'] : null,
-                    ':h_sil'   => isset($tema['h_silencio']) ? $tema['h_silencio'] : null,
-                    ':fd'      => isset($tema['framing_divergence']) ? $tema['framing_divergence'] : null,
-                    ':fev'     => isset($tema['framing_evidence']) ? $tema['framing_evidence'] : null,
-                    ':rel'     => isset($tema['relevancia']) ? $tema['relevancia'] : null,
-                    ':dom'     => isset($tema['dominio_tematico']) ? $tema['dominio_tematico'] : null,
-                    ':sv'      => 'v2',
-                    ':id'      => $existentes[$key],
-                ));
-            }
-
-            continue;
-        }
 
         $fuentes = array();
         foreach ($tema['articulos'] as $art) {
@@ -264,11 +268,9 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
             }
             $fuentes[] = $f;
         }
+        $fuentes_json = json_encode($fuentes, JSON_UNESCAPED_UNICODE);
 
-        $stmt->execute(array(
-            ':fecha'   => $fecha,
-            ':titulo'  => $tema['titulo_tema'],
-            ':ambito'  => $ambito,
+        $senales = array(
             ':h_score' => $tema['h_score'],
             ':h_asim'  => isset($tema['h_cobertura_mutua']) ? $tema['h_cobertura_mutua'] : $tema['h_asimetria'],
             ':h_div'   => isset($tema['h_framing']) ? $tema['h_framing'] : $tema['h_divergencia'],
@@ -280,8 +282,50 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
             ':fev'     => isset($tema['framing_evidence']) ? $tema['framing_evidence'] : null,
             ':rel'     => isset($tema['relevancia']) ? $tema['relevancia'] : null,
             ':dom'     => isset($tema['dominio_tematico']) ? $tema['dominio_tematico'] : null,
-            ':sv'      => isset($tema['scoring_version']) ? $tema['scoring_version'] : 'v1',
-            ':fuentes' => json_encode($fuentes, JSON_UNESCAPED_UNICODE),
+            ':fuentes' => $fuentes_json,
+        );
+
+        // 1) Mismo título hoy → refrescar señales y fuentes
+        if (isset($existentes[$key])) {
+            $tema['radar_id'] = $existentes[$key];
+            $duplicados++;
+
+            $sv = isset($tema['scoring_version']) ? $tema['scoring_version'] : null;
+            if ($sv === 'v2') {
+                $upd_hoy->execute($senales + array(':sv' => 'v2', ':id' => $existentes[$key]));
+            }
+            continue;
+        }
+
+        // 2) Historia muy similar ayer → traerla a hoy (evita fila duplicada
+        //    y que la misma historia se analice dos veces)
+        $kw_nuevo = extraer_keywords($tema['titulo_tema']);
+        $mejor_id = null;
+        $mejor_sim = 0.0;
+        foreach ($ayer_rows as $rid => $ar) {
+            $sim = keywords_similarity($kw_nuevo, $ar['kw']);
+            if ($sim > $mejor_sim) { $mejor_sim = $sim; $mejor_id = $rid; }
+        }
+        if ($mejor_id !== null && $mejor_sim >= 0.6) {
+            $upd_ayer->execute($senales + array(
+                ':fecha'  => $fecha,
+                ':titulo' => $tema['titulo_tema'],
+                ':sv'     => isset($tema['scoring_version']) ? $tema['scoring_version'] : 'v2',
+                ':id'     => $mejor_id,
+            ));
+            $tema['radar_id'] = $mejor_id;
+            $existentes[$key] = $mejor_id;
+            unset($ayer_rows[$mejor_id]); // una fila de ayer solo absorbe una historia
+            $arrastrados++;
+            continue;
+        }
+
+        // 3) Historia nueva → insertar
+        $stmt->execute($senales + array(
+            ':fecha'  => $fecha,
+            ':titulo' => $tema['titulo_tema'],
+            ':ambito' => $ambito,
+            ':sv'     => isset($tema['scoring_version']) ? $tema['scoring_version'] : 'v1',
         ));
 
         $tema['radar_id'] = $db->lastInsertId();
@@ -290,9 +334,8 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
     unset($tema);
 
     $msg = "$insertados temas insertados en radar.";
-    if ($duplicados > 0) {
-        $msg .= " $duplicados duplicados omitidos.";
-    }
+    if ($duplicados > 0) $msg .= " $duplicados actualizados (mismo día).";
+    if ($arrastrados > 0) $msg .= " $arrastrados arrastrados desde ayer.";
     prisma_log("RADAR", $msg);
     return $temas;
 }

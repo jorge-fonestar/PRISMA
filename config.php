@@ -110,6 +110,9 @@ $GLOBALS['_PRISMA_CFG'] = array(
         'red carpet', 'coachella', 'reality', 'gran hermano', 'eurovision',
         // Curiosidades
         'curiosidad', 'no creeras', 'verdad sobre',
+        // Boletines recurrentes de feeds (Euronews etc.): forman un cluster
+        // basura cada día al parecerse entre sí los títulos de boletín
+        'latest news bulletin', 'news bulletin |',
         // Meteorología rutinaria
         'prevision meteorologica', 'temperaturas hoy', 'lluvias para',
     ),
@@ -154,7 +157,15 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 ),
                 array('elDiario.es', 'https://www.eldiario.es/rss/',
                     '70% propiedad de sus trabajadores. ~35% de ingresos por 75.000+ socios lectores, resto publicidad. Sin deuda. Fundado 2012 por Ignacio Escolar.'),
-                array('CTXT', 'https://ctxt.es/es/rss.xml'),
+                array(
+                    'medio' => 'CTXT',
+                    'url' => null,
+                    'modalidad' => 'no_disponible',
+                    'categoria_acceso' => 'C',
+                    'transparencia' => 'Feed RSS bloqueado a nivel de WAF (403 también con user-agent de navegador, verificado jul-2026). Candidato a la ronda de contacto con medios.',
+                    'perfil_editorial' => 'Revista Contexto: análisis progresista, sin publicidad programática.',
+                    'ejes_cubiertos' => array(),
+                ),
                 array('La Marea', 'https://www.lamarea.com/feed/'),
             ),
             'centro-izquierda' => array(
@@ -174,6 +185,8 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 // EFE: 429 rate limit — kept but expect sporadic failures
                 array('EFE', 'https://efe.com/feed/',
                     'Agencia estatal española de noticias. Propiedad 100% de la SEPI (Sociedad Estatal de Participaciones Industriales). Financiación pública.'),
+                array('RTVE', 'https://api2.rtve.es/rss/temas_noticias.xml',
+                    'Corporación pública estatal. Financiada por Presupuestos Generales y aportaciones de operadores de telecomunicaciones y televisiones privadas (ley de financiación 2009). Consejo de administración elegido por el Parlamento.'),
                 array('20minutos', 'https://www.20minutos.es/rss/',
                     'Grupo Henneo. 60% familia Yarza, 40% Ibercaja. Henneo posee también Heraldo de Aragón y Business Insider España.'),
                 array('Newtral', 'https://www.newtral.es/feed/',
