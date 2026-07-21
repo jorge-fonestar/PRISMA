@@ -40,6 +40,8 @@
 | **Fix cola Fase 2 (21-jul)**: ventana de recencia (`analizar_ventana_dias=2`), columna `radar.triage` (el triage ya no consume la cola ni se repaga), top N por h_score | `analizar.php`, `lib/common.php`, `db.php` |
 | **Fix ids de artículo (21-jul)**: numeración continúa la del día (no pisa artículos entre ejecuciones) y el id/ámbito los impone el servidor (el modelo llegó a "corregir" el id) | `lib/common.php`, `lib/pipeline_batch.php` |
 | **Fix Sonnet 5 (21-jul)**: `anthropic_call` busca el primer bloque `text` (con thinking adaptativo, `content[0]` es thinking) | `lib/anthropic.php` |
+| Aviso Telegram al publicar (canal @prismanews_dev; token/chat en `.env` del servidor) | `lib/telegram.php`, hook en `prisma_publicar` |
+| **Mapa ideológico y de financiación** (menú "Mapa"): propietario, modelo y capacidad €/€€/€€€ por medio + lectura objetiva de la asimetría | `mapa.php`, `lib/mapa_datos.php` |
 
 ## Aparcado
 
