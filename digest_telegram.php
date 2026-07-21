@@ -14,7 +14,7 @@
  */
 
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/lib/logger.php';
+require_once __DIR__ . '/lib/common.php'; // prisma_log()
 require_once __DIR__ . '/lib/telegram.php';
 
 $opts = getopt('', array('fecha:', 'dry-run', 'help'));
