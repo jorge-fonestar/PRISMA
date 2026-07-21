@@ -185,8 +185,9 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 // EFE: 429 rate limit — kept but expect sporadic failures
                 array('EFE', 'https://efe.com/feed/',
                     'Agencia estatal española de noticias. Propiedad 100% de la SEPI (Sociedad Estatal de Participaciones Industriales). Financiación pública.'),
-                array('RTVE', 'https://api2.rtve.es/rss/temas_noticias.xml',
-                    'Corporación pública estatal. Financiada por Presupuestos Generales y aportaciones de operadores de telecomunicaciones y televisiones privadas (ley de financiación 2009). Consejo de administración elegido por el Parlamento.'),
+                // RTVE descartado: sus RSS están congelados desde jun-2022 (verificado jul-2026)
+                array('Europa Press', 'https://www.europapress.es/rss/rss.aspx',
+                    'Agencia de noticias privada fundada en 1957. Propiedad de la familia Martín de Cabiedes. Financiación por venta de servicios informativos a medios, empresas e instituciones públicas.'),
                 array('20minutos', 'https://www.20minutos.es/rss/',
                     'Grupo Henneo. 60% familia Yarza, 40% Ibercaja. Henneo posee también Heraldo de Aragón y Business Insider España.'),
                 array('Newtral', 'https://www.newtral.es/feed/',

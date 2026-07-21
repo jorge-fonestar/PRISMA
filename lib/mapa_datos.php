@@ -81,11 +81,11 @@ define('PRISMA_MAPA_MEDIOS', array(
         'info' => 'Mayor agencia de noticias en español, ~3.000 empleados en 120 países; sus teletipos alimentan a buena parte de la prensa española de todos los cuadrantes.',
         'tipo' => 'publico', 'capacidad' => 2,
     ),
-    'RTVE' => array(
-        'propiedad' => 'Corporación pública estatal',
-        'financiacion' => 'Presupuestos Generales y tasas a operadores privados',
-        'info' => 'Sin publicidad desde 2010; su consejo de administración se elige por mayoría parlamentaria, lo que traslada las mayorías políticas a su gobernanza.',
-        'tipo' => 'publico', 'capacidad' => 3,
+    'Europa Press' => array(
+        'propiedad' => 'Familia Martín de Cabiedes',
+        'financiacion' => 'Venta de servicios informativos a medios, empresas e instituciones',
+        'info' => 'La mayor agencia privada española; entre sus clientes hay administraciones públicas de todo signo, una fuente de ingresos institucional que declara sin detallar.',
+        'tipo' => 'familiar', 'capacidad' => 2,
     ),
     '20minutos' => array(
         'propiedad' => 'Grupo Henneo (familia Yarza 60%, Ibercaja 40%)',
