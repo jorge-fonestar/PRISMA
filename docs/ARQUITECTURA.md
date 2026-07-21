@@ -127,7 +127,7 @@ lib/
 |-----------|---------|-------------|
 | umbral_tension | 0.40 | H-score mínimo para Fase 2 |
 | min_cuadrantes | 3 | Cuadrantes mínimos para análisis |
-| articulos_dia | 2 | Máximo análisis por ejecución |
+| articulos_dia | 2 | Máximo de análisis publicados por día (el cron descuenta los manuales ya publicados hoy) |
 | daily_budget_usd | 3.00 | Límite gasto API diario |
 | use_batch_api | true | Fase 2 vía Batches API (50% coste) |
 | model_synth | claude-sonnet-5 | Modelo síntesis |
