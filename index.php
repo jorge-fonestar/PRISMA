@@ -341,6 +341,10 @@ if ($vista === 'radar') {
           <a href="<?= $B ?>presentacion.php">Cómo funciona &rarr;</a>
         </p>
       <?php endif; ?>
+        <p style="font-family:Inter,Arial,sans-serif;font-size:0.82rem;margin-top:0.6rem">
+          📣 Recibe cada nuevo análisis en tu móvil:
+          <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener">únete al canal de Telegram</a>
+        </p>
       </div>
 
       <!-- Collapsible Filters -->

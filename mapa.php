@@ -77,9 +77,40 @@ page_header(
     <span style="color:var(--text-faint)">La capacidad es el orden de magnitud de ingresos del <em>grupo editor</em>, estimado con cuentas anuales e informes públicos.</span>
   </div>
 
+  <style>
+    /* Bloques de ámbito plegables */
+    .ambito-bloque { border: 1px solid var(--border-card); border-radius: 8px; margin: 1.4rem 0; background: var(--bg-card); }
+    .ambito-bloque > summary {
+      list-style: none; cursor: pointer; padding: 1rem 1.3rem;
+      display: flex; align-items: center; gap: 14px; user-select: none;
+    }
+    .ambito-bloque > summary::-webkit-details-marker { display: none; }
+    .ambito-bloque > summary h2 { margin: 0; font-size: clamp(1.25rem, 2.2vw, 1.55rem); }
+    .ambito-bloque > summary .ambito-n {
+      font-family: Inter, Arial, sans-serif; font-size: 0.75rem; color: var(--text-faint);
+      border: 1px solid var(--border-card); border-radius: 999px; padding: 2px 10px;
+    }
+    .ambito-bloque > summary .chevron {
+      margin-left: auto; transition: transform 0.2s; color: var(--text-faint); flex-shrink: 0;
+    }
+    .ambito-bloque[open] > summary .chevron { transform: rotate(180deg); }
+    .ambito-bloque > .ambito-contenido { padding: 0 1.3rem 1.3rem 1.3rem; }
+    .ambito-bloque > .ambito-contenido h3:first-child { margin-top: 0.5rem; }
+  </style>
+
   <?php foreach (array('españa', 'europa', 'global') as $ambito): ?>
-    <?php if (empty($cfg['fuentes'][$ambito])) continue; ?>
-    <h2><?= $ambito_labels[$ambito] ?></h2>
+    <?php
+      if (empty($cfg['fuentes'][$ambito])) continue;
+      $n_medios = 0;
+      foreach ($cfg['fuentes'][$ambito] as $ms) $n_medios += count($ms);
+    ?>
+    <details class="ambito-bloque"<?= $ambito === 'españa' ? ' open' : '' ?>>
+      <summary>
+        <h2><?= $ambito_labels[$ambito] ?></h2>
+        <span class="ambito-n"><?= $n_medios ?> medios</span>
+        <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="ambito-contenido">
 
     <?php foreach ($orden_cuadrantes as $cuadrante): ?>
       <?php if (empty($cfg['fuentes'][$ambito][$cuadrante])) continue; ?>
@@ -120,6 +151,9 @@ page_header(
       </div>
       <?php endforeach; ?>
     <?php endforeach; ?>
+
+      </div>
+    </details>
   <?php endforeach; ?>
 
   <!-- Resumen por bloques (España) -->

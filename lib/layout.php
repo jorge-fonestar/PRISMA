@@ -76,6 +76,7 @@ function render_footer_grid() {
         . '<li><a href="' . $B . 'silencios.php">Los silencios de la semana</a></li>'
         . '<li><a href="' . $B . 'mapa.php">Mapa ideológico y de financiación</a></li>'
         . '<li><a href="' . $B . 'archivo.php">Archivo</a></li>'
+        . '<li><a href="https://t.me/prismanews_dev" target="_blank" rel="noopener">Canal de Telegram (avisos diarios)</a></li>'
         . '</ul></div>'
         . '<div><h4>Proyecto</h4><ul>'
         . '<li><a href="' . $B . 'presentacion.php">¿Qué es PolarPrisma?</a></li>'
