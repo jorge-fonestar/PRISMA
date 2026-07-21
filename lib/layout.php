@@ -24,6 +24,7 @@ function render_nav($active_nav = '', $overrides = array()) {
         ''             => array('Hoy', $B),
         'radar'        => array('Radar', $B . '?vista=radar'),
         'silencios'    => array('Silencios', $B . 'silencios.php'),
+        'mapa'         => array('Mapa', $B . 'mapa.php'),
         'presentacion' => array('¿Qué es PolarPrisma?', $B . 'presentacion.php'),
     );
     foreach ($overrides as $key => $label) {
@@ -73,6 +74,7 @@ function render_footer_grid() {
         . '<li><a href="' . $B . '">Hoy</a></li>'
         . '<li><a href="' . $B . '?vista=radar">Radar (7 días)</a></li>'
         . '<li><a href="' . $B . 'silencios.php">Los silencios de la semana</a></li>'
+        . '<li><a href="' . $B . 'mapa.php">Mapa ideológico y de financiación</a></li>'
         . '<li><a href="' . $B . 'archivo.php">Archivo</a></li>'
         . '</ul></div>'
         . '<div><h4>Proyecto</h4><ul>'
