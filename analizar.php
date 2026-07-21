@@ -113,6 +113,26 @@ if ($specific_id > 0) {
     }
     prisma_log("ANALYZE", "Modo: tema específico #$specific_id");
 } else {
+    // Cupo diario: el máximo automático descuenta lo ya publicado hoy, de forma
+    // que los análisis manuales (panel, --id, --tema) lanzados antes de esta
+    // ejecución cuenten para el tope y el cron no publique de más.
+    // Un --temas N explícito es una orden manual y salta este ajuste.
+    if (!isset($opts['temas'])) {
+        $hoy = (new DateTime('now', new DateTimeZone($cfg['timezone'])))->format('Y-m-d');
+        $c = $db->prepare('SELECT COUNT(*) FROM articulos WHERE id LIKE :p');
+        $c->execute(array(':p' => $hoy . '-%'));
+        $ya_hoy = (int)$c->fetchColumn();
+        $cupo = (int)$cfg['articulos_dia'];
+        $max_temas = max(0, $cupo - $ya_hoy);
+        if ($ya_hoy > 0) {
+            prisma_log("ANALYZE", sprintf("Ya publicados hoy: %d de %d. Cupo restante: %d.", $ya_hoy, $cupo, $max_temas));
+        }
+        if ($max_temas === 0) {
+            prisma_log("ANALYZE", sprintf("Cupo diario (%d) ya cubierto. Nada que analizar.", $cupo));
+            exit(0);
+        }
+    }
+
     // Find pending topics above threshold.
     // Ventana de recencia: solo temas de los últimos N días — sin ella, el
     // backlog antiguo (p.ej. la cola de abril-mayo tras el parón) compite por
