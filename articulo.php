@@ -117,11 +117,11 @@ $axiom_names = [
       overflow-x: hidden;
     }
     .skip-link {
-      position: absolute; top: -40px; left: 0;
+      position: absolute; top: 0; left: 0; transform: translateY(-120%);
       padding: 12px 20px; background: #fff; color: #0a0a12;
-      text-decoration: none; z-index: 1000; font-weight: 600; transition: top 0.2s;
+      text-decoration: none; z-index: 1000; font-weight: 600; transition: transform 0.2s;
     }
-    .skip-link:focus { top: 0; }
+    .skip-link:focus { transform: translateY(0); }
     :focus-visible { outline: 3px solid #f2f24a; outline-offset: 3px; border-radius: 2px; }
     h1, h2, h3, h4 {
       font-family: 'Canela', 'Playfair Display', 'Didot', Georgia, serif;

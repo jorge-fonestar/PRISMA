@@ -158,17 +158,18 @@ $B = prisma_base();
     /* ============ SKIP LINK ============ */
     .skip-link {
       position: absolute;
-      top: -40px;
+      top: 0;
       left: 0;
+      transform: translateY(-120%);
       padding: 12px 20px;
       background: #fff;
       color: #0a0a12;
       text-decoration: none;
       z-index: 1000;
       font-weight: 600;
-      transition: top 0.2s;
+      transition: transform 0.2s;
     }
-    .skip-link:focus { top: 0; }
+    .skip-link:focus { transform: translateY(0); }
 
     /* ============ FOCUS STATES ============ */
     :focus-visible {
