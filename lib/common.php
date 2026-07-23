@@ -218,9 +218,9 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
     $stmt = $db->prepare('INSERT INTO radar
         (fecha, titulo_tema, ambito, h_score, h_asimetria, h_divergencia, h_varianza,
          h_cobertura_mutua, h_framing, h_silencio, framing_divergence, framing_evidence,
-         relevancia, dominio_tematico, scoring_version, fuentes_json)
+         relevancia, dominio_tematico, scoring_version, resumen_neutral, fuentes_json)
         VALUES (:fecha, :titulo, :ambito, :h_score, :h_asim, :h_div, :h_var,
-                :h_cob, :h_frm, :h_sil, :fd, :fev, :rel, :dom, :sv, :fuentes)');
+                :h_cob, :h_frm, :h_sil, :fd, :fev, :rel, :dom, :sv, :resumen, :fuentes)');
 
     // UPDATE de señales + fuentes: la lista de fuentes DEBE refrescarse con el
     // cluster actual — antes se congelaba en la primera foto del día y la
@@ -230,7 +230,7 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
         h_cobertura_mutua = :h_cob, h_framing = :h_frm, h_silencio = :h_sil,
         framing_divergence = :fd, framing_evidence = :fev,
         relevancia = :rel, dominio_tematico = :dom, scoring_version = :sv,
-        fuentes_json = :fuentes
+        resumen_neutral = :resumen, fuentes_json = :fuentes
         WHERE id = :id');
 
     // Igual que el anterior pero trayendo la fila de ayer a hoy (fecha+título).
@@ -242,7 +242,7 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
         h_cobertura_mutua = :h_cob, h_framing = :h_frm, h_silencio = :h_sil,
         framing_divergence = :fd, framing_evidence = :fev,
         relevancia = :rel, dominio_tematico = :dom, scoring_version = :sv,
-        fuentes_json = :fuentes
+        resumen_neutral = :resumen, fuentes_json = :fuentes
         WHERE id = :id');
 
     $insertados = 0;
@@ -281,6 +281,7 @@ function radar_insertar_todos(array $temas, string $ambito, string $fecha): arra
             ':fev'     => isset($tema['framing_evidence']) ? $tema['framing_evidence'] : null,
             ':rel'     => isset($tema['relevancia']) ? $tema['relevancia'] : null,
             ':dom'     => isset($tema['dominio_tematico']) ? $tema['dominio_tematico'] : null,
+            ':resumen' => isset($tema['resumen_neutral']) ? $tema['resumen_neutral'] : null,
             ':fuentes' => $fuentes_json,
         );
 

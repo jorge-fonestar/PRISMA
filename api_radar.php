@@ -52,7 +52,10 @@ if ($polar_min > 0) {
 }
 
 if ($solo_analizados) {
-    $where[] = 'r.analizado = 1';
+    // "Analizado" para la web = tiene artículo multipostura publicado.
+    // Un tema con analizado=1 pero sin articulo_id (rechazado en auditoría)
+    // NO es un análisis: no debe figurar como tal.
+    $where[] = 'r.articulo_id IS NOT NULL';
 }
 
 if ($q !== '') {
@@ -110,7 +113,7 @@ foreach ($rows as $tema) {
         'ambito' => $tema['ambito'],
         'h_score' => (float)$tema['h_score'],
         'h_pct' => round((float)$tema['h_score'] * 100),
-        'analizado' => (bool)$tema['analizado'],
+        'analizado' => (bool)($tema['analizado'] && $tema['articulo_id']),
         'fecha' => $tema['fecha'],
         'frase' => $frase,
         'circulo_html' => render_circulo_tension((float)$tema['h_score']),

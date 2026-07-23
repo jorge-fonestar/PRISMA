@@ -86,6 +86,7 @@ $axiom_names = [
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $page_title ?></title>
+  <link rel="icon" type="image/svg+xml" href="<?= $B ?>favicon.svg">
   <?php if ($art): ?>
   <meta name="description" content="<?= htmlspecialchars(mb_substr($art['resumen'], 0, 160)) ?>">
   <meta name="robots" content="index, follow">
@@ -335,6 +336,9 @@ $axiom_names = [
     }
 
     /* Posturas collapsible */
+    /* Bloques con borde de color a la izquierda: más aire entre la línea y el texto */
+    .card { padding: 1.3rem 1.5rem; border: 1px solid var(--border-card); border-radius: 6px; background: var(--bg-card); }
+    .card[style*="border-left"] { padding-left: 1.6rem; }
     .postura-card { border-left: 4px solid; border-radius: 0 4px 4px 0; background: var(--bg-card); }
     .postura-summary {
       padding: 1.2rem 1.5rem; cursor: pointer; list-style: none;
@@ -438,7 +442,7 @@ $axiom_names = [
             <div class="audit-score"><?= number_format($audit['puntuacion'] * 100, 0) ?>%</div>
           <?php endif; ?>
           <div class="audit-info">
-            <span class="audit-label">Moral Core · <?= htmlspecialchars($audit['veredicto']) ?></span>
+            <span class="audit-label"><a href="<?= $B ?>axiomas.php" style="color:inherit;text-decoration:underline;text-decoration-color:var(--border-card);text-underline-offset:2px">Moral Core</a> · <?= htmlspecialchars($audit['veredicto']) ?></span>
             <?php if (!empty($audit['axiomas_detalle'])): ?>
               <div class="audit-axioms">
                 <?php foreach ($audit['axiomas_detalle'] as $axiom => $pass): ?>
@@ -530,6 +534,30 @@ $axiom_names = [
         </ol>
       <?php endif; ?>
 
+      <!-- Fuentes originales del cluster (todas las detectadas, no solo las citadas) -->
+      <?php
+        $art_fuentes = ($tension_data && !empty($tension_data['fuentes_json']))
+            ? (json_decode($tension_data['fuentes_json'], true) ?: array())
+            : array();
+      ?>
+      <?php if (!empty($art_fuentes)): ?>
+        <p class="section-label">Fuentes originales detectadas</p>
+        <p style="color:var(--text-faint);font-size:0.85rem;margin-top:-0.3rem">Todos los medios de la matriz que cubrieron este tema. El análisis de arriba puede citar solo una parte.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:2rem">
+          <?php foreach ($art_fuentes as $f): ?>
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border:1px solid var(--border-card);border-radius:6px;border-left:3px solid <?= cuadrante_color($f['cuadrante']) ?>">
+              <div style="flex:1;min-width:0">
+                <a href="<?= htmlspecialchars($f['url']) ?>" target="_blank" rel="noopener" style="color:var(--text);font-weight:500;text-decoration:none;font-size:0.95rem"><?= htmlspecialchars($f['titulo']) ?></a>
+                <div style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;color:var(--text-faint);margin-top:4px">
+                  <?= htmlspecialchars($f['medio']) ?> · <span style="color:<?= cuadrante_color($f['cuadrante']) ?>"><?= htmlspecialchars($f['cuadrante']) ?></span>
+                </div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="2" style="flex-shrink:0;margin-top:4px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
 
     <?php elseif ($radar): ?>
 
@@ -548,6 +576,10 @@ $axiom_names = [
         </div>
         <h1><?= htmlspecialchars($radar['titulo_tema']) ?></h1>
       </div>
+
+      <?php if (!empty($radar['resumen_neutral'])): ?>
+        <p class="resumen" style="font-size:1.05rem;color:var(--text-muted);line-height:1.7;margin-bottom:2rem"><?= htmlspecialchars($radar['resumen_neutral']) ?></p>
+      <?php endif; ?>
 
       <?php
         $cfg = prisma_cfg();

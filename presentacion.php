@@ -14,6 +14,7 @@ $B = prisma_base();
   <meta name="description" content="Cada día sintetizamos las noticias más relevantes desde todas las posturas enfrentadas. Sin editorial, sin algoritmo, sin cámaras de eco. Así funciona PolarPrisma.">
 
   <link rel="canonical" href="https://polarprisma.org/presentacion.php">
+  <link rel="icon" type="image/svg+xml" href="<?= $B ?>favicon.svg">
   <meta name="robots" content="index, follow">
   <meta name="author" content="PolarPrisma">
   <meta name="theme-color" content="#0a0a12">

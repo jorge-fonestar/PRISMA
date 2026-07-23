@@ -86,7 +86,7 @@ function telegram_digest_construir(string $fecha, $umbral = null, $cap = null) {
     require_once __DIR__ . '/../db.php';
     $db = prisma_db();
 
-    $stmt = $db->prepare("SELECT id, titulo_tema, ambito, h_score, analizado, articulo_id
+    $stmt = $db->prepare("SELECT id, titulo_tema, ambito, h_score, analizado, articulo_id, resumen_neutral
         FROM radar
         WHERE fecha = :fecha AND relevancia IN ('alta','media') AND h_score >= :umbral
         ORDER BY h_score DESC, id DESC");
@@ -98,24 +98,31 @@ function telegram_digest_construir(string $fecha, $umbral = null, $cap = null) {
     $mostrar = array_slice($temas, 0, $cap);
     $esc = function ($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
 
-    $lineas = array();
+    $bloques = array();
     foreach ($mostrar as $t) {
         $pct = (int)round($t['h_score'] * 100);
-        $titulo = trim($t['titulo_tema']);
-        if (mb_strlen($titulo, 'UTF-8') > 95) $titulo = mb_substr($titulo, 0, 92, 'UTF-8') . '…';
-        $link = ($t['analizado'] && $t['articulo_id'])
+        $analizada = ($t['analizado'] && $t['articulo_id']);
+        $link = $analizada
             ? $site . '/articulo.php?id=' . rawurlencode($t['articulo_id'])
             : $site . '/articulo.php?radar=' . (int)$t['id'];
-        $lineas[] = telegram_semaforo($pct) . ' <b>' . $pct . '%</b> — <a href="' . $link . '">' . $esc($titulo) . '</a>';
+        // Marca de estado: 🔬 análisis multipostura disponible; 🔹 solo en el radar
+        $marca = $analizada ? ' · 🔬 <i>análisis</i>' : ' · 🔹 <i>en radar</i>';
+
+        $b  = telegram_semaforo($pct) . ' <b>' . $pct . '%</b>' . $marca . "\n";
+        $b .= '<a href="' . $link . '">' . $esc(trim($t['titulo_tema'])) . '</a>';
+        if (!empty($t['resumen_neutral'])) {
+            $b .= "\n<i>" . $esc(trim($t['resumen_neutral'])) . '</i>';
+        }
+        $bloques[] = $b;
     }
 
     $texto  = '🔺 <b>PolarPrisma · Radar de ' . telegram_fecha_larga($fecha) . "</b>\n";
     $texto .= "Las noticias donde más divergió el relato, según su índice de polarización:\n\n";
-    $texto .= implode("\n", $lineas);
+    $texto .= implode("\n\n", $bloques);
     if ($total > count($mostrar)) {
         $texto .= "\n\n<i>… y " . ($total - count($mostrar)) . ' temas más con polarización relevante.</i>';
     }
-    $texto .= "\n\n🟡 leve · 🟠 media · 🔴 alta";
+    $texto .= "\n\n🟡 leve · 🟠 media · 🔴 alta   ·   🔬 con análisis · 🔹 en radar";
     $texto .= "\n👉 Radar completo: " . $site . '/?vista=radar';
 
     return $texto;

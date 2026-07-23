@@ -138,6 +138,7 @@ foreach ($ambitos_to_run as $ambito) {
                 $tema['dominio_tematico'] = $cached['dominio'];
                 $tema['framing_divergence'] = $cached['framing_divergence'];
                 $tema['framing_evidence'] = $cached['framing_evidence'];
+                $tema['resumen_neutral'] = isset($cached['resumen_neutral']) ? $cached['resumen_neutral'] : null;
                 // Compute score from cached values
                 $tema['h_framing'] = normalizar_framing($cached['framing_divergence']);
                 $sv2 = calcular_h_score_v2(array(
@@ -176,12 +177,14 @@ foreach ($ambitos_to_run as $ambito) {
                 $tema['dominio_tematico'] = null;
                 $tema['framing_divergence'] = null;
                 $tema['framing_evidence'] = null;
+                $tema['resumen_neutral'] = null;
                 $tema['h_framing'] = null;
             } else {
                 $tema['relevancia'] = $hr['relevancia'];
                 $tema['dominio_tematico'] = $hr['dominio'];
                 $tema['framing_divergence'] = $hr['framing_divergence'];
                 $tema['framing_evidence'] = $hr['framing_evidence'];
+                $tema['resumen_neutral'] = isset($hr['resumen_neutral']) ? $hr['resumen_neutral'] : null;
                 $tema['h_framing'] = normalizar_framing($hr['framing_divergence']);
 
                 // Log anomalies from Haiku

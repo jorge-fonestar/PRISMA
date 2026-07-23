@@ -97,9 +97,11 @@ function gate_haiku_clasificar(array $clusters): array {
 
 4. FRAMING EVIDENCE (string o null): cita breve (<20 palabras) de los marcos detectados, o null.
 
+5. RESUMEN NEUTRAL (string o null): resumen factual del tema en UNA frase, máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento — solo qué ha ocurrido. REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, devuelve null (una fuente única no da para un resumen neutral).
+
 Si contains_political_actor es true, el cluster referencia actores políticos o instituciones — calibra relevancia en consecuencia (tiende a "alta").
 
-Cada objeto del array DEBE tener: cluster_id (int), relevancia (string), dominio_tematico (string), framing_divergence (int), framing_evidence (string o null).
+Cada objeto del array DEBE tener: cluster_id (int), relevancia (string), dominio_tematico (string), framing_divergence (int), framing_evidence (string o null), resumen_neutral (string o null).
 
 Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
 
@@ -111,7 +113,7 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
 
     for ($attempt = 0; $attempt <= $max_retries; $attempt++) {
         try {
-            $raw = anthropic_call($model, $system, $user_msg, 4096);
+            $raw = anthropic_call($model, $system, $user_msg, 8192);
             $results = parse_json_response($raw);
             if (is_array($results)) break;
         } catch (Exception $e) {
@@ -157,6 +159,8 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
              : (isset($r['dominio']) ? (string)$r['dominio'] : 'otros');
         $fd  = isset($r['framing_divergence']) ? (int)$r['framing_divergence'] : 0;
         $ev  = isset($r['framing_evidence']) ? $r['framing_evidence'] : null;
+        $res = (isset($r['resumen_neutral']) && is_string($r['resumen_neutral']) && trim($r['resumen_neutral']) !== '')
+             ? trim($r['resumen_neutral']) : null;
 
         // Haiku sometimes returns booleans instead of strings for relevancia
         if ($rel_raw === true) {
@@ -183,11 +187,15 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
             $fd = 2;
         }
 
+        // Salvaguarda del resumen: solo con ≥2 bloques (aunque el modelo se salte la regla)
+        if ($bloques_activos < 2) $res = null;
+
         $indexed[(int)$cid] = array(
             'relevancia' => $rel,
             'dominio' => $dom,
             'framing_divergence' => $fd,
             'framing_evidence' => $ev,
+            'resumen_neutral' => $res,
             'anomalies' => $anomalies,
         );
     }
@@ -201,6 +209,7 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
                 'dominio' => 'otros',
                 'framing_divergence' => 1,
                 'framing_evidence' => null,
+                'resumen_neutral' => null,
                 'anomalies' => array(
                     array('tipo' => 'ANOMALY_MISSING_CLUSTER', 'detalle' => "cluster_id=$cid missing from Haiku response"),
                 ),
@@ -223,6 +232,7 @@ function gate_haiku_fallback(array $clusters): array {
             'dominio' => null,
             'framing_divergence' => null,
             'framing_evidence' => null,
+            'resumen_neutral' => null,
             'anomalies' => array(),
         );
     }
@@ -245,7 +255,7 @@ function gate_haiku_cache_check(string $titulo_tema, string $cuadrantes_key, str
     require_once __DIR__ . '/../db.php';
     $db = prisma_db();
 
-    $stmt = $db->prepare("SELECT relevancia, dominio_tematico, framing_divergence, framing_evidence, fuentes_json
+    $stmt = $db->prepare("SELECT relevancia, dominio_tematico, framing_divergence, framing_evidence, resumen_neutral, fuentes_json
         FROM radar
         WHERE titulo_tema = :titulo AND fecha >= :fecha_min
         AND scoring_version = 'v2' AND relevancia IS NOT NULL
@@ -276,6 +286,7 @@ function gate_haiku_cache_check(string $titulo_tema, string $cuadrantes_key, str
         'dominio' => $row['dominio_tematico'],
         'framing_divergence' => $row['framing_divergence'] !== null ? (int)$row['framing_divergence'] : null,
         'framing_evidence' => $row['framing_evidence'],
+        'resumen_neutral' => isset($row['resumen_neutral']) ? $row['resumen_neutral'] : null,
         'anomalies' => array(),
     );
 }

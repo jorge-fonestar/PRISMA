@@ -114,6 +114,7 @@ function page_header($title, $description = '', $active_nav = '', $wide = false)
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($title) ?> — PolarPrisma</title>
+  <link rel="icon" type="image/svg+xml" href="<?= prisma_base() ?>favicon.svg">
   <?php if ($description): ?><meta name="description" content="<?= htmlspecialchars($description) ?>"><?php endif; ?>
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">

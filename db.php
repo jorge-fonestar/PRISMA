@@ -70,6 +70,10 @@ function prisma_db(): PDO {
         'triage TEXT',
         // Aviso de titular polarizado ya enviado a Telegram (una vez por tema)
         'tg_notificado INTEGER DEFAULT 0',
+        // Mini-resumen factual del tema (≤25 palabras), generado por el gate
+        // Haiku SOLO cuando lo cubren ≥2 bloques ideológicos (una fuente única
+        // no da para un resumen neutral). Se muestra en la ficha y el digest.
+        'resumen_neutral TEXT',
     );
     foreach ($v2_columns as $col) {
         try {

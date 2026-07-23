@@ -68,7 +68,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
 
     // ── Publicación ─────────────────────────────────────────────────
     'timezone'            => 'Europe/Madrid',
-    'articulos_dia'       => 2,
+    'articulos_dia'       => 1,
     // Solo se analizan temas del radar de los últimos N días: sin esta
     // ventana, el backlog antiguo compite por h_score con la actualidad.
     'analizar_ventana_dias' => 2,
