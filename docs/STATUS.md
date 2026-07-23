@@ -42,6 +42,7 @@
 | **Fix Sonnet 5 (21-jul)**: `anthropic_call` busca el primer bloque `text` (con thinking adaptativo, `content[0]` es thinking) | `lib/anthropic.php` |
 | Aviso Telegram al publicar (canal @prismanews_dev; token/chat en `.env` del servidor) | `lib/telegram.php`, hook en `prisma_publicar` |
 | **Mapa ideológico y de financiación** (menú "Mapa"): propietario, modelo y capacidad €/€€/€€€ por medio + línea +Info curada + lectura objetiva de la asimetría; ámbitos plegables | `mapa.php`, `lib/mapa_datos.php` |
+| **Lote feedback (24-jul)**: mini-resumen `resumen_neutral` por tema (gate Haiku, ≥2 cuadrantes; backfill manual de 122 temas), digest Telegram v2 (título completo + resumen + marca 🔬/🔹), fuentes originales en artículos analizados, favicon, enlace a axiomas, fixes badge-analizado / skip-link / margen; `articulos_dia` 2→1 | `lib/gate_haiku.php`, `lib/telegram.php`, `articulo.php`, `favicon.svg`, `api_radar.php` |
 | **Fix radar (22-jul)**: fuentes_json se refresca en cada re-escaneo y las historias que continúan se arrastran de ayer a hoy (Jaccard ≥0,6) en vez de duplicarse | `lib/common.php` (radar_insertar_todos) |
 | Feeds (22-jul): CTXT → no_disponible (403 WAF), RTVE descartado (RSS congelado desde 2022), **Europa Press** añadido al centro; boletines recurrentes a lista negativa | `config.php` |
 | Análisis de estrategia de escaneo: ventana real = 24h rodantes; "silencio por timing" casi inexistente (1/26); intervalos de 4h correctos | conclusiones en el chat del 22-jul |

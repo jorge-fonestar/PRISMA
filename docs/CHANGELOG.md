@@ -7,6 +7,24 @@
 
 ---
 
+## 2026-07-24 — Más claras, mejor explicadas 🔍
+
+- **Cada noticia estrena un resumen de una frase.** Ahora, además del titular,
+  cada tema con cobertura de varios lados lleva un resumen breve y neutral de
+  qué ha pasado — en la web y en el aviso de Telegram. (Redactados los de los
+  últimos 7 días.)
+- **El aviso diario de Telegram, renovado.** Título completo, resumen debajo y
+  una marca que indica si la noticia ya tiene análisis multipostura (🔬) o
+  sigue solo en el radar (🔹).
+- **Las noticias analizadas muestran ahora todas sus fuentes originales**, no
+  solo las citadas en el análisis.
+- **Favicon propio** (el prisma) en la pestaña del navegador.
+- **Arreglos**: noticias que aparecían marcadas como "analizadas" sin estarlo;
+  una franja blanca en la cabecera de la página del proyecto; y márgenes justos
+  en las fichas. Acceso directo a los 11 axiomas desde cada análisis.
+- **Ajuste de ritmo**: 1 análisis en profundidad al día (por ahora, para
+  contener costes), respetando siempre los que se lancen a mano.
+
 ## 2026-07-20 — PolarPrisma vuelve a la vida 🔺
 
 - **El radar vuelve a funcionar solo.** Llevaba parado desde el 4 de mayo; ahora
