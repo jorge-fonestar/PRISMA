@@ -83,6 +83,7 @@ ssh ea1jxe 'docker exec polarprisma php -r "\$d=new PDO(\"sqlite:/var/www/html/d
 
 - **Git**: push solo a `master` (es producción; desplegar es un `git pull` en el server). Commits en español, con `Co-Authored-By: Claude …`.
 - **Documentación**: al cerrar un bloque de trabajo, actualizar `docs/STATUS.md`. Cuando el usuario diga **"changelog"**: añadir entrada NUEVA arriba en `docs/CHANGELOG.md` (tono para seguidores del canal de Telegram) y dar el texto listo para pegar.
+- **⚠️ Textos fijos vs mecánica real**: siempre que cambie la mecánica del proyecto (scoring/H-score, cómo se calcula o **afina** la polarización, fases del pipeline, clustering, fuentes, umbrales, modelos), **revisar y actualizar los textos públicos que la describen** para que la web nunca explique un funcionamiento que ya no es el real. Textos a vigilar: `presentacion.php` (sección "Cómo se construye una noticia"), `fuentes.php` (algoritmo del índice y las dos fases), `ia.php` (aviso de IA), `axiomas.php`, `manifiesto` (`docs/manifiesto-prisma.md`). Parte de cada cambio de mecánica, no un extra opcional.
 - **Diseño de página**: cabecera/pie compartidos en `lib/layout.php` (`page_header/footer`, `render_nav`); `index.php`, `articulo.php` y `presentacion.php` tienen `<head>` y CSS propios (cualquier cambio de nav/favicon/RSS hay que replicarlo en los cuatro). Ancho de listado 1100px (`page_header(..., true)`), lectura 820px.
 
 ## Gotchas (aprendidos a base de tropezar)

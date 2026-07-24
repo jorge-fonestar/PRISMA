@@ -860,7 +860,9 @@ $B = prisma_base();
             <h3>Confirmación y síntesis multi-postura</h3>
             <p>Los temas con mayor polarización pasan un filtro de confirmación (triage) que descarta
             falsos positivos. Los confirmados se sintetizan: un agente de IA genera el artefacto
-            mostrando todas las posturas enfrentadas con sus argumentos y fuentes originales.</p>
+            mostrando todas las posturas enfrentadas con sus argumentos y fuentes originales.
+            Con el texto completo delante, el análisis <strong>recalcula el índice de polarización</strong>
+            de la detección inicial (que solo miró titulares) para que refleje la divergencia real.</p>
           </article>
           <article class="step">
             <h3>Auditoría Moral Core</h3>

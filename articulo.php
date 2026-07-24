@@ -475,6 +475,12 @@ $axiom_names = [
         <div style="margin-bottom:2rem">
           <p class="section-label" style="margin-bottom:0.8rem">Polarización informativa</p>
           <?= render_barras_tension($td_m1, $td_m2, $td_m3, (float)$tension_data['h_score'], $td_sv) ?>
+          <?php if (!empty($tension_data['h_score_estructural']) && $art): ?>
+            <p style="font-size:0.82rem;color:var(--text-faint);margin-top:0.8rem;font-style:italic">
+              Índice revisado tras el análisis completo (<?= round($tension_data['h_score'] * 100) ?>%).
+              Detección inicial sobre titulares: <?= round($tension_data['h_score_estructural'] * 100) ?>%. Las barras muestran las señales estructurales de esa detección inicial.
+            </p>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
 

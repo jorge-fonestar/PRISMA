@@ -283,6 +283,7 @@ foreach ($to_process as $i => $tema) {
         if ($result) {
             $publicados++;
             radar_link_articulo($tema['radar_id'], $article_id);
+            radar_afinar_polarizacion($tema['radar_id'], $result);
             prisma_log("ANALYZE", "PUBLICADO: $article_id");
         } else {
             $rechazados++;

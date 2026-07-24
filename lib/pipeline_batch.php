@@ -172,6 +172,7 @@ function prisma_procesar_temas_batch(array $temas): array {
                 }
                 prisma_publicar($artifact);
                 radar_link_articulo($rid, $estado[$rid]['article_id']);
+                radar_afinar_polarizacion($rid, $artifact);
                 $estado[$rid]['done'] = true;
                 $estado[$rid]['resultado'] = 'publicado';
                 $stats['publicados']++;

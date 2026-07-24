@@ -64,8 +64,24 @@ Produce únicamente el JSON resultante con esta estructura exacta:
   ],
   "ausencias": ["Ángulo ausente 1", "Ángulo ausente 2"],
   "preguntas": ["Pregunta abierta genuina 1", "Pregunta 2", "Pregunta 3"],
-  "fuentes_consultadas_total": 12
+  "fuentes_consultadas_total": 12,
+  "indice_polarizacion": 55,
+  "polarizacion_nota": "Justificación en una frase del índice asignado"
 }
+
+## Índice de polarización (revisión con contexto completo)
+
+Ahora que tienes el texto y todas las posturas, reevalúa cuánto divergen
+REALMENTE los relatos y asigna "indice_polarizacion" (0-100). Este índice
+sustituye al de detección inicial (que solo miró titulares). Rúbrica:
+- 0-20: todas las fuentes cuentan lo mismo; diferencias solo terminológicas o de estilo, sin divergencia editorial.
+- 21-40: diferencias de énfasis o de selección de datos, sin oposición de fondo.
+- 41-60: marcos distintos conviven; discrepancia interpretativa moderada.
+- 61-80: posturas claramente enfrentadas sobre los mismos hechos.
+- 81-100: relatos opuestos, hechos en disputa y atribuciones de responsabilidad contradictorias.
+No confundas variación de vocabulario con divergencia de encuadre: si el hecho
+narrado es el mismo y solo cambian las palabras, el índice es bajo.
+"polarizacion_nota": una frase neutra que justifique el valor.
 
 IMPORTANTE:
 - Mínimo 3 posturas, idealmente 4-6.

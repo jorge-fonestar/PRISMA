@@ -382,6 +382,27 @@ function radar_link_articulo(int $radar_id, string $articulo_id): void {
 }
 
 /**
+ * Afina el índice de polarización del radar con el valor que el análisis
+ * profundo (sintetizador, contexto completo) calcula. Sustituye h_score
+ * (opción A) preservando el estructural en h_score_estructural para trazar
+ * la corrección. Solo actúa si el artefacto trae un indice_polarizacion válido.
+ */
+function radar_afinar_polarizacion(int $radar_id, array $artifact): void {
+    if (!isset($artifact['indice_polarizacion'])) return;
+    $indice = (int)$artifact['indice_polarizacion'];
+    if ($indice < 0 || $indice > 100) return;
+
+    require_once __DIR__ . '/../db.php';
+    $db = prisma_db();
+    // Preservar el h_score estructural la primera vez (si aún no se guardó)
+    $db->prepare('UPDATE radar SET h_score_estructural = h_score
+        WHERE id = :id AND h_score_estructural IS NULL')->execute([':id' => $radar_id]);
+    $db->prepare('UPDATE radar SET h_score = :hs WHERE id = :id')
+       ->execute([':hs' => $indice / 100.0, ':id' => $radar_id]);
+    prisma_log("PIPE", "#$radar_id índice de polarización revisado por análisis: {$indice}%");
+}
+
+/**
  * Cleans up radar entries older than 90 days.
  */
 function radar_limpiar(): void {

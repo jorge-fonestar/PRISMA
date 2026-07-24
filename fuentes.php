@@ -110,6 +110,7 @@ page_header('Fuentes consultadas', 'Matriz completa de medios por cuadrante ideo
 
   <h3>Fase 2 — Análisis en profundidad</h3>
   <p>Los temas que superan el umbral mínimo de polarización pasan a un análisis completo que consume recursos de IA: son confirmados por un modelo ligero (triage), sintetizados en un artefacto multi-postura que presenta todas las posturas enfrentadas con fuentes citadas, y auditados contra 11 axiomas de neutralidad por un segundo agente independiente. Solo los que pasan la auditoría se publican como análisis completo. El índice de polarización de cada tema — analizado o no — es público y verificable en su ficha.</p>
+  <p><strong>Revisión del índice.</strong> La detección inicial (Fase 1) solo lee titulares y entradillas, así que su índice es una estimación. Cuando un tema se analiza en profundidad, el modelo dispone del texto completo y del mapa de posturas y <strong>recalcula el índice de polarización</strong> con ese contexto: ese valor revisado sustituye al inicial en las noticias analizadas. En su ficha se indica el índice revisado y, de forma transparente, cuál fue la detección inicial — para que se vea cuándo la lectura superficial de titulares sobrestimó o infravaloró la polarización real.</p>
 
   <h2>Política de acceso</h2>
   <ul>

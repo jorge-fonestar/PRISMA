@@ -74,6 +74,9 @@ function prisma_db(): PDO {
         // Haiku SOLO cuando lo cubren ≥2 bloques ideológicos (una fuente única
         // no da para un resumen neutral). Se muestra en la ficha y el digest.
         'resumen_neutral TEXT',
+        // H-score de detección inicial (Fase 1), preservado cuando el análisis
+        // profundo (Fase 2) revisa el índice de polarización y sobrescribe h_score.
+        'h_score_estructural REAL',
     );
     foreach ($v2_columns as $col) {
         try {
