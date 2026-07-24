@@ -87,6 +87,8 @@ $axiom_names = [
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $page_title ?></title>
   <link rel="icon" type="image/svg+xml" href="<?= $B ?>favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Análisis" href="<?= $B ?>rss.php">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Radar de polarización" href="<?= $B ?>rss.php?feed=radar">
   <?php if ($art): ?>
   <meta name="description" content="<?= htmlspecialchars(mb_substr($art['resumen'], 0, 160)) ?>">
   <meta name="robots" content="index, follow">

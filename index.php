@@ -34,6 +34,8 @@ if ($vista === 'radar') {
   <title>PolarPrisma — <?= $vista === 'radar' ? 'Radar de la semana' : 'Radar informativo' ?></title>
   <meta name="description" content="Radar informativo: todos los temas políticos del día puntuados por polarización informativa. Sin editorial, sin cámaras de eco.">
   <link rel="icon" type="image/svg+xml" href="<?= $B ?>favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Análisis" href="<?= $B ?>rss.php">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Radar de polarización" href="<?= $B ?>rss.php?feed=radar">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
   <?= theme_head_script() ?>

@@ -15,6 +15,8 @@ $B = prisma_base();
 
   <link rel="canonical" href="https://polarprisma.org/presentacion.php">
   <link rel="icon" type="image/svg+xml" href="<?= $B ?>favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Análisis" href="<?= $B ?>rss.php">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Radar de polarización" href="<?= $B ?>rss.php?feed=radar">
   <meta name="robots" content="index, follow">
   <meta name="author" content="PolarPrisma">
   <meta name="theme-color" content="#0a0a12">

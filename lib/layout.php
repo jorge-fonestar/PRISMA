@@ -77,6 +77,8 @@ function render_footer_grid() {
         . '<li><a href="' . $B . 'mapa.php">Mapa ideológico y de financiación</a></li>'
         . '<li><a href="' . $B . 'archivo.php">Archivo</a></li>'
         . '<li><a href="https://t.me/prismanews_dev" target="_blank" rel="noopener">Canal de Telegram (avisos diarios)</a></li>'
+        . '<li><a href="' . $B . 'rss.php">RSS · Análisis</a></li>'
+        . '<li><a href="' . $B . 'rss.php?feed=radar">RSS · Radar</a></li>'
         . '</ul></div>'
         . '<div><h4>Proyecto</h4><ul>'
         . '<li><a href="' . $B . 'presentacion.php">¿Qué es PolarPrisma?</a></li>'
@@ -115,6 +117,8 @@ function page_header($title, $description = '', $active_nav = '', $wide = false)
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($title) ?> — PolarPrisma</title>
   <link rel="icon" type="image/svg+xml" href="<?= prisma_base() ?>favicon.svg">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Análisis" href="<?= prisma_base() ?>rss.php">
+  <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Radar de polarización" href="<?= prisma_base() ?>rss.php?feed=radar">
   <?php if ($description): ?><meta name="description" content="<?= htmlspecialchars($description) ?>"><?php endif; ?>
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
