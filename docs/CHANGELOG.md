@@ -7,6 +7,13 @@
 
 ---
 
+## 2026-07-24 — Suscríbete por RSS 📡
+
+- **PolarPrisma ya tiene RSS.** Puedes seguirlo desde Feedly o cualquier lector:
+  un feed con los **análisis** publicados y otro con el **radar de polarización**
+  del día. Basta con pegar `polarprisma.org` en Feedly y los detecta solos, o
+  usar los enlaces del pie de página.
+
 ## 2026-07-24 — Más claras, mejor explicadas 🔍
 
 - **Cada noticia estrena un resumen de una frase.** Ahora, además del titular,
