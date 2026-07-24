@@ -97,7 +97,7 @@ function gate_haiku_clasificar(array $clusters): array {
 
 4. FRAMING EVIDENCE (string o null): cita breve (<20 palabras) de los marcos detectados, o null.
 
-5. RESUMEN NEUTRAL (string o null): resumen factual del tema en UNA frase, máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento — solo qué ha ocurrido. REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, devuelve null (una fuente única no da para un resumen neutral).
+5. RESUMEN NEUTRAL (string o null): resumen factual del tema en UNA frase, máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento. NO parafrasees el titular: debe APORTAR contexto o datos que el titular no dice (cifras, causa, actores implicados, consecuencia, qué está en juego), apoyándote en las entradillas. Si lo único disponible es reformular el titular, prefiere añadir el dato o matiz más informativo de las entradillas. REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, devuelve null (una fuente única no da para un resumen neutral).
 
 Si contains_political_actor es true, el cluster referencia actores políticos o instituciones — calibra relevancia en consecuencia (tiende a "alta").
 

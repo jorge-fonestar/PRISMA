@@ -604,7 +604,10 @@ $axiom_names = [
           <p style="margin:0 0 0.5em 0;color:var(--text)"><strong>
             <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<?= tension_color($radar['h_score']) ?>;margin-right:6px;vertical-align:middle"></span>
             Polarización informativa detectada</strong></p>
-          <p style="margin:0;color:var(--text-muted)">Este tema superó el umbral de polarización (<?= $umbral_pct ?>%), pero el análisis multi-postura aún no se ha completado. Puede estar pendiente de procesamiento o no haberse encontrado suficientes fuentes para elaborar el mapa de posturas.</p>
+          <?php if ($radar['haiku_frase']): ?>
+            <p style="margin:0 0 0.5em 0;color:var(--text-muted);font-style:italic"><?= htmlspecialchars($radar['haiku_frase']) ?></p>
+          <?php endif; ?>
+          <p style="margin:0;color:var(--text-faint);font-size:0.9rem">Este tema superó el umbral de polarización (<?= $umbral_pct ?>%), pero el análisis multi-postura aún no se ha completado. Puede estar pendiente de procesamiento o no haberse encontrado suficientes fuentes para elaborar el mapa de posturas.</p>
         <?php endif; ?>
       </div>
 
