@@ -10,7 +10,8 @@ require_once __DIR__ . '/fuentes/normalizar.php';
 require_once __DIR__ . '/fuentes/feed_health.php';
 
 /**
- * Lee los RSS del ámbito indicado y devuelve artículos de las últimas 24h.
+ * Lee los RSS del ámbito indicado y devuelve artículos de la ventana de lectura
+ * (rss_ventana_horas en config, 48h por defecto).
  *
  * @param string $ambito "españa"|"europa"|"global" — si vacío, lee todos
  * @return array [ ['titulo'=>..., 'url'=>..., 'fecha'=>..., 'medio'=>..., 'cuadrante'=>..., 'descripcion'=>...], ... ]
@@ -20,7 +21,11 @@ function rss_fetch_all(string $ambito = ''): array {
     $all_fuentes = $cfg['fuentes'];
     $timeout = $cfg['rss_timeout'] ?? 15;
     $rate_limit = $cfg['rss_rate_limit'] ?? 1;
-    $cutoff = time() - 86400; // últimas 24h
+    // Ventana de lectura: por defecto 48h para capturar versiones tardías de un
+    // mismo tema (una fuente que publica horas después, o la "original" más
+    // antigua) que con 24h se quedaban fuera del cluster.
+    $ventana_h = isset($cfg['rss_ventana_horas']) ? (int)$cfg['rss_ventana_horas'] : 48;
+    $cutoff = time() - $ventana_h * 3600;
 
     // Seleccionar ámbitos a leer
     if ($ambito && isset($all_fuentes[$ambito])) {
@@ -112,7 +117,7 @@ function rss_fetch_all(string $ambito = ''): array {
                 $count++;
             }
 
-            prisma_log("RSS", "  $nombre: $count artículos (24h)");
+            prisma_log("RSS", "  $nombre: $count artículos ({$ventana_h}h)");
             }
         }
     }

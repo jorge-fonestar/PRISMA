@@ -52,28 +52,39 @@ function curador_seleccionar(array $articles): array {
         ];
     }
 
-    // 2. Agrupar por similitud de keywords (Jaccard ponderado)
-    $clusters = [];
-    $assigned = [];
+    // 2. Agrupar por similitud de keywords (Jaccard ponderado).
+    // Cada artículo se une al cluster MÁS similar (no al primero que supere el
+    // umbral, como hacía el greedy anterior). Así un titular con keywords
+    // fuertes compartidas por varios temas —p.ej. "España/Mundial"— cae en el
+    // tema correcto y no lo "roba" el primer cluster que lo rozaba.
+    // Se compara contra el vocabulario acumulado de cada cluster.
+    $abiertos = array(); // cada uno: ['indices'=>[], 'kw'=>[palabra=>peso]]
 
     foreach ($indexed as $i => $item) {
-        if (isset($assigned[$i])) continue;
+        $best = null;
+        $best_sim = 0.0;
+        foreach ($abiertos as $ci => $cl) {
+            $sim = keywords_similarity_w($item['keywords'], $cl['kw']);
+            if ($sim > $best_sim) { $best_sim = $sim; $best = $ci; }
+        }
 
-        $cluster = [$i];
-        $assigned[$i] = true;
-
-        foreach ($indexed as $j => $other) {
-            if ($i === $j || isset($assigned[$j])) continue;
-            if (keywords_similarity_w($item['keywords'], $other['keywords']) >= $umbral_sim) {
-                $cluster[] = $j;
-                $assigned[$j] = true;
+        if ($best !== null && $best_sim >= $umbral_sim) {
+            $abiertos[$best]['indices'][] = $i;
+            // Acumular vocabulario (peso máximo por palabra)
+            foreach ($item['keywords'] as $w => $wt) {
+                if (!isset($abiertos[$best]['kw'][$w]) || $abiertos[$best]['kw'][$w] < $wt) {
+                    $abiertos[$best]['kw'][$w] = $wt;
+                }
             }
+        } else {
+            $abiertos[] = array('indices' => array($i), 'kw' => $item['keywords']);
         }
+    }
 
-        // Solo clusters con ≥2 artículos son candidatos
-        if (count($cluster) >= 2) {
-            $clusters[] = $cluster;
-        }
+    // Solo clusters con ≥2 artículos son candidatos
+    $clusters = [];
+    foreach ($abiertos as $cl) {
+        if (count($cl['indices']) >= 2) $clusters[] = $cl['indices'];
     }
 
     // 2b. Post-merge: fuse clusters that are variants of the same story
