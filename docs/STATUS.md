@@ -73,14 +73,12 @@
 
 ## Pendientes
 
-0. **Cobertura de fuentes por tema** (feedback 24-jul, caso "016" sin El País):
-   diagnóstico — no es un bug de datos sino dos límites de diseño: (a) ventana de
-   lectura RSS de 24h (una fuente que publica con retraso, o la versión más antigua,
-   cae fuera), y (b) clustering *greedy de primer match* en `curador_seleccionar`
-   (un artículo va a un solo cluster; si sus keywords encajan antes en otro tema
-   —"España/Mundial"— no llega al correcto). Mejoras posibles a decidir: ampliar la
-   ventana a 48h; y/o asignar cada artículo al cluster **más** similar, no al primero.
-   Pendiente el OK de Jorge (afecta a cómo se agrupan TODOS los temas).
+- **Cobertura de fuentes por tema — RESUELTO (25-jul)**: ventana de lectura RSS
+  a 48h (`rss_ventana_horas`) y clustering por **mejor match** (cada artículo al
+  cluster más similar, no al primero; `curador_seleccionar`). Validado: el caso
+  "016" agrupa a El País correctamente sin que el ruido "España/Mundial" lo robe;
+  en producción, cluster mayor de 9 fuentes (sin sobre-fusión). Nota: el caso
+  histórico del 016 no se recupera retroactivamente (esa noticia ya supera las 48h).
 
 1. **Calibrar `cluster_umbral` (0,3)** cuando haya ~1 semana de escaneos con el
    Jaccard ponderado: comparar tamaño/coherencia de clusters (Claude lo analiza
