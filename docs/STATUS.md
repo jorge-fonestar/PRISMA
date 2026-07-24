@@ -1,6 +1,6 @@
 # Prisma — Estado del proyecto
 
-> Actualizado: **2026-07-20**. Este fichero es el punto de entrada: qué hay
+> Actualizado: **2026-07-25**. Este fichero es el punto de entrada: qué hay
 > desplegado, qué se decidió y qué está pendiente. La arquitectura de referencia
 > está en [ARQUITECTURA.md](ARQUITECTURA.md).
 
@@ -83,12 +83,16 @@
 
 ## Pendientes
 
-- **Recalcular el % de polarización en la Fase 2 (PROPUESTO, pendiente OK)**: el
-  H-score sale de Fase 1 (señales estructurales + gate sobre titulares) y puede
-  dar falsos positivos (el 016 a 66% sin divergencia real). El análisis profundo
-  (Sonnet, texto completo, mapa de posturas) tiene contexto para afinarlo. A
-  decidir cómo mostrarlo sin romper la transparencia del índice mecánico (mostrar
-  ambos: estructural + revisado; o solo corregir falsos positivos a la baja).
+- **Recalcular el % en Fase 2 — HECHO (25-jul, opción A)**: el sintetizador
+  devuelve `indice_polarizacion` (0-100, con rúbrica) con el texto completo; sustituye
+  al estructural en las noticias analizadas (`radar_afinar_polarizacion`), que se
+  conserva en `h_score_estructural`. La ficha muestra ambos. Explicado en
+  `fuentes.php` y `presentacion.php`. Validado: 016 → 66% inicial / 24% estructural
+  corregido a mano / 15% tras análisis.
+- **Mejorar el gate de Fase 1 (PROPUESTO)**: instruir al gate a no puntuar como
+  divergencia las diferencias meramente terminológicas (causa raíz del 016), y/o
+  capar `framing_divergence` cuando la `framing_evidence` sea débil. Fase 2 ya es la
+  red de seguridad, pero Fase 1 decide qué se analiza.
 
 - **Cobertura de fuentes por tema — RESUELTO (25-jul)**: ventana de lectura RSS
   a 48h (`rss_ventana_horas`) y clustering por **mejor match** (cada artículo al
