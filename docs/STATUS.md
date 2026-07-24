@@ -71,7 +71,24 @@
   El CSS del light-mode y del toggle sigue inerte en el código para reactivarlo
   fácil. Corregido el botón "Aplicar" de filtros (texto blanco sobre amarillo → oscuro).
 
+## Ajustes 25-jul (feedback del 016)
+
+- **016 corregido a mano**: añadido El País (4 fuentes) y `framing_divergence`
+  bajado a 1 → h_score 66%→24% (era falso positivo: cobertura alta pero sin
+  divergencia real, como decía su propia `haiku_frase`).
+- **Ficha coherente con la tarjeta**: la ficha de un tema que supera umbral pero
+  sin analizar muestra ahora también la `haiku_frase` (antes solo texto genérico).
+- **Prompt del resumen**: el `resumen_neutral` debe aportar contexto de las
+  entradillas, no parafrasear el titular.
+
 ## Pendientes
+
+- **Recalcular el % de polarización en la Fase 2 (PROPUESTO, pendiente OK)**: el
+  H-score sale de Fase 1 (señales estructurales + gate sobre titulares) y puede
+  dar falsos positivos (el 016 a 66% sin divergencia real). El análisis profundo
+  (Sonnet, texto completo, mapa de posturas) tiene contexto para afinarlo. A
+  decidir cómo mostrarlo sin romper la transparencia del índice mecánico (mostrar
+  ambos: estructural + revisado; o solo corregir falsos positivos a la baja).
 
 - **Cobertura de fuentes por tema — RESUELTO (25-jul)**: ventana de lectura RSS
   a 48h (`rss_ventana_horas`) y clustering por **mejor match** (cada artículo al
