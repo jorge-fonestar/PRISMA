@@ -101,99 +101,22 @@ CSS;
 }
 
 function theme_toggle(): string {
-    return <<<'HTML'
-<button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">
-  <!-- Moon (dark mode active) -->
-  <svg class="icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
-  <!-- Sun (light mode active) -->
-  <svg class="icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-  <!-- Monitor (system mode active) -->
-  <svg class="icon-system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-</button>
-HTML;
+    // Selector de tema desactivado por ahora: todo el sitio va en modo oscuro.
+    // Para reactivarlo, restaurar el botón (git history) y theme_js().
+    return '';
 }
 
 function theme_js(): string {
-    return <<<'JS'
-<script>
-(function() {
-  var STORAGE_KEY = 'prisma-theme';
-  var html = document.documentElement;
-  var btn = document.getElementById('theme-toggle');
-  var modes = ['system', 'dark', 'light'];
-
-  function getSystemTheme() {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  }
-
-  function apply(mode) {
-    if (mode === 'system') {
-      html.removeAttribute('data-theme');
-      html.setAttribute('data-theme', getSystemTheme());
-      // Re-show system icon
-      setTimeout(function() { html.removeAttribute('data-theme-mode'); html.setAttribute('data-theme-mode', 'system'); }, 0);
-    } else {
-      html.setAttribute('data-theme', mode);
-      html.setAttribute('data-theme-mode', mode);
-    }
-  }
-
-  function getStored() {
-    try { return localStorage.getItem(STORAGE_KEY) || 'system'; } catch(e) { return 'system'; }
-  }
-
-  function store(mode) {
-    try { localStorage.setItem(STORAGE_KEY, mode); } catch(e) {}
-  }
-
-  // Override the icon visibility to use mode instead of resolved theme
-  var style = document.createElement('style');
-  style.textContent =
-    '[data-theme-mode="dark"] .theme-toggle .icon-dark { display: block !important; }' +
-    '[data-theme-mode="dark"] .theme-toggle .icon-light { display: none !important; }' +
-    '[data-theme-mode="dark"] .theme-toggle .icon-system { display: none !important; }' +
-    '[data-theme-mode="light"] .theme-toggle .icon-dark { display: none !important; }' +
-    '[data-theme-mode="light"] .theme-toggle .icon-light { display: block !important; }' +
-    '[data-theme-mode="light"] .theme-toggle .icon-system { display: none !important; }' +
-    '[data-theme-mode="system"] .theme-toggle .icon-dark { display: none !important; }' +
-    '[data-theme-mode="system"] .theme-toggle .icon-light { display: none !important; }' +
-    '[data-theme-mode="system"] .theme-toggle .icon-system { display: block !important; }';
-  document.head.appendChild(style);
-
-  // Init
-  var current = getStored();
-  apply(current);
-  html.setAttribute('data-theme-mode', current);
-
-  // Cycle on click: dark → light → system → dark
-  if (btn) {
-    btn.addEventListener('click', function() {
-      var cur = getStored();
-      var next = modes[(modes.indexOf(cur) + 1) % modes.length];
-      store(next);
-      apply(next);
-      html.setAttribute('data-theme-mode', next);
-      btn.title = next === 'system' ? 'Tema: sistema' : next === 'light' ? 'Tema: claro' : 'Tema: oscuro';
-    });
-  }
-
-  // Listen for system changes when in system mode
-  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-    if (getStored() === 'system') apply('system');
-  });
-})();
-</script>
-JS;
+    // Sin selector de tema: no hace falta JS de conmutación.
+    return '';
 }
 
 /**
- * Inline script to prevent flash of wrong theme.
- * Put this in <head> BEFORE any CSS.
+ * Fuerza el modo oscuro para todos (selector de tema desactivado por ahora).
+ * Va en <head> antes del CSS para evitar destello.
  */
 function theme_head_script(): string {
     return <<<'JS'
-<script>
-(function(){try{var t=localStorage.getItem('prisma-theme')||'system';if(t==='system'){t=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
-</script>
+<script>document.documentElement.setAttribute('data-theme','dark');</script>
 JS;
 }
