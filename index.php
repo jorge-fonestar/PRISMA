@@ -191,7 +191,7 @@ if ($vista === 'radar') {
     }
     .btn-apply {
       padding: 7px 20px; border: none; border-radius: 6px;
-      background: var(--accent); color: #fff;
+      background: var(--accent); color: #0a0a12;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 600;
       cursor: pointer; transition: opacity 0.15s;
     }
