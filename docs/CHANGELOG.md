@@ -7,18 +7,24 @@
 
 ---
 
-## 2026-07-25 — El % de polarización, más justo ⚖️
+## 2026-07-25 — Modo oscuro, más fuentes y un % más justo 🌙
 
-- **El análisis en profundidad ahora recalcula el porcentaje.** La detección
-  rápida solo lee titulares y entradillas, y a veces se pasa de frenada. Cuando
-  una noticia se analiza a fondo (con el texto completo), el porcentaje se revisa
-  y se corrige: en la ficha se ve el valor afinado y, con transparencia, cuál fue
-  la estimación inicial.
-- **Menos falsas alarmas de raíz.** El detector rápido ya no confunde "usar
-  palabras distintas para lo mismo" con polarización real: solo cuenta como tal
-  si los medios atribuyen causas, culpables o juicios distintos al mismo hecho.
-- **Ejemplo real corregido:** la noticia del 016 marcaba 66% sin divergencia
-  real → tras el análisis quedó en 15%, que es lo justo.
+- **Modo oscuro para todo el mundo.** La web arranca en oscuro (más cómoda de
+  leer, sobre todo de noche) y se han corregido botones y enlaces que en oscuro
+  se leían mal.
+- **Más fuentes por noticia.** Se amplió la ventana de lectura a 48 h y se mejoró
+  la forma de agrupar los artículos de un mismo tema: ahora se recogen mejor
+  todos los medios que cubren una historia (por ejemplo, El País en la noticia
+  del 016, que antes se quedaba fuera).
+- **El % de polarización, más justo.** Al analizar una noticia a fondo (con el
+  texto completo), el porcentaje se **recalcula** y se corrige. En la ficha se ve
+  el valor afinado y, con transparencia, cuál fue la estimación inicial — la
+  detección rápida solo mira titulares y a veces se pasaba.
+- **Menos falsas alarmas de raíz.** El detector rápido ya no confunde "decir lo
+  mismo con otras palabras" con polarización real: solo cuenta como tal si los
+  medios atribuyen causas, culpables o juicios distintos al mismo hecho.
+- **Ejemplo real corregido:** la noticia del 016 marcaba 66 % sin divergencia
+  real → tras el análisis quedó en 15 %, que es lo justo.
 
 ## 2026-07-24 — Suscríbete por RSS 📡
 
