@@ -84,18 +84,22 @@ function gate_haiku_clasificar(array $clusters): array {
 
 2. DOMINIO TEMÁTICO (string, obligatorio): categoría del tema. Valores válidos: "politica_institucional", "economia_trabajo", "sanidad_ciencia", "tecnologia_regulacion", "cultura_identidad", "medio_ambiente", "educacion", "inmigracion", "internacional", "otros".
 
-3. FRAMING DIVERGENCE (integer 0-3, obligatorio): grado de divergencia en el encuadre entre cuadrantes.
+3. FRAMING DIVERGENCE (integer 0-3, obligatorio): grado de divergencia en el ENCUADRE (qué se enfatiza u omite, qué causa/responsable se atribuye, qué juicio implícito se hace) entre cuadrantes.
+   DISTINCIÓN CLAVE — no confundas variación de vocabulario con divergencia de encuadre:
+   - Que dos medios usen palabras distintas para lo mismo (sinónimos, términos técnicos vs coloquiales, nombre completo vs abreviado) NO es divergencia de framing. Si al parafrasear ambos titulares el hecho y el juicio son equivalentes, framing_divergence ≤ 1.
+   - Solo hay divergencia real cuando los cuadrantes atribuyen causas, responsables, consecuencias o valoraciones distintas al MISMO hecho, o cuando uno lo presenta como problema y otro como no-noticia o como solución.
    REGLAS:
    - Si solo 1 bloque ideológico cubre el tema → framing_divergence = 0
    - Si solo 2 bloques cubren → framing_divergence máximo = 2
    - Si 3 bloques cubren → sin restricción (0-3)
+   - framing_divergence ≥ 2 EXIGE evidencia: solo asígnalo si puedes citar en framing_evidence los marcos concretos y CONTRAPUESTOS de al menos dos cuadrantes. Si no puedes citarlos, el máximo es 1.
    Escala:
    0 = cobertura monocorde, insuficiente para juzgar, o solo 1 bloque
-   1 = diferencias menores de énfasis
-   2 = marcos claramente distintos entre cuadrantes
-   3 = marcos ideológicamente opuestos sobre el mismo hecho
+   1 = mismo encuadre con diferencias menores de énfasis o de vocabulario
+   2 = marcos claramente distintos entre cuadrantes (causa/responsable/juicio divergente), con evidencia citable
+   3 = marcos ideológicamente opuestos sobre el mismo hecho, con evidencia citable
 
-4. FRAMING EVIDENCE (string o null): cita breve (<20 palabras) de los marcos detectados, o null.
+4. FRAMING EVIDENCE (string o null): si framing_divergence ≥ 2 es OBLIGATORIO — cita breve (<25 palabras) que contraste el marco de un cuadrante frente a otro (p. ej. «izq: "recortes sociales"; der: "ajuste responsable"»). Si framing_divergence ≤ 1, puede ser null.
 
 5. RESUMEN NEUTRAL (string o null): resumen factual del tema en UNA frase, máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento. NO parafrasees el titular: debe APORTAR contexto o datos que el titular no dice (cifras, causa, actores implicados, consecuencia, qué está en juego), apoyándote en las entradillas. Si lo único disponible es reformular el titular, prefiere añadir el dato o matiz más informativo de las entradillas. REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, devuelve null (una fuente única no da para un resumen neutral).
 
@@ -185,6 +189,14 @@ Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
         } elseif ($bloques_activos === 2 && $fd > 2) {
             $anomalies[] = array('tipo' => 'ANOMALY_FD_CAP_VIOLATION', 'detalle' => "fd=$fd with 2 blocs, capped to 2");
             $fd = 2;
+        }
+
+        // Salvaguarda de evidencia: un fd alto sin marcos contrapuestos citables no es
+        // fiable (era la causa del falso positivo del 016) → se capa a 1.
+        $ev_str = is_string($ev) ? trim($ev) : '';
+        if ($fd >= 2 && mb_strlen($ev_str, 'UTF-8') < 12) {
+            $anomalies[] = array('tipo' => 'ANOMALY_FD_SIN_EVIDENCIA', 'detalle' => "fd=$fd sin framing_evidence citable, capado a 1");
+            $fd = 1;
         }
 
         // Salvaguarda del resumen: solo con ≥2 bloques (aunque el modelo se salte la regla)
