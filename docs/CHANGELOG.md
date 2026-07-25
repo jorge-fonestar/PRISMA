@@ -7,6 +7,19 @@
 
 ---
 
+## 2026-07-25 — El % de polarización, más justo ⚖️
+
+- **El análisis en profundidad ahora recalcula el porcentaje.** La detección
+  rápida solo lee titulares y entradillas, y a veces se pasa de frenada. Cuando
+  una noticia se analiza a fondo (con el texto completo), el porcentaje se revisa
+  y se corrige: en la ficha se ve el valor afinado y, con transparencia, cuál fue
+  la estimación inicial.
+- **Menos falsas alarmas de raíz.** El detector rápido ya no confunde "usar
+  palabras distintas para lo mismo" con polarización real: solo cuenta como tal
+  si los medios atribuyen causas, culpables o juicios distintos al mismo hecho.
+- **Ejemplo real corregido:** la noticia del 016 marcaba 66% sin divergencia
+  real → tras el análisis quedó en 15%, que es lo justo.
+
 ## 2026-07-24 — Suscríbete por RSS 📡
 
 - **PolarPrisma ya tiene RSS.** Puedes seguirlo desde Feedly o cualquier lector:
