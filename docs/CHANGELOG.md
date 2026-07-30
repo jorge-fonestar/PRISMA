@@ -7,7 +7,7 @@
 
 ---
 
-## 2026-07-30 — Un radar más limpio y noticias mejor explicadas 🧹
+## 2026-07-30 — Radar más limpio, noticias mejor explicadas y datos verificados 🧹
 
 - **Se acabaron las noticias repetidas.** Hasta ahora la misma noticia podía
   aparecer varias veces en el radar con titulares algo distintos (el indulto a
@@ -21,6 +21,18 @@
   lo repite: ahora añade lo que falta —la cifra, la causa, quién reacciona—.
 - **Menos falsas alarmas.** El detector distingue mejor la polarización real de
   las simples formas distintas de decir lo mismo.
+- **Contrastamos los datos clave.** Cuando un dato importante es dudoso o lo
+  sostiene una sola parte, lo verificamos con **fuentes oficiales** (INE, BOE,
+  Eurostat…) y te decimos si se confirma o queda en disputa — en vez de repetirlo
+  sin más. (Así, por ejemplo, una cifra del Gobierno sin respaldo independiente
+  aparece marcada como "dato en disputa".)
+- **Nueva sección "Para entender la noticia".** Un par de apuntes de contexto
+  —definiciones, antecedentes, fechas clave— para situarte antes de leer las posturas.
+- **Cada postura, con sus palabras.** Ahora se incluye una **cita textual** de las
+  propias fuentes de cada lado, no solo un resumen.
+- **Preguntas de verdad para pensar.** Lo que tiene respuesta objetiva pasó a la
+  sección de contexto; en "Preguntas para pensar" quedan solo las cuestiones
+  abiertas, esas que cada uno responde según sus valores.
 
 ## 2026-07-25 — Modo oscuro, más fuentes y un % más justo 🌙
 
