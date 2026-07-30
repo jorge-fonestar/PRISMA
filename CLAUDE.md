@@ -85,6 +85,7 @@ contenedor con las labels nuevas) y **`docker restart ofelia`** para re-registra
 - Síntesis y auditoría: **`claude-sonnet-5`**. Triage/gate: **`claude-haiku-4-5-20251001`**.
 - `max_tokens_pipeline=8192` (Sonnet 5 usa thinking adaptativo: dejar margen).
 - **Prefill**: `anthropic_supports_prefill()` es allowlist (solo modelos legacy). No enviar prefill a modelos 4.6+/sonnet-5 (da 400).
+- **Verificación factual (`synth_web_search`)**: la síntesis usa la tool `web_search` para contrastar cifras/fechas/decisiones con fuentes primarias (→ campos `verificaciones`/`discrepancias`). Como la Batches API no lleva tools, con el flag activo `analizar.php` fuerza la **vía síncrona**. Coste ~$0.6/análisis. El system del sintetizador es **estático** (id/ámbito/fecha los pone el servidor) para que el **prompt caching** (`synth_prompt_cache`) sea efectivo; `anthropic_call` contabiliza tokens de caché y búsquedas web.
 - Precios en `lib/anthropic.php`; revisar tarifa intro de Sonnet 5 tras 2026-08-31.
 
 ## Convenciones y flujo

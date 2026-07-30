@@ -108,9 +108,15 @@
   Validado: 38 clusters → 33 grupos (5 fusiones) en un escaneo real.
 
 ### Hoja de ruta activa (rescatada de la conversación de diseño)
-- **En curso**: #1 verificación factual con `web_search` en la síntesis (+ separar zona
-  factual con verificaciones/discrepancias); resto de #3 (cita literal por postura,
-  microcitas [1][3]); #6 prompt caching del system de síntesis/auditoría.
+- **#1 verificación factual — HECHO (30-jul)**: el sintetizador contrasta cifras/fechas/
+  decisiones con fuentes primarias (INE/BOE/Eurostat) vía `web_search`; campos
+  `verificaciones`/`discrepancias` en la zona "Lo que está documentado". Fuerza vía síncrona
+  (flag `synth_web_search`). Coste ~$0.6/análisis (con caching). Validado: la inflación de
+  julio confirmó IPC 3,5% con el INE y marcó como no verificable el "60% amortiguado" del Gobierno.
+- **#3 (cita literal) — HECHO**: `cita_literal` por postura (≤15 palabras), pintada en la ficha.
+  Pendiente OPCIONAL: microcitas [1][3] en el resumen factual (requiere numerar fuentes global).
+- **#6 prompt caching — HECHO**: system del sintetizador ahora estático y cacheado; coste de
+  caché y de búsquedas web contabilizado en `anthropic_call`. El servidor fija id/ámbito/fecha.
 - **PENDIENTE (recordar al cerrar cada tema)**: #4 calibración del scoring
   (grid-search precision@10/recall@10 + etiquetado desde panel + botón "marcar trivial")
   y #5 equilibrio del corpus (recuperar flanco izquierdo Público/InfoLibre/CTXT vía
