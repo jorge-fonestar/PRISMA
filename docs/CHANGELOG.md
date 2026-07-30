@@ -7,6 +7,21 @@
 
 ---
 
+## 2026-07-30 — Un radar más limpio y noticias mejor explicadas 🧹
+
+- **Se acabaron las noticias repetidas.** Hasta ahora la misma noticia podía
+  aparecer varias veces en el radar con titulares algo distintos (el indulto a
+  Borràs llegó a salir 5 ó 6 veces). Ahora el sistema entiende que son la misma
+  y las junta en una sola, reuniendo todas sus fuentes.
+- **Cada análisis, en dos partes claras.** Dentro de una noticia analizada verás
+  separado **"Lo que está documentado"** (los hechos, con un indicador de cuán
+  sólido es el análisis) de **"Lecturas e interpretaciones"** (cómo lo cuenta cada
+  lado, dejando claro que son lecturas legítimas, no una única verdad).
+- **Resúmenes que aportan de verdad.** La frase que acompaña a cada titular ya no
+  lo repite: ahora añade lo que falta —la cifra, la causa, quién reacciona—.
+- **Menos falsas alarmas.** El detector distingue mejor la polarización real de
+  las simples formas distintas de decir lo mismo.
+
 ## 2026-07-25 — Modo oscuro, más fuentes y un % más justo 🌙
 
 - **Modo oscuro para todo el mundo.** La web arranca en oscuro (más cómoda de
