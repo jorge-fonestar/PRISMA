@@ -80,6 +80,7 @@ function gate_haiku_agrupar_clasificar(array $clusters): array {
 TAREA 1 — AGRUPAR. Junta en un mismo GRUPO los clusters que cubren la MISMA noticia (el mismo hecho central), aunque el titular use palabras distintas.
 - SÍ es la misma noticia (fusionar): «El Gobierno indulta a Laura Borràs» + «El Gobierno concede el indulto parcial a Borràs y a otras cuatro personas» + «Borràs, indultada». Distinto vocabulario, mismo hecho.
 - NO es la misma noticia (no fusionar) aunque compartan protagonista o tema: «El Gobierno indulta a Borràs» vs «Page critica el indulto a Borràs» (uno es el hecho, otro una reacción concreta con actor propio) → son noticias distintas. Ante duda razonable, NO fusiones.
+- Sé exhaustivo con los hechos idénticos: si dos clusters reportan el MISMO dato concreto sobre el MISMO sujeto (misma cifra de resultados empresariales, mismo dato macro, mismo balance) son la misma noticia aunque el tema sea "menor". Ej.: «BBVA ganó 6.051 millones en el semestre» y «BBVA gana 6.051 millones hasta junio, un 11% más» → mismo hecho, fusionar.
 - Un cluster pertenece EXACTAMENTE a un grupo. Un grupo puede tener un solo cluster.
 
 TAREA 2 — CLASIFICAR cada grupo resultante, considerando los cuadrantes COMBINADOS de todos sus miembros:
