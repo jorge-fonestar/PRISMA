@@ -173,6 +173,9 @@ function sintetizar(string $contexto, string $article_id, string $ambito = 'espa
 
     $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
     $tools = !empty($cfg['synth_web_search']) ? sintetizador_web_search_tool() : array();
+    // Con web_search el modelo gasta tokens pensando + buscando antes del JSON final:
+    // dale margen para que no se quede sin presupuesto a mitad (daría "Respuesta inesperada").
+    if (!empty($tools)) $max_tok = max($max_tok, 16000);
     $cache = !empty($cfg['synth_prompt_cache']);
     $raw = anthropic_call($cfg['model_synth'], $req['system'], $req['user_msg'], $max_tok, '', $tools, $cache);
     $artifact = parse_json_response($raw);
@@ -206,6 +209,7 @@ function sintetizar_manual(string $tema, string $article_id, string $ambito = 'e
     $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
     // En modo manual, web_search es imprescindible (no hay contexto): se fuerza.
     $tools = sintetizador_web_search_tool();
+    $max_tok = max($max_tok, 16000);   // margen para buscar + emitir el JSON final
     $cache = !empty($cfg['synth_prompt_cache']);
     $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, $max_tok, '', $tools, $cache);
     $artifact = parse_json_response($raw);

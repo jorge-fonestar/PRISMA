@@ -69,7 +69,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
     'panel_pass'          => getenv('PRISMA_PANEL_PASS') ?: 'prisma2026',
 
     // ── Límites de coste ────────────────────────────────────────────
-    'daily_budget_usd'    => 3.00,
+    'daily_budget_usd'    => 6.00,
     // Fase 2 vía Message Batches API (50% de coste; el cron tarda minutos más).
     // El panel y los temas manuales siguen usando la vía síncrona.
     'use_batch_api'       => true,

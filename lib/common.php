@@ -128,13 +128,14 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
             // La fecha también la fija el servidor (el prompt es estático para el caching).
             $artifact['fecha_publicacion'] = (new DateTime('now', new DateTimeZone(prisma_cfg()['timezone'])))->format('c');
         } catch (RuntimeException $e) {
-            // JSON parse failure — retry with format feedback
-            if (strpos($e->getMessage(), 'JSON inválido') !== false && $attempt <= $max_retries) {
-                prisma_log("PIPE", "ERROR formato: " . $e->getMessage());
-                $feedback = "ERROR CRÍTICO: Tu respuesta anterior NO era JSON válido. "
-                    . "Empezó con texto explicativo en lugar de JSON. "
-                    . "Tu respuesta DEBE empezar directamente con { y ser JSON puro. "
-                    . "No incluyas ningún texto antes ni después del JSON.";
+            // Fallo de formato o respuesta incompleta (p.ej. se quedó sin tokens
+            // buscando y no emitió el JSON) — reintentar pidiendo JSON directo y conciso.
+            $emsg = $e->getMessage();
+            if ((strpos($emsg, 'JSON inválido') !== false || strpos($emsg, 'Respuesta inesperada') !== false) && $attempt <= $max_retries) {
+                prisma_log("PIPE", "ERROR formato/respuesta: " . $emsg);
+                $feedback = "ERROR CRÍTICO: tu respuesta anterior no terminó en un JSON válido. "
+                    . "Sé conciso, limita las búsquedas web a lo imprescindible y asegúrate de "
+                    . "TERMINAR con el JSON completo del artefacto (de { a }), sin texto después.";
                 continue;
             }
             throw $e;
