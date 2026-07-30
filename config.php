@@ -46,7 +46,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // fuentes primarias (INE/BOE/Eurostat…) vía web_search. Fuerza la vía síncrona
     // (la Batches API no lleva tools). Con articulos_dia=1 el sobrecoste es asumible.
     'synth_web_search'     => true,
-    'synth_web_search_max' => 4,      // tope de búsquedas por análisis
+    'synth_web_search_max' => 2,      // tope de búsquedas por análisis
     // Prompt caching del system (largo y fijo): abarata el input repetido de los
     // reintentos del bucle auditor; rinde más cuanto más volumen de análisis.
     'synth_prompt_cache'   => true,
