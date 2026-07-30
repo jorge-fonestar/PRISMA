@@ -22,10 +22,11 @@ require_once __DIR__ . '/lib/anthropic.php';
 require_once __DIR__ . '/db.php';
 
 // --- args ---
-$dias = 10; $dry = false; $cap = 200;
+$dias = 10; $dry = false; $cap = 200; $offset = 0;
 foreach ($argv as $i => $a) {
     if ($a === '--dias' && isset($argv[$i + 1])) $dias = (int)$argv[$i + 1];
     if ($a === '--cap' && isset($argv[$i + 1])) $cap = (int)$argv[$i + 1];
+    if ($a === '--offset' && isset($argv[$i + 1])) $offset = (int)$argv[$i + 1];
     if ($a === '--dry-run') $dry = true;
 }
 
@@ -40,6 +41,7 @@ $stmt = $db->prepare("SELECT id, titulo_tema, fuentes_json, resumen_neutral
     ORDER BY fecha DESC, h_score DESC");
 $stmt->execute([':fmin' => $fecha_min]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if ($offset > 0) $rows = array_slice($rows, $offset);
 
 $system = 'Eres un redactor de teletipos neutrales. Recibes el TITULAR de una noticia y las ENTRADILLAS de varios medios que la cubren. Devuelves UNA sola frase de resumen que se mostrará JUSTO DEBAJO del titular, que el lector YA ha visto.
 
