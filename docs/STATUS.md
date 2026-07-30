@@ -89,10 +89,24 @@
   conserva en `h_score_estructural`. La ficha muestra ambos. Explicado en
   `fuentes.php` y `presentacion.php`. Validado: 016 → 66% inicial / 24% estructural
   corregido a mano / 15% tras análisis.
-- **Mejorar el gate de Fase 1 (PROPUESTO)**: instruir al gate a no puntuar como
-  divergencia las diferencias meramente terminológicas (causa raíz del 016), y/o
-  capar `framing_divergence` cuando la `framing_evidence` sea débil. Fase 2 ya es la
-  red de seguridad, pero Fase 1 decide qué se analiza.
+- **Gate de Fase 1 endurecido — HECHO (30-jul)**: el prompt distingue variación
+  léxica de divergencia real de encuadre, y `framing_divergence ≥ 2` exige evidencia
+  citable (salvaguarda en código que lo capa a 1 sin `framing_evidence`).
+- **Entradilla/resumen que ya no repite el titular — HECHO (30-jul)**: `resumen_neutral`
+  reescrito como "segunda frase" que aporta el dato que el titular no dice (prompt del
+  gate con ejemplo). Nuevo `regen_resumenes.php` (CLI) regeneró 264 resúmenes recientes.
+- **Ficha en dos zonas + confianza — HECHO (30-jul, #2 y parte de #3)**: "Lo que está
+  documentado" (resumen + confianza mecánica Alta/Media/Baja por cobertura + silencio
+  editorial) vs "Lecturas e interpretaciones" (posturas como lecturas legítimas).
+
+### Hoja de ruta activa (rescatada de la conversación de diseño)
+- **En curso**: #1 verificación factual con `web_search` en la síntesis (+ separar zona
+  factual con verificaciones/discrepancias); resto de #3 (cita literal por postura,
+  microcitas [1][3]); #6 prompt caching del system de síntesis/auditoría.
+- **PENDIENTE (recordar al cerrar cada tema)**: #4 calibración del scoring
+  (grid-search precision@10/recall@10 + etiquetado desde panel + botón "marcar trivial")
+  y #5 equilibrio del corpus (recuperar flanco izquierdo Público/InfoLibre/CTXT vía
+  captura de portada; auditoría ejes×cuadrantes×ámbitos; ampliar fuentes).
 
 - **Cobertura de fuentes por tema — RESUELTO (25-jul)**: ventana de lectura RSS
   a 48h (`rss_ventana_horas`) y clustering por **mejor match** (cada artículo al
