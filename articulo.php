@@ -552,6 +552,18 @@ $axiom_names = [
           </div>
         <?php endif; ?>
 
+        <!-- Para entender la noticia (contexto factual de fondo) -->
+        <?php if (!empty($art['contexto'])): ?>
+          <div style="margin-top:1.2rem;padding-top:0.9rem;border-top:1px solid var(--border-card)">
+            <p style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin:0 0 0.6rem 0">Para entender la noticia</p>
+            <ul style="margin:0;padding-left:1.1rem;color:var(--text-muted);font-size:0.92rem;line-height:1.6">
+              <?php foreach ($art['contexto'] as $c): ?>
+                <li style="margin-bottom:0.35rem"><?= htmlspecialchars($c) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        <?php endif; ?>
+
         <!-- Confianza del análisis (mecánica) -->
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 0.9rem;margin-top:1.1rem;padding-top:0.9rem;border-top:1px solid var(--border-card);font-family:'Inter',Arial,sans-serif;font-size:0.78rem;color:var(--text-faint)">
           <span style="color:var(--text-muted)">Confianza del análisis:
