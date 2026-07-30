@@ -522,6 +522,36 @@ $axiom_names = [
         <p class="section-label" style="margin-top:0">Lo que está documentado</p>
         <p class="resumen" style="margin-bottom:0"><?= htmlspecialchars($art['resumen']) ?></p>
 
+        <!-- Verificación factual contra fuentes primarias -->
+        <?php if (!empty($art['verificaciones'])): ?>
+          <div style="margin-top:1.2rem;padding-top:0.9rem;border-top:1px solid var(--border-card)">
+            <p style="font-family:'Inter',Arial,sans-serif;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint);margin:0 0 0.6rem 0">Contrastado con fuentes primarias</p>
+            <?php foreach ($art['verificaciones'] as $v):
+              $ver = isset($v['veredicto']) ? $v['veredicto'] : 'no_verificable';
+              if ($ver === 'confirmado') { $vc = '#4ade80'; $vl = 'Confirmado'; }
+              elseif ($ver === 'matizado') { $vc = '#f2b84a'; $vl = 'Matizado'; }
+              else { $vc = 'var(--text-faint)'; $vl = 'No verificable'; }
+            ?>
+              <div style="display:flex;gap:0.6rem;align-items:baseline;margin-bottom:0.5rem;font-size:0.9rem;line-height:1.5">
+                <span style="flex-shrink:0;font-family:'Inter',Arial,sans-serif;font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:<?= $vc ?>;border:1px solid <?= $vc ?>;border-radius:4px;padding:1px 6px"><?= $vl ?></span>
+                <span style="color:var(--text-muted)"><?= htmlspecialchars($v['afirmacion'] ?? '') ?><?php if (!empty($v['fuente'])): ?> — <?php if (!empty($v['url'])): ?><a href="<?= htmlspecialchars($v['url']) ?>" target="_blank" rel="noopener" style="color:var(--accent)"><?= htmlspecialchars($v['fuente']) ?></a><?php else: ?><span style="color:var(--text-faint)"><?= htmlspecialchars($v['fuente']) ?></span><?php endif; ?><?php endif; ?></span>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
+        <!-- Datos en disputa (los medios los dan por buenos, la fuente primaria no) -->
+        <?php if (!empty($art['discrepancias'])): ?>
+          <div style="margin-top:1rem;padding:0.7rem 0.9rem;border-left:3px solid #f2b84a;background:rgba(242,184,74,0.06);border-radius:4px">
+            <p style="margin:0 0 0.4rem 0;font-family:'Inter',Arial,sans-serif;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:#f2b84a">Datos en disputa</p>
+            <ul style="margin:0;padding-left:1.1rem;color:var(--text-muted);font-size:0.9rem;line-height:1.5">
+              <?php foreach ($art['discrepancias'] as $d): ?>
+                <li><?= htmlspecialchars($d) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        <?php endif; ?>
+
         <!-- Confianza del análisis (mecánica) -->
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 0.9rem;margin-top:1.1rem;padding-top:0.9rem;border-top:1px solid var(--border-card);font-family:'Inter',Arial,sans-serif;font-size:0.78rem;color:var(--text-faint)">
           <span style="color:var(--text-muted)">Confianza del análisis:

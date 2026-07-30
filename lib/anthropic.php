@@ -62,7 +62,7 @@ function anthropic_check_budget(): void {
 /**
  * Llama a la API de Anthropic y registra el coste.
  */
-function anthropic_call(string $model, string $system, string $user_msg, int $max_tokens = 8192, string $prefill = ''): string {
+function anthropic_call(string $model, string $system, string $user_msg, int $max_tokens = 8192, string $prefill = '', array $tools = array(), bool $cache = false): string {
     require_once __DIR__ . '/logger.php';
 
     $cfg = prisma_cfg();
@@ -86,19 +86,25 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     }
     $supports_prefill = anthropic_supports_prefill($model);
 
-    $payload = json_encode([
+    $payload_arr = [
         'model'      => $model,
         'max_tokens' => $max_tokens,
-        'system'     => $system,
+        // Con $cache, el system va como bloque cacheable (ephemeral): abarata
+        // el input repetido (reintentos del bucle auditor; y más si sube el volumen).
+        'system'     => $cache
+            ? [['type' => 'text', 'text' => $system, 'cache_control' => ['type' => 'ephemeral']]]
+            : $system,
         'messages'   => $messages,
-    ], JSON_UNESCAPED_UNICODE);
+    ];
+    if (!empty($tools)) $payload_arr['tools'] = $tools;
+    $payload = json_encode($payload_arr, JSON_UNESCAPED_UNICODE);
 
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => $payload,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 180,
+        CURLOPT_TIMEOUT        => !empty($tools) ? 300 : 180,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'x-api-key: ' . $api_key,
@@ -143,12 +149,13 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
 
     // El texto puede no ser el primer bloque: con thinking adaptativo
     // (sonnet-5+) content[0] es un bloque 'thinking' y el texto va después.
+    // Nos quedamos con el ÚLTIMO bloque de texto: con thinking adaptativo o con
+    // web_search, el modelo emite texto intermedio y la respuesta final va al final.
     $text = '';
     if ($data && !empty($data['content']) && is_array($data['content'])) {
         foreach ($data['content'] as $block) {
             if (isset($block['type']) && $block['type'] === 'text' && isset($block['text']) && $block['text'] !== '') {
                 $text = $block['text'];
-                break;
             }
         }
     }
@@ -167,12 +174,22 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
         throw new RuntimeException("Respuesta inesperada de Anthropic: $response");
     }
 
-    // Registrar uso y coste
-    $input_tokens  = $data['usage']['input_tokens'] ?? 0;
-    $output_tokens = $data['usage']['output_tokens'] ?? 0;
-    $cost = anthropic_calc_cost($model, $input_tokens, $output_tokens);
+    // Registrar uso y coste (incluye tokens de caché y búsquedas web)
+    $usage         = isset($data['usage']) ? $data['usage'] : array();
+    $input_tokens  = isset($usage['input_tokens']) ? $usage['input_tokens'] : 0;
+    $output_tokens = isset($usage['output_tokens']) ? $usage['output_tokens'] : 0;
+    $cache_read    = isset($usage['cache_read_input_tokens']) ? $usage['cache_read_input_tokens'] : 0;
+    $cache_write   = isset($usage['cache_creation_input_tokens']) ? $usage['cache_creation_input_tokens'] : 0;
+    $web_searches  = isset($usage['server_tool_use']['web_search_requests']) ? $usage['server_tool_use']['web_search_requests'] : 0;
 
-    anthropic_record_usage($model, $input_tokens, $output_tokens, $cost);
+    $prices = ANTHROPIC_PRICING[$model] ?? ANTHROPIC_PRICING['default'];
+    $cost = $input_tokens * $prices['input'] / 1000000
+          + $cache_write * $prices['input'] * 1.25 / 1000000   // escritura de caché: +25%
+          + $cache_read  * $prices['input'] * 0.10 / 1000000   // lectura de caché: -90%
+          + $output_tokens * $prices['output'] / 1000000
+          + $web_searches * 0.01;                              // $10 / 1000 búsquedas
+
+    anthropic_record_usage($model, $input_tokens + $cache_read + $cache_write, $output_tokens, $cost);
 
     // Log to isolated DB — prepend prefill to reconstruct full response (only if prefill was actually sent)
     if ($prefill !== '' && $supports_prefill) {
@@ -194,9 +211,12 @@ function anthropic_call(string $model, string $system, string $user_msg, int $ma
     $spent = anthropic_daily_spend();
     $budget = $cfg['daily_budget_usd'] ?? 999;
 
+    $extra = '';
+    if ($cache_read || $cache_write) $extra .= sprintf(" cache(r%d/w%d)", $cache_read, $cache_write);
+    if ($web_searches) $extra .= " web×$web_searches";
     prisma_log("API", sprintf(
-        "%s — %d in / %d out — $%.4f (hoy: $%.2f / $%.2f) [%dms]",
-        $model, $input_tokens, $output_tokens, $cost, $spent, $budget, $duration_ms
+        "%s — %d in / %d out%s — $%.4f (hoy: $%.2f / $%.2f) [%dms]",
+        $model, $input_tokens, $output_tokens, $extra, $cost, $spent, $budget, $duration_ms
     ));
 
     return $text;
@@ -433,14 +453,22 @@ function anthropic_batch_results(array $batch, string $caller = 'batch'): array 
 function parse_json_response(string $raw): array {
     $raw = trim($raw);
 
-    if (preg_match('/^```(?:json)?\s*\n?(.*)\n?```$/s', $raw, $m)) {
+    // Quitar fences ```json ... ``` estén donde estén
+    if (preg_match('/```(?:json)?\s*(.*?)```/s', $raw, $m)) {
         $raw = trim($m[1]);
     }
 
     $data = json_decode($raw, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        throw new RuntimeException('JSON inválido del modelo: ' . json_last_error_msg() . "\n" . substr($raw, 0, 500));
+    if (json_last_error() === JSON_ERROR_NONE) return $data;
+
+    // Fallback: extraer el mayor bloque {...} por si el modelo antepuso prosa
+    // (p. ej. tras usar web_search antes de emitir el JSON final).
+    $ini = strpos($raw, '{');
+    $fin = strrpos($raw, '}');
+    if ($ini !== false && $fin !== false && $fin > $ini) {
+        $data = json_decode(substr($raw, $ini, $fin - $ini + 1), true);
+        if (json_last_error() === JSON_ERROR_NONE) return $data;
     }
 
-    return $data;
+    throw new RuntimeException('JSON inválido del modelo: ' . json_last_error_msg() . "\n" . substr($raw, 0, 500));
 }

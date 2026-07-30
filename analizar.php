@@ -277,7 +277,9 @@ prisma_log("ANALYZE", count($to_process) . " temas a procesar.");
 
 // Batches API (50% de coste) para ejecuciones de cron/CLI. El modo síncrono
 // queda para --sync, --id (panel, el usuario espera) y temas manuales.
-$use_batch = !empty($cfg['use_batch_api']) && !isset($opts['sync']) && $specific_id === 0;
+// web_search (verificación factual) exige la vía síncrona: la Batches API no lleva tools.
+$use_batch = !empty($cfg['use_batch_api']) && !isset($opts['sync']) && $specific_id === 0
+    && empty($cfg['synth_web_search']);
 
 if ($use_batch) {
     prisma_log("ANALYZE", "Modo Batches API (50% de coste) — " . count($to_process) . " temas.");

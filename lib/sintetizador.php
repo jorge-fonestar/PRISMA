@@ -1,16 +1,20 @@
 <?php
 /**
- * Prisma — Sintetizador (Sonnet).
+ * PolarPrisma — Sintetizador (Sonnet).
  *
- * Genera un artefacto JSON multi-perspectiva a partir de un tema
- * y los artículos fuente agrupados por cuadrante.
+ * Genera un artefacto JSON multi-perspectiva a partir de un tema y los
+ * artículos fuente agrupados por cuadrante. Verifica los datos centrales
+ * contra fuentes primarias con la herramienta web_search.
+ *
+ * El system prompt es ESTÁTICO (id/fecha/ámbito van en el mensaje de usuario o
+ * los impone el servidor) para que el prompt caching sea efectivo.
  */
 
-function sintetizador_system(string $article_id, string $fecha_iso, string $ambito): string {
+function sintetizador_system(): string {
     $fuentes_ref = sintetizador_fuentes_ref();
 
     return <<<SYSTEM
-Eres el Sintetizador de Prisma, un servicio público de información neutral.
+Eres el Sintetizador de PolarPrisma, un servicio público de información neutral.
 
 Tu trabajo: recibir un tema de actualidad política con artículos fuente de varios cuadrantes ideológicos, y producir un artefacto JSON que presente TODAS las posturas enfrentadas de forma equitativa.
 
@@ -27,24 +31,31 @@ Tu trabajo: recibir un tema de actualidad política con artículos fuente de var
 ## Matriz de fuentes
 $fuentes_ref
 
+## Verificación factual con fuentes primarias (herramienta web_search)
+
+Antes de dar por buena cualquier CIFRA, FECHA, decisión institucional o afirmación legal concreta que sea central en el tema, contrástala con FUENTES PRIMARIAS usando la herramienta web_search. Prioridad: instituciones españolas (ine.es, boe.es, dominios .gob.es), luego europeas (europa.eu, eurostat), luego organismos internacionales oficiales.
+- Verifica SOLO hechos comprobables (datos, cifras, fechas, decisiones oficiales), nunca opiniones ni interpretaciones.
+- Sé frugal: como mucho unas pocas búsquedas, solo para los datos centrales del tema.
+- Si un dato que repiten los medios NO se confirma, o la fuente primaria lo contradice o matiza, NO lo presentes como hecho establecido: recógelo en "discrepancias".
+- Registra lo comprobado en "verificaciones", con la fuente primaria y su URL real.
+
 ## Instrucciones
 
 - Analiza los artículos fuente proporcionados de cada cuadrante ideológico.
 - Identifica las posturas distintas: quién defiende qué y por qué.
-- Para cada fuente que cites, usa la URL real proporcionada en el contexto.
+- Para cada fuente del contexto que cites, usa su URL real.
 - Busca activamente lo que NO se está diciendo: omisiones, silencios, puntos ciegos.
+- El id, la fecha y el ámbito los fija el servidor: en el JSON ponlos como indica el esquema (null); no te preocupes por su valor.
 
 ## Formato de salida
 
-Tu respuesta debe empezar exactamente con { y terminar exactamente con }.
-No incluyas markdown, ni ```, ni texto explicativo antes o después.
-No expliques lo que vas a hacer ni resumas tu razonamiento.
-Produce únicamente el JSON resultante con esta estructura exacta:
+Puede haber búsquedas web antes, pero tu respuesta debe TERMINAR con el JSON del artefacto (de { a }), sin markdown ni texto después.
+Estructura exacta:
 
 {
-  "id": "$article_id",
-  "fecha_publicacion": "$fecha_iso",
-  "ambito": "$ambito",
+  "id": null,
+  "fecha_publicacion": null,
+  "ambito": null,
   "titular_neutral": "Reformulación del tema sin carga emocional ni adjetivación valorativa",
   "resumen": "3-4 líneas factuales sin posicionamiento",
   "mapa_posturas": [
@@ -52,6 +63,7 @@ Produce únicamente el JSON resultante con esta estructura exacta:
       "etiqueta": "Nombre descriptivo de la postura",
       "defensores": ["Actor 1", "Actor 2"],
       "argumentos": ["Argumento 1", "Argumento 2"],
+      "cita_literal": "Cita textual breve (≤15 palabras) de una de sus fuentes que capte su encuadre, entre comillas; o null si ninguna es adecuada",
       "fuentes": [
         {
           "titulo": "Título del artículo",
@@ -62,6 +74,15 @@ Produce únicamente el JSON resultante con esta estructura exacta:
       ]
     }
   ],
+  "verificaciones": [
+    {
+      "afirmacion": "Dato o hecho concreto contrastado",
+      "veredicto": "confirmado|matizado|no_verificable",
+      "fuente": "Organismo o fuente primaria",
+      "url": "https://url-real-de-la-fuente-primaria"
+    }
+  ],
+  "discrepancias": ["Dato que los medios dan por bueno pero la fuente primaria no confirma o matiza"],
   "ausencias": ["Ángulo ausente 1", "Ángulo ausente 2"],
   "preguntas": ["Pregunta abierta genuina 1", "Pregunta 2", "Pregunta 3"],
   "fuentes_consultadas_total": 12,
@@ -71,29 +92,23 @@ Produce únicamente el JSON resultante con esta estructura exacta:
 
 ## Índice de polarización (revisión con contexto completo)
 
-Ahora que tienes el texto y todas las posturas, reevalúa cuánto divergen
-REALMENTE los relatos y asigna "indice_polarizacion" (0-100). Este índice
-sustituye al de detección inicial (que solo miró titulares). Rúbrica:
+Ahora que tienes el texto y todas las posturas, reevalúa cuánto divergen REALMENTE los relatos y asigna "indice_polarizacion" (0-100). Este índice sustituye al de detección inicial (que solo miró titulares). Rúbrica:
 - 0-20: todas las fuentes cuentan lo mismo; diferencias solo terminológicas o de estilo, sin divergencia editorial.
 - 21-40: diferencias de énfasis o de selección de datos, sin oposición de fondo.
 - 41-60: marcos distintos conviven; discrepancia interpretativa moderada.
 - 61-80: posturas claramente enfrentadas sobre los mismos hechos.
 - 81-100: relatos opuestos, hechos en disputa y atribuciones de responsabilidad contradictorias.
-No confundas variación de vocabulario con divergencia de encuadre: si el hecho
-narrado es el mismo y solo cambian las palabras, el índice es bajo.
+No confundas variación de vocabulario con divergencia de encuadre: si el hecho narrado es el mismo y solo cambian las palabras, el índice es bajo.
 "polarizacion_nota": una frase neutra que justifique el valor.
 
 IMPORTANTE:
 - Mínimo 3 posturas, idealmente 4-6.
-- Cada postura debe tener al menos 1 fuente con URL del contexto proporcionado.
-- Las fuentes deben cubrir el mayor número posible de cuadrantes ideológicos distintos (≥3 en España, ≥2 en Europa/Global).
-- Las ausencias deben ser genuinas, no relleno.
-- Las preguntas deben ser abiertas, sin respuesta implícita.
-- NO inventes URLs. Usa solo las proporcionadas en el contexto.
-- resumen: máximo 80 palabras.
-- argumentos: máximo 50 palabras por argumento.
-- ausencias: máximo 30 palabras cada una.
-- La primera línea de tu respuesta DEBE ser una llave abierta {.
+- Cada postura debe tener al menos 1 fuente con URL del contexto + su cita_literal (o null).
+- Las fuentes deben cubrir el mayor número posible de cuadrantes ideológicos distintos (≥3 en España, ≥2 en Europa/Global; el ámbito se indica en el mensaje).
+- verificaciones: como mucho 5; usa [] si no hay nada verificable. discrepancias: [] si no hay.
+- Las ausencias deben ser genuinas, no relleno. Las preguntas, abiertas.
+- NO inventes URLs de las fuentes del contexto. Las URLs de web_search sí son reales y van en "verificaciones".
+- resumen: máximo 80 palabras. argumentos: máximo 50 palabras. ausencias: máximo 30. cita_literal: máximo 15.
 SYSTEM;
 }
 
@@ -111,14 +126,18 @@ function sintetizador_fuentes_ref(): string {
 }
 
 /**
- * Genera un artefacto a partir de un tema curado.
- *
- * @param string $contexto Contexto preparado por curador_preparar_contexto()
- * @param string $article_id ID del artefacto
- * @param string $ambito "españa"|"europa"|"global"
- * @param string $feedback Feedback del Auditor para reintentos
- * @return array Artefacto JSON parseado
+ * Definición de la tool web_search (server-side de Anthropic).
  */
+function sintetizador_web_search_tool(): array {
+    $cfg = prisma_cfg();
+    $max = isset($cfg['synth_web_search_max']) ? (int)$cfg['synth_web_search_max'] : 4;
+    return array(array(
+        'type'     => 'web_search_20250305',
+        'name'     => 'web_search',
+        'max_uses' => $max,
+    ));
+}
+
 /**
  * Construye los prompts de síntesis sin llamar a la API.
  * Compartido entre la vía síncrona (sintetizar) y la Batches API.
@@ -126,14 +145,9 @@ function sintetizador_fuentes_ref(): string {
  * @return array ['system' => string, 'user_msg' => string]
  */
 function sintetizador_build(string $contexto, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
-    $cfg = prisma_cfg();
-    $tz = new DateTimeZone($cfg['timezone']);
-    $now = new DateTime('now', $tz);
-    $fecha_iso = $now->format('Y-m-d\TH:i:sP');
+    $system = sintetizador_system();
 
-    $system = sintetizador_system($article_id, $fecha_iso, $ambito);
-
-    $user_msg = "Artículos fuente sobre el tema:\n\n$contexto";
+    $user_msg = "Ámbito: $ambito\n\nArtículos fuente sobre el tema:\n\n$contexto";
     if ($feedback) {
         $user_msg .= "\n\n--- FEEDBACK DEL AUDITOR (corrige estos problemas) ---\n$feedback";
     }
@@ -144,45 +158,35 @@ function sintetizador_build(string $contexto, string $article_id, string $ambito
 function sintetizar(string $contexto, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
     $cfg = prisma_cfg();
     $req = sintetizador_build($contexto, $article_id, $ambito, $feedback);
-    $system = $req['system'];
-    $user_msg = $req['user_msg'];
 
     prisma_log("SYNTH", "Llamando a Sintetizador ({$cfg['model_synth']})...");
 
     $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
-    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, $max_tok, '{');
+    $tools = !empty($cfg['synth_web_search']) ? sintetizador_web_search_tool() : array();
+    $cache = !empty($cfg['synth_prompt_cache']);
+    $raw = anthropic_call($cfg['model_synth'], $req['system'], $req['user_msg'], $max_tok, '', $tools, $cache);
     $artifact = parse_json_response($raw);
 
     $n_posturas = count($artifact['mapa_posturas'] ?? []);
     $n_fuentes = $artifact['fuentes_consultadas_total'] ?? 0;
-    prisma_log("SYNTH", "Artefacto generado: $n_posturas posturas, $n_fuentes fuentes");
+    $n_verif = count($artifact['verificaciones'] ?? []);
+    prisma_log("SYNTH", "Artefacto generado: $n_posturas posturas, $n_fuentes fuentes, $n_verif verificaciones");
 
     return $artifact;
 }
 
 /**
- * Sintetiza un tema manualmente (sin contexto RSS, el modelo investiga).
+ * Sintetiza un tema manualmente (sin contexto RSS: el modelo busca con web_search).
  */
 function sintetizar_manual(string $tema, string $article_id, string $ambito = 'españa', string $feedback = ''): array {
     $cfg = prisma_cfg();
-    $tz = new DateTimeZone($cfg['timezone']);
-    $now = new DateTime('now', $tz);
-    $fecha_iso = $now->format('Y-m-d\TH:i:sP');
 
-    // System prompt adaptado para modo manual (sin contexto RSS)
-    $system = sintetizador_system($article_id, $fecha_iso, $ambito);
-    $system = str_replace(
-        'Usa solo las proporcionadas en el contexto.',
-        'Usa URLs reales de medios conocidos. Si no conoces la URL exacta de un artículo, usa la URL de la portada o sección del medio (ej: https://elpais.com/espana/).',
-        $system
-    );
-    $system = str_replace(
-        'NO inventes URLs. Usa solo las proporcionadas en el contexto.',
-        'Usa URLs de medios reales. Nunca respondas con texto explicativo. Tu respuesta DEBE ser SOLO el JSON, nada más.',
-        $system
-    );
+    $system = sintetizador_system();
 
-    $user_msg = "Tema a sintetizar:\n\n$tema\n\nIMPORTANTE: Responde EXCLUSIVAMENTE con el JSON. Sin explicaciones, sin comentarios previos, sin texto adicional. Solo el JSON.";
+    $user_msg = "Ámbito: $ambito\n\nTema a sintetizar (SIN artículos del contexto): $tema\n\n"
+        . "Como no hay artículos del contexto, usa la herramienta web_search para localizar cobertura real "
+        . "de distintos cuadrantes ideológicos y cítala con sus URLs reales en cada postura. "
+        . "Responde EXCLUSIVAMENTE con el JSON del artefacto.";
     if ($feedback) {
         $user_msg .= "\n\n--- FEEDBACK DEL AUDITOR (corrige estos problemas) ---\n$feedback";
     }
@@ -190,7 +194,10 @@ function sintetizar_manual(string $tema, string $article_id, string $ambito = 'e
     prisma_log("SYNTH", "Llamando a Sintetizador en modo manual ({$cfg['model_synth']})...");
 
     $max_tok = $cfg['max_tokens_pipeline'] ?? 4096;
-    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, $max_tok, '{');
+    // En modo manual, web_search es imprescindible (no hay contexto): se fuerza.
+    $tools = sintetizador_web_search_tool();
+    $cache = !empty($cfg['synth_prompt_cache']);
+    $raw = anthropic_call($cfg['model_synth'], $system, $user_msg, $max_tok, '', $tools, $cache);
     $artifact = parse_json_response($raw);
 
     $n_posturas = count($artifact['mapa_posturas'] ?? []);

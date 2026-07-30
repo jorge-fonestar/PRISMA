@@ -125,6 +125,8 @@ function prisma_procesar_tema(string $contexto, string $article_id, string $ambi
             // publicar con otro id rompe el enlace del radar o pisa artículos.
             $artifact['id'] = $article_id;
             $artifact['ambito'] = $ambito;
+            // La fecha también la fija el servidor (el prompt es estático para el caching).
+            $artifact['fecha_publicacion'] = (new DateTime('now', new DateTimeZone(prisma_cfg()['timezone'])))->format('c');
         } catch (RuntimeException $e) {
             // JSON parse failure — retry with format feedback
             if (strpos($e->getMessage(), 'JSON inválido') !== false && $attempt <= $max_retries) {

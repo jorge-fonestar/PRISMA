@@ -42,6 +42,14 @@ $GLOBALS['_PRISMA_CFG'] = array(
     'model_triage'        => 'claude-haiku-4-5-20251001',
     // Presupuesto de salida para síntesis/auditoría (sync y batch)
     'max_tokens_pipeline' => 8192,
+    // Verificación factual: el sintetizador contrasta cifras/fechas/decisiones con
+    // fuentes primarias (INE/BOE/Eurostat…) vía web_search. Fuerza la vía síncrona
+    // (la Batches API no lleva tools). Con articulos_dia=1 el sobrecoste es asumible.
+    'synth_web_search'     => true,
+    'synth_web_search_max' => 4,      // tope de búsquedas por análisis
+    // Prompt caching del system (largo y fijo): abarata el input repetido de los
+    // reintentos del bucle auditor; rinde más cuanto más volumen de análisis.
+    'synth_prompt_cache'   => true,
 
     // ── Ingest ──────────────────────────────────────────────────────
     'ingest_key'          => getenv('PRISMA_INGEST_KEY') ?: '',
