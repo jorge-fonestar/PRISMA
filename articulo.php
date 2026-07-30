@@ -484,63 +484,124 @@ $axiom_names = [
         </div>
       <?php endif; ?>
 
-      <!-- Resumen -->
-      <p class="section-label">Resumen</p>
-      <p class="resumen"><?= htmlspecialchars($art['resumen']) ?></p>
+      <?php
+        // ── Indicador de confianza mecánico (calculado por PHP, no por el modelo) ──
+        $conf_src = ($tension_data && !empty($tension_data['fuentes_json']))
+            ? (json_decode($tension_data['fuentes_json'], true) ?: array())
+            : array();
+        if (!$conf_src) {
+            foreach ($art['mapa_posturas'] as $p) {
+                foreach (($p['fuentes'] ?? array()) as $f) $conf_src[] = $f;
+            }
+        }
+        $conf_cuads = array_values(array_unique(array_filter(array_map(function ($f) {
+            return isset($f['cuadrante']) ? $f['cuadrante'] : '';
+        }, $conf_src))));
+        $n_src  = $conf_src ? count($conf_src) : (int)($art['fuentes_consultadas_total'] ?? 0);
+        $n_cuad = count($conf_cuads);
+        $izqG = array('izquierda-populista', 'izquierda', 'centro-izquierda');
+        $derG = array('centro-derecha', 'derecha', 'derecha-populista');
+        $blocs = array();
+        foreach ($conf_cuads as $c) {
+            if (in_array($c, $izqG)) $blocs['izq'] = 1;
+            elseif (in_array($c, $derG)) $blocs['der'] = 1;
+            else $blocs['centro'] = 1;
+        }
+        $n_bloc = count($blocs);
+        $n_post = count($art['mapa_posturas']);
+        if ($n_bloc >= 3 && $n_src >= 5 && $n_post >= 3) { $conf_nivel = 'Alta'; $conf_col = '#4ade80'; }
+        elseif ($n_bloc >= 2 && $n_src >= 3)             { $conf_nivel = 'Media'; $conf_col = '#f2b84a'; }
+        else                                              { $conf_nivel = 'Baja'; $conf_col = '#ff8f6b'; }
+        $nombre_bloc = array('izq' => 'la izquierda', 'centro' => 'el centro', 'der' => 'la derecha');
+        $faltan = array();
+        foreach ($nombre_bloc as $k => $v) { if (empty($blocs[$k])) $faltan[] = $v; }
+      ?>
 
-      <!-- Mapa de posturas -->
-      <p class="section-label">Mapa de posturas</p>
-      <div class="posturas-grid">
-        <?php foreach ($art['mapa_posturas'] as $i => $postura): ?>
-          <?php $color = $position_colors[$i % count($position_colors)]; ?>
-          <details class="postura-card" style="border-left-color: <?= $color ?>">
-            <summary class="postura-summary">
-              <div>
-                <div class="postura-etiqueta"><?= htmlspecialchars($postura['etiqueta']) ?></div>
-                <div class="postura-defensores"><?= htmlspecialchars(implode(' · ', $postura['defensores'])) ?></div>
-              </div>
-            </summary>
-            <div class="postura-body">
-              <ul class="postura-argumentos">
-                <?php foreach ($postura['argumentos'] as $arg): ?>
-                  <li><?= htmlspecialchars($arg) ?></li>
-                <?php endforeach; ?>
-              </ul>
-              <?php if (!empty($postura['fuentes'])): ?>
-                <div class="postura-fuentes">
-                  <?php foreach ($postura['fuentes'] as $fuente): ?>
-                    <a href="<?= htmlspecialchars($fuente['url']) ?>" class="fuente-link" target="_blank" rel="noopener noreferrer">
-                      <span class="fuente-medio"><?= htmlspecialchars($fuente['medio']) ?>:</span>
-                      <?= htmlspecialchars($fuente['titulo']) ?>
-                      <span class="fuente-cuadrante"><?= htmlspecialchars($fuente['cuadrante']) ?></span>
-                    </a>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
-            </div>
-          </details>
-        <?php endforeach; ?>
+      <!-- ═══ ZONA A · Lo que está documentado ═══ -->
+      <div style="border-left:3px solid #4ade80;background:rgba(74,222,128,0.045);border-radius:8px;padding:1.1rem 1.35rem;margin-bottom:1.6rem">
+        <p class="section-label" style="margin-top:0">Lo que está documentado</p>
+        <p class="resumen" style="margin-bottom:0"><?= htmlspecialchars($art['resumen']) ?></p>
+
+        <!-- Confianza del análisis (mecánica) -->
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 0.9rem;margin-top:1.1rem;padding-top:0.9rem;border-top:1px solid var(--border-card);font-family:'Inter',Arial,sans-serif;font-size:0.78rem;color:var(--text-faint)">
+          <span style="color:var(--text-muted)">Confianza del análisis:
+            <strong style="color:<?= $conf_col ?>"><?= $conf_nivel ?></strong>
+          </span>
+          <span>· <?= $n_src ?> fuentes</span>
+          <span>· <?= $n_cuad ?> cuadrantes</span>
+          <span>· <?= $n_bloc ?>/3 bloques</span>
+          <span>· <?= $n_post ?> posturas</span>
+        </div>
+        <?php if (!empty($faltan) && $n_cuad > 0): ?>
+          <p style="margin:0.7rem 0 0 0;font-family:'Inter',Arial,sans-serif;font-size:0.78rem;color:var(--text-faint)">
+            <strong style="color:var(--text-muted)">Silencio editorial:</strong>
+            no se detectó cobertura desde <?= htmlspecialchars(implode(' ni ', $faltan)) ?>.
+          </p>
+        <?php endif; ?>
+        <p style="margin:0.7rem 0 0 0;font-family:'Inter',Arial,sans-serif;font-size:0.72rem;color:var(--text-faint);font-style:italic">Confianza estimada de forma automática a partir de la cobertura (nº de fuentes, cuadrantes y bloques), no de un juicio editorial.</p>
       </div>
 
-      <!-- Ausencias -->
-      <?php if (!empty($art['ausencias'])): ?>
-        <p class="section-label">Lo que no se esta diciendo</p>
-        <ul class="ausencias-list">
-          <?php foreach ($art['ausencias'] as $ausencia): ?>
-            <li><?= htmlspecialchars($ausencia) ?></li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endif; ?>
+      <!-- ═══ ZONA B · Lecturas e interpretaciones ═══ -->
+      <div style="border-left:3px solid var(--accent);background:rgba(255,255,255,0.02);border-radius:8px;padding:1.1rem 1.35rem;margin-bottom:1.6rem">
+        <p class="section-label" style="margin-top:0">Lecturas e interpretaciones</p>
+        <p style="margin:0 0 1.3rem 0;font-size:0.9rem;color:var(--text-muted);line-height:1.6">Lo que sigue son lecturas <strong>legítimas</strong> de los mismos hechos según cada cuadrante, no una verdad neutra. Prisma las cartografía; no arbitra cuál es la correcta.</p>
 
-      <!-- Preguntas -->
-      <?php if (!empty($art['preguntas'])): ?>
-        <p class="section-label">Preguntas para pensar</p>
-        <ol class="preguntas-list">
-          <?php foreach ($art['preguntas'] as $pregunta): ?>
-            <li><?= htmlspecialchars($pregunta) ?></li>
+        <!-- Mapa de posturas -->
+        <div class="posturas-grid">
+          <?php foreach ($art['mapa_posturas'] as $i => $postura): ?>
+            <?php $color = $position_colors[$i % count($position_colors)]; ?>
+            <details class="postura-card" style="border-left-color: <?= $color ?>">
+              <summary class="postura-summary">
+                <div>
+                  <div class="postura-etiqueta"><?= htmlspecialchars($postura['etiqueta']) ?></div>
+                  <div class="postura-defensores"><?= htmlspecialchars(implode(' · ', $postura['defensores'])) ?></div>
+                </div>
+              </summary>
+              <div class="postura-body">
+                <ul class="postura-argumentos">
+                  <?php foreach ($postura['argumentos'] as $arg): ?>
+                    <li><?= htmlspecialchars($arg) ?></li>
+                  <?php endforeach; ?>
+                </ul>
+                <?php if (!empty($postura['cita_literal'])): ?>
+                  <blockquote style="margin:0.6rem 0 0 0;padding:0.4rem 0 0.4rem 0.9rem;border-left:2px solid <?= $color ?>;color:var(--text-muted);font-style:italic;font-size:0.9rem">«<?= htmlspecialchars($postura['cita_literal']) ?>»</blockquote>
+                <?php endif; ?>
+                <?php if (!empty($postura['fuentes'])): ?>
+                  <div class="postura-fuentes">
+                    <?php foreach ($postura['fuentes'] as $fuente): ?>
+                      <a href="<?= htmlspecialchars($fuente['url']) ?>" class="fuente-link" target="_blank" rel="noopener noreferrer">
+                        <span class="fuente-medio"><?= htmlspecialchars($fuente['medio']) ?>:</span>
+                        <?= htmlspecialchars($fuente['titulo']) ?>
+                        <span class="fuente-cuadrante"><?= htmlspecialchars($fuente['cuadrante']) ?></span>
+                      </a>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+              </div>
+            </details>
           <?php endforeach; ?>
-        </ol>
-      <?php endif; ?>
+        </div>
+
+        <!-- Ausencias -->
+        <?php if (!empty($art['ausencias'])): ?>
+          <p class="section-label">Lo que no se está diciendo</p>
+          <ul class="ausencias-list">
+            <?php foreach ($art['ausencias'] as $ausencia): ?>
+              <li><?= htmlspecialchars($ausencia) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+
+        <!-- Preguntas -->
+        <?php if (!empty($art['preguntas'])): ?>
+          <p class="section-label">Preguntas para pensar</p>
+          <ol class="preguntas-list">
+            <?php foreach ($art['preguntas'] as $pregunta): ?>
+              <li><?= htmlspecialchars($pregunta) ?></li>
+            <?php endforeach; ?>
+          </ol>
+        <?php endif; ?>
+      </div>
 
       <!-- Fuentes originales del cluster (todas las detectadas, no solo las citadas) -->
       <?php
