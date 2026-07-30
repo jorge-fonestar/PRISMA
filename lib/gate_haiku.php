@@ -1,9 +1,15 @@
 <?php
 /**
- * Prisma — Gate Haiku: batch classification of clusters for scoring v2.
+ * PolarPrisma — Gate Haiku: fusión semántica + clasificación en una llamada.
  *
- * Classifies clusters by relevance, thematic domain, and framing divergence.
- * Single batch call per scan. Results cached in radar table.
+ * Con el escaneo diario (una pasada al día), una única llamada Haiku recibe los
+ * clusters preliminares (pre-agrupados por Jaccard determinista) y:
+ *   1) AGRUPA los que son la misma noticia (fusión semántica robusta, resuelve la
+ *      fragmentación que el Jaccard no ve: "indulta"/"concede el indulto", acentos…).
+ *   2) CLASIFICA cada grupo resultante (relevancia, dominio, framing_divergence
+ *      con evidencia, resumen_neutral).
+ * El re-scoring estructural (cobertura_mutua, silencio, H-score) lo hace escanear.php
+ * sobre los artículos ya fusionados.
  */
 
 require_once __DIR__ . '/anthropic.php';
@@ -20,230 +26,242 @@ define('PRISMA_DOMINIO_VALID', array(
 ));
 
 /**
- * Classifies an array of clusters using Haiku batch.
+ * Fusiona y clasifica clusters preliminares en una sola llamada Haiku.
  *
- * @param array $clusters Each must have: 'cluster_id', 'titulo_tema', 'articulos',
- *                        'contains_political_actor', 'bloques_activos'
- * @return array Indexed by cluster_id: ['relevancia', 'dominio', 'framing_divergence', 'framing_evidence', 'anomalies']
+ * @param array $clusters Cada uno: ['cluster_id'=>int, 'articulos'=>[...], 'contains_political_actor'=>bool]
+ * @return array Lista de grupos, cada uno:
+ *   ['miembros'=>[cluster_id,...], 'articulos'=>[...], 'relevancia', 'dominio',
+ *    'framing_divergence', 'framing_evidence', 'resumen_neutral', 'anomalies']
  */
-function gate_haiku_clasificar(array $clusters): array {
+function gate_haiku_agrupar_clasificar(array $clusters): array {
     $cfg = prisma_cfg();
-
     if (empty($clusters)) return array();
 
-    // Check budget
     try {
         anthropic_check_budget();
     } catch (Exception $e) {
-        prisma_log("GATE", "Budget exhausted — skipping Haiku gate: " . $e->getMessage());
-        return gate_haiku_fallback($clusters);
+        prisma_log("GATE", "Budget agotado — sin gate Haiku: " . $e->getMessage());
+        return gate_haiku_grupos_fallback($clusters);
     }
 
-    // Build input for prompt
     $incluir_desc = !empty($cfg['gate_incluir_descripcion']);
     $desc_max = isset($cfg['gate_desc_max_chars']) ? (int)$cfg['gate_desc_max_chars'] : 160;
 
-    $clusters_json = array();
-    foreach ($clusters as $cluster) {
-        $por_bloque = array();
-        foreach ($cluster['articulos'] as $art) {
-            $c = $art['cuadrante'];
-            if (in_array($c, PRISMA_GRUPO_IZQ)) $bloque = 'izquierda';
-            elseif (in_array($c, PRISMA_GRUPO_DER)) $bloque = 'derecha';
-            else $bloque = 'centro';
+    // Input compacto: por cluster, cuadrantes + hasta 3 muestras etiquetadas por cuadrante.
+    $in = array();
+    foreach ($clusters as $cl) {
+        $cuads = array_values(array_unique(array_column($cl['articulos'], 'cuadrante')));
 
-            if (!isset($por_bloque[$bloque])) $por_bloque[$bloque] = array();
-            $linea = $art['titulo'] . ' (' . $art['medio'] . ')';
-            // Entradilla truncada: da señal real de encuadre, no solo el titular
+        // Ordenar artículos por longitud de titular (el más corto = más factual)
+        $arts = $cl['articulos'];
+        usort($arts, function ($a, $b) { return mb_strlen($a['titulo']) - mb_strlen($b['titulo']); });
+
+        $muestras = array();
+        foreach ($arts as $art) {
+            $m = array('cuadrante' => $art['cuadrante'], 'titular' => $art['titulo']);
             if ($incluir_desc && !empty($art['descripcion'])) {
                 $snippet = trim(mb_substr(strip_tags($art['descripcion']), 0, $desc_max, 'UTF-8'));
-                if ($snippet !== '') $linea .= ' — ' . $snippet;
+                if ($snippet !== '') $m['entradilla'] = $snippet;
             }
-            $por_bloque[$bloque][] = $linea;
+            $muestras[] = $m;
+            if (count($muestras) >= 3) break;
         }
 
-        // Limit to 3 headlines per bloc to control token usage
-        foreach ($por_bloque as $bloque => $titulares) {
-            $por_bloque[$bloque] = array_slice($titulares, 0, 3);
-        }
-
-        $clusters_json[] = array(
-            'cluster_id' => $cluster['cluster_id'],
-            'contains_political_actor' => !empty($cluster['contains_political_actor']),
-            'titulares_por_cuadrante' => $por_bloque,
+        $in[] = array(
+            'cluster_id' => (int)$cl['cluster_id'],
+            'contains_political_actor' => !empty($cl['contains_political_actor']),
+            'cuadrantes' => $cuads,
+            'muestras' => $muestras,
         );
     }
 
-    $system = 'Eres un clasificador de temas informativos. Evalúas clusters de titulares agrupados por cuadrante ideológico (izquierda, centro, derecha) y determinas lo siguiente. Cada entrada puede incluir, tras un guión largo, la entradilla del artículo: úsala para juzgar el encuadre real, no solo el titular.
+    $system = 'Eres un editor de teletipos. Recibes una lista de CLUSTERS: grupos preliminares de artículos sobre, en principio, un mismo tema. Cada cluster trae su titular (o titulares) de muestra etiquetados por cuadrante ideológico (izquierda, centro, derecha) y, tras "entradilla", contexto adicional.
 
-1. RELEVANCIA (string, obligatorio): nivel de potencial para generar narrativas divergentes entre ejes ideológicos. Valores EXACTOS permitidos: "alta", "media", "baja", "descartar". NO devuelvas true/false ni números.
-   - "alta": tema político, social o económico con marcos claramente divergentes entre cuadrantes
-   - "media": tema con potencial de divergencia pero no evidente en los titulares
-   - "baja": tema factual sin carga ideológica pero dentro del ámbito informativo
-   - "descartar": deportes, loterías, entretenimiento, curiosidades, meteorología rutinaria, crónica social
+TAREA 1 — AGRUPAR. Junta en un mismo GRUPO los clusters que cubren la MISMA noticia (el mismo hecho central), aunque el titular use palabras distintas.
+- SÍ es la misma noticia (fusionar): «El Gobierno indulta a Laura Borràs» + «El Gobierno concede el indulto parcial a Borràs y a otras cuatro personas» + «Borràs, indultada». Distinto vocabulario, mismo hecho.
+- NO es la misma noticia (no fusionar) aunque compartan protagonista o tema: «El Gobierno indulta a Borràs» vs «Page critica el indulto a Borràs» (uno es el hecho, otro una reacción concreta con actor propio) → son noticias distintas. Ante duda razonable, NO fusiones.
+- Un cluster pertenece EXACTAMENTE a un grupo. Un grupo puede tener un solo cluster.
 
-2. DOMINIO TEMÁTICO (string, obligatorio): categoría del tema. Valores válidos: "politica_institucional", "economia_trabajo", "sanidad_ciencia", "tecnologia_regulacion", "cultura_identidad", "medio_ambiente", "educacion", "inmigracion", "internacional", "otros".
+TAREA 2 — CLASIFICAR cada grupo resultante, considerando los cuadrantes COMBINADOS de todos sus miembros:
 
-3. FRAMING DIVERGENCE (integer 0-3, obligatorio): grado de divergencia en el ENCUADRE (qué se enfatiza u omite, qué causa/responsable se atribuye, qué juicio implícito se hace) entre cuadrantes.
-   DISTINCIÓN CLAVE — no confundas variación de vocabulario con divergencia de encuadre:
-   - Que dos medios usen palabras distintas para lo mismo (sinónimos, términos técnicos vs coloquiales, nombre completo vs abreviado) NO es divergencia de framing. Si al parafrasear ambos titulares el hecho y el juicio son equivalentes, framing_divergence ≤ 1.
-   - Solo hay divergencia real cuando los cuadrantes atribuyen causas, responsables, consecuencias o valoraciones distintas al MISMO hecho, o cuando uno lo presenta como problema y otro como no-noticia o como solución.
-   REGLAS:
-   - Si solo 1 bloque ideológico cubre el tema → framing_divergence = 0
-   - Si solo 2 bloques cubren → framing_divergence máximo = 2
-   - Si 3 bloques cubren → sin restricción (0-3)
-   - framing_divergence ≥ 2 EXIGE evidencia: solo asígnalo si puedes citar en framing_evidence los marcos concretos y CONTRAPUESTOS de al menos dos cuadrantes. Si no puedes citarlos, el máximo es 1.
-   Escala:
-   0 = cobertura monocorde, insuficiente para juzgar, o solo 1 bloque
-   1 = mismo encuadre con diferencias menores de énfasis o de vocabulario
-   2 = marcos claramente distintos entre cuadrantes (causa/responsable/juicio divergente), con evidencia citable
-   3 = marcos ideológicamente opuestos sobre el mismo hecho, con evidencia citable
+1. RELEVANCIA (string): "alta" | "media" | "baja" | "descartar".
+   - "alta": tema político/social/económico con marcos claramente divergentes entre cuadrantes.
+   - "media": potencial de divergencia no evidente en los titulares.
+   - "baja": factual sin carga ideológica.
+   - "descartar": deportes, loterías, entretenimiento, sucesos sin lectura ideológica, meteorología rutinaria, crónica social.
 
-4. FRAMING EVIDENCE (string o null): si framing_divergence ≥ 2 es OBLIGATORIO — cita breve (<25 palabras) que contraste el marco de un cuadrante frente a otro (p. ej. «izq: "recortes sociales"; der: "ajuste responsable"»). Si framing_divergence ≤ 1, puede ser null.
+2. DOMINIO_TEMATICO (string): "politica_institucional", "economia_trabajo", "sanidad_ciencia", "tecnologia_regulacion", "cultura_identidad", "medio_ambiente", "educacion", "inmigracion", "internacional", "otros".
 
-5. RESUMEN NEUTRAL (string o null): UNA frase (máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento) que se mostrará JUSTO DEBAJO del titular, que el lector YA ha visto. Por eso NO puede repetir el titular.
-   - PROHIBIDO empezar reformulando el sujeto+verbo del titular. Ejemplo: si el titular es «El PIB creció un 0,7% en el segundo trimestre», NO escribas «El PIB español crece un 0,7%…»; escribe lo que el titular NO dice, p. ej. «Lo impulsan el consumo de los hogares y la inversión; el comercio exterior resta al avance.».
-   - Aporta el dato MÁS informativo que falta en el titular: cifra exacta, causa, consecuencia, trasfondo, quién reacciona o qué está en juego, tomándolo de las entradillas. Debe leerse como la SEGUNDA frase de la noticia, no como un eco de la primera.
-   - Si las entradillas no aportan nada más allá del titular, devuelve null (mejor nada que un eco).
-   - REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, null.
+3. FRAMING_DIVERGENCE (integer 0-3): divergencia de ENCUADRE (qué se enfatiza u omite, qué causa/responsable se atribuye, qué juicio implícito) entre cuadrantes.
+   - NO confundas variación de vocabulario con divergencia de encuadre: palabras distintas para lo mismo NO es framing. Si al parafrasear el hecho y el juicio son equivalentes, fd ≤ 1.
+   - Solo hay divergencia real cuando los cuadrantes atribuyen causas, responsables, consecuencias o valoraciones distintas al MISMO hecho, o uno lo presenta como problema y otro como no-noticia o solución.
+   - Si el grupo lo cubre 1 solo bloque → fd = 0. Si 2 bloques → fd máximo 2. Si 3 bloques → 0-3.
+   - fd ≥ 2 EXIGE evidencia citable de marcos contrapuestos; si no puedes citarla, máximo 1.
+   Escala: 0 monocorde/1 bloque · 1 mismo encuadre, diferencias menores · 2 marcos distintos con evidencia · 3 marcos opuestos con evidencia.
 
-Si contains_political_actor es true, el cluster referencia actores políticos o instituciones — calibra relevancia en consecuencia (tiende a "alta").
+4. FRAMING_EVIDENCE (string o null): si fd ≥ 2, OBLIGATORIO — cita breve (<25 palabras) contrastando el marco de un cuadrante frente a otro (p. ej. «izq: "recortes sociales"; der: "ajuste responsable"»). Si fd ≤ 1, null.
 
-Cada objeto del array DEBE tener: cluster_id (int), relevancia (string), dominio_tematico (string), framing_divergence (int), framing_evidence (string o null), resumen_neutral (string o null).
+5. RESUMEN_NEUTRAL (string o null): UNA frase (máx. 25 palabras, sin adjetivación valorativa) que se mostrará JUSTO DEBAJO del titular, que el lector YA ha visto, así que NO puede repetirlo.
+   - PROHIBIDO empezar reformulando el sujeto+verbo del titular. Aporta el dato que el titular NO dice: cifra exacta, causa, consecuencia, trasfondo, quién reacciona o qué está en juego, tomándolo de las entradillas. Debe leerse como la SEGUNDA frase de la noticia.
+   - Si las entradillas no aportan nada más allá del titular, null.
+   - Solo si el grupo lo cubren ≥2 bloques ideológicos distintos; si no, null.
 
-Responde SOLO con un JSON array válido, sin markdown ni explicaciones.';
+Si contains_political_actor es true en algún miembro, el grupo referencia actores/instituciones — calibra relevancia en consecuencia (tiende a "alta").
 
-    $user_msg = json_encode(array('clusters' => $clusters_json), JSON_UNESCAPED_UNICODE);
+Responde SOLO con un JSON: un array "grupos". Cada grupo: {"miembros": [cluster_id,...], "relevancia": string, "dominio_tematico": string, "framing_divergence": int, "framing_evidence": string|null, "resumen_neutral": string|null}. Sin markdown ni explicaciones. Todo cluster_id de entrada debe aparecer en exactamente un grupo.';
+
+    $user_msg = json_encode(array('clusters' => $in), JSON_UNESCAPED_UNICODE);
 
     $model = $cfg['model_triage'];
-    $max_retries = 1;
-    $results = null;
-
-    for ($attempt = 0; $attempt <= $max_retries; $attempt++) {
+    $grupos = null;
+    for ($attempt = 0; $attempt <= 1; $attempt++) {
         try {
             $raw = anthropic_call($model, $system, $user_msg, 8192);
-            $results = parse_json_response($raw);
-            if (is_array($results)) break;
+            $parsed = parse_json_response($raw);
+            if (isset($parsed['grupos']) && is_array($parsed['grupos'])) $parsed = $parsed['grupos'];
+            if (is_array($parsed)) { $grupos = $parsed; break; }
         } catch (Exception $e) {
-            prisma_log("GATE", "Haiku call failed (attempt " . ($attempt + 1) . "): " . $e->getMessage());
+            prisma_log("GATE", "Fallo Haiku (intento " . ($attempt + 1) . "): " . $e->getMessage());
         }
     }
 
-    if (!is_array($results)) {
-        prisma_log("GATE", "Haiku failed after retries — using fallback.");
-        return gate_haiku_fallback($clusters);
+    if (!is_array($grupos)) {
+        prisma_log("GATE", "Haiku falló tras reintentos — fallback sin fusión.");
+        return gate_haiku_grupos_fallback($clusters);
     }
 
-    // Unwrap if Haiku returned {"clusters": [...]} instead of [...]
-    if (isset($results['clusters']) && is_array($results['clusters'])) {
-        prisma_log("GATE", "Unwrapping nested 'clusters' key from Haiku response.");
-        $results = $results['clusters'];
-    }
+    // Índice por cluster_id
+    $by_id = array();
+    foreach ($clusters as $cl) $by_id[(int)$cl['cluster_id']] = $cl;
 
-    // Debug: log first result to diagnose type issues
-    if (!empty($results)) {
-        $sample = $results[0];
-        prisma_log("GATE", "Sample Haiku result: " . json_encode($sample, JSON_UNESCAPED_UNICODE));
-    }
+    $salida = array();
+    $vistos = array();
 
-    // Map and validate results
-    $indexed = array();
-    foreach ($results as $r) {
-        $cid = isset($r['cluster_id']) ? $r['cluster_id'] : null;
-        if ($cid === null) continue;
+    foreach ($grupos as $g) {
+        $miembros_raw = isset($g['miembros']) ? $g['miembros']
+            : (isset($g['cluster_ids']) ? $g['cluster_ids'] : array());
+        if (!is_array($miembros_raw)) continue;
 
-        // Find matching cluster to get bloques_activos for cap validation
-        $bloques_activos = 3; // default
-        foreach ($clusters as $cl) {
-            if ((int)$cl['cluster_id'] === (int)$cid) {
-                $bloques_activos = $cl['bloques_activos'];
-                break;
+        $miembros = array();
+        foreach ($miembros_raw as $m) {
+            $mid = (int)$m;
+            if (isset($by_id[$mid]) && !isset($vistos[$mid])) {
+                $miembros[] = $mid;
+                $vistos[$mid] = true;
+            }
+        }
+        if (empty($miembros)) continue;
+
+        // Unión de artículos (dedup por URL)
+        $arts = array();
+        $urls = array();
+        foreach ($miembros as $mid) {
+            foreach ($by_id[$mid]['articulos'] as $a) {
+                $u = isset($a['url']) ? $a['url'] : '';
+                if ($u !== '' && isset($urls[$u])) continue;
+                if ($u !== '') $urls[$u] = true;
+                $arts[] = $a;
             }
         }
 
-        $rel_raw = isset($r['relevancia']) ? $r['relevancia'] : 'media';
-        // Haiku may return 'dominio' or 'dominio_tematico'
-        $dom = isset($r['dominio_tematico']) ? (string)$r['dominio_tematico']
-             : (isset($r['dominio']) ? (string)$r['dominio'] : 'otros');
-        $fd  = isset($r['framing_divergence']) ? (int)$r['framing_divergence'] : 0;
-        $ev  = isset($r['framing_evidence']) ? $r['framing_evidence'] : null;
-        $res = (isset($r['resumen_neutral']) && is_string($r['resumen_neutral']) && trim($r['resumen_neutral']) !== '')
-             ? trim($r['resumen_neutral']) : null;
+        $clasif = gate_haiku_normalizar_clasificacion($g, $arts);
+        $salida[] = array(
+            'miembros' => $miembros,
+            'articulos' => $arts,
+        ) + $clasif;
+    }
 
-        // Haiku sometimes returns booleans instead of strings for relevancia
-        if ($rel_raw === true) {
-            $rel = 'alta';
-        } elseif ($rel_raw === false) {
-            $rel = 'baja';
-        } else {
-            $rel = (string)$rel_raw;
-        }
-
-        // Validate enums (strict to avoid PHP type juggling)
-        if (!in_array($rel, PRISMA_RELEVANCIA_VALID, true)) $rel = 'media';
-        if (!in_array($dom, PRISMA_DOMINIO_VALID, true)) $dom = 'otros';
-        if ($fd < 0) $fd = 0;
-        if ($fd > 3) $fd = 3;
-
-        // Cap validation
-        $anomalies = array();
-        if ($bloques_activos === 1 && $fd > 0) {
-            $anomalies[] = array('tipo' => 'ANOMALY_FD_CAP_VIOLATION', 'detalle' => "fd=$fd with 1 bloc, capped to 0");
-            $fd = 0;
-        } elseif ($bloques_activos === 2 && $fd > 2) {
-            $anomalies[] = array('tipo' => 'ANOMALY_FD_CAP_VIOLATION', 'detalle' => "fd=$fd with 2 blocs, capped to 2");
-            $fd = 2;
-        }
-
-        // Salvaguarda de evidencia: un fd alto sin marcos contrapuestos citables no es
-        // fiable (era la causa del falso positivo del 016) → se capa a 1.
-        $ev_str = is_string($ev) ? trim($ev) : '';
-        if ($fd >= 2 && mb_strlen($ev_str, 'UTF-8') < 12) {
-            $anomalies[] = array('tipo' => 'ANOMALY_FD_SIN_EVIDENCIA', 'detalle' => "fd=$fd sin framing_evidence citable, capado a 1");
-            $fd = 1;
-        }
-
-        // Salvaguarda del resumen: solo con ≥2 bloques (aunque el modelo se salte la regla)
-        if ($bloques_activos < 2) $res = null;
-
-        $indexed[(int)$cid] = array(
-            'relevancia' => $rel,
-            'dominio' => $dom,
-            'framing_divergence' => $fd,
-            'framing_evidence' => $ev,
-            'resumen_neutral' => $res,
-            'anomalies' => $anomalies,
+    // Clusters que Haiku no asignó → singleton indeterminado (no se pierde nada)
+    foreach ($clusters as $cl) {
+        $cid = (int)$cl['cluster_id'];
+        if (isset($vistos[$cid])) continue;
+        $salida[] = array(
+            'miembros' => array($cid),
+            'articulos' => $cl['articulos'],
+            'relevancia' => 'indeterminada',
+            'dominio' => null,
+            'framing_divergence' => null,
+            'framing_evidence' => null,
+            'resumen_neutral' => null,
+            'anomalies' => array(
+                array('tipo' => 'ANOMALY_MISSING_CLUSTER', 'detalle' => "cluster_id=$cid ausente en la respuesta Haiku"),
+            ),
         );
     }
 
-    // Handle missing clusters (conservative defaults)
-    foreach ($clusters as $cl) {
-        $cid = (int)$cl['cluster_id'];
-        if (!isset($indexed[$cid])) {
-            $indexed[$cid] = array(
-                'relevancia' => 'media',
-                'dominio' => 'otros',
-                'framing_divergence' => 1,
-                'framing_evidence' => null,
-                'resumen_neutral' => null,
-                'anomalies' => array(
-                    array('tipo' => 'ANOMALY_MISSING_CLUSTER', 'detalle' => "cluster_id=$cid missing from Haiku response"),
-                ),
-            );
-        }
-    }
-
-    prisma_log("GATE", count($indexed) . " clusters classified by Haiku.");
-    return $indexed;
+    $n_fusiones = count($clusters) - count($salida);
+    prisma_log("GATE", count($clusters) . " clusters → " . count($salida) . " grupos ($n_fusiones fusiones).");
+    return $salida;
 }
 
 /**
- * Fallback when Haiku is unavailable: all clusters get indeterminada.
+ * Normaliza y valida la clasificación de un grupo (enums + topes de fd + evidencia).
+ *
+ * @param array $g    Objeto del grupo devuelto por Haiku
+ * @param array $arts Artículos fusionados del grupo (para contar bloques)
+ * @return array ['relevancia','dominio','framing_divergence','framing_evidence','resumen_neutral','anomalies']
  */
-function gate_haiku_fallback(array $clusters): array {
-    $indexed = array();
+function gate_haiku_normalizar_clasificacion(array $g, array $arts): array {
+    $b = contar_bloques($arts);
+    $bloques_activos = $b['bloques_activos'];
+
+    $rel_raw = isset($g['relevancia']) ? $g['relevancia'] : 'media';
+    if ($rel_raw === true) $rel = 'alta';
+    elseif ($rel_raw === false) $rel = 'baja';
+    else $rel = (string)$rel_raw;
+
+    $dom = isset($g['dominio_tematico']) ? (string)$g['dominio_tematico']
+         : (isset($g['dominio']) ? (string)$g['dominio'] : 'otros');
+    $fd  = isset($g['framing_divergence']) ? (int)$g['framing_divergence'] : 0;
+    $ev  = isset($g['framing_evidence']) ? $g['framing_evidence'] : null;
+    $res = (isset($g['resumen_neutral']) && is_string($g['resumen_neutral']) && trim($g['resumen_neutral']) !== '')
+         ? trim($g['resumen_neutral']) : null;
+
+    if (!in_array($rel, PRISMA_RELEVANCIA_VALID, true)) $rel = 'media';
+    if (!in_array($dom, PRISMA_DOMINIO_VALID, true)) $dom = 'otros';
+    if ($fd < 0) $fd = 0;
+    if ($fd > 3) $fd = 3;
+
+    $anomalies = array();
+    // Topes por nº de bloques
+    if ($bloques_activos === 1 && $fd > 0) {
+        $anomalies[] = array('tipo' => 'ANOMALY_FD_CAP_VIOLATION', 'detalle' => "fd=$fd con 1 bloque, capado a 0");
+        $fd = 0;
+    } elseif ($bloques_activos === 2 && $fd > 2) {
+        $anomalies[] = array('tipo' => 'ANOMALY_FD_CAP_VIOLATION', 'detalle' => "fd=$fd con 2 bloques, capado a 2");
+        $fd = 2;
+    }
+
+    // Salvaguarda de evidencia: fd alto sin marcos contrapuestos citables → capar a 1.
+    $ev_str = is_string($ev) ? trim($ev) : '';
+    if ($fd >= 2 && mb_strlen($ev_str, 'UTF-8') < 12) {
+        $anomalies[] = array('tipo' => 'ANOMALY_FD_SIN_EVIDENCIA', 'detalle' => "fd=$fd sin framing_evidence citable, capado a 1");
+        $fd = 1;
+    }
+
+    // Resumen solo con ≥2 bloques
+    if ($bloques_activos < 2) $res = null;
+
+    return array(
+        'relevancia' => $rel,
+        'dominio' => $dom,
+        'framing_divergence' => $fd,
+        'framing_evidence' => $ev,
+        'resumen_neutral' => $res,
+        'anomalies' => $anomalies,
+    );
+}
+
+/**
+ * Fallback cuando Haiku no está disponible: cada cluster es su propio grupo,
+ * sin clasificar (indeterminada → h_score 0 → no contamina digest/análisis).
+ */
+function gate_haiku_grupos_fallback(array $clusters): array {
+    $salida = array();
     foreach ($clusters as $cl) {
-        $indexed[$cl['cluster_id']] = array(
+        $salida[] = array(
+            'miembros' => array((int)$cl['cluster_id']),
+            'articulos' => $cl['articulos'],
             'relevancia' => 'indeterminada',
             'dominio' => null,
             'framing_divergence' => null,
@@ -252,57 +270,5 @@ function gate_haiku_fallback(array $clusters): array {
             'anomalies' => array(),
         );
     }
-    return $indexed;
-}
-
-/**
- * Checks if a cluster's Haiku classification is cached (already in radar with scoring v2).
- *
- * Cache key: titulo_tema + cuadrantes composition.
- * Invalidation: if the cluster now has different active cuadrantes than cached, reclassify.
- * TTL: 48h.
- *
- * @param string $titulo_tema Cluster title
- * @param string $cuadrantes_key Sorted comma-separated active cuadrantes
- * @param string $fecha Date string
- * @return array|null Cached classification or null
- */
-function gate_haiku_cache_check(string $titulo_tema, string $cuadrantes_key, string $fecha) {
-    require_once __DIR__ . '/../db.php';
-    $db = prisma_db();
-
-    $stmt = $db->prepare("SELECT relevancia, dominio_tematico, framing_divergence, framing_evidence, resumen_neutral, fuentes_json
-        FROM radar
-        WHERE titulo_tema = :titulo AND fecha >= :fecha_min
-        AND scoring_version = 'v2' AND relevancia IS NOT NULL
-        ORDER BY fecha DESC
-        LIMIT 1");
-
-    // TTL: 48h
-    $fecha_min = date('Y-m-d', strtotime($fecha . ' -2 days'));
-    $stmt->execute(array(':titulo' => $titulo_tema, ':fecha_min' => $fecha_min));
-    $row = $stmt->fetch();
-
-    if (!$row) return null;
-
-    // Invalidation: compare cuadrantes composition
-    $cached_fuentes = json_decode($row['fuentes_json'], true);
-    if (is_array($cached_fuentes)) {
-        $cached_cuadrantes = array_unique(array_column($cached_fuentes, 'cuadrante'));
-        sort($cached_cuadrantes);
-        $cached_key = implode(',', $cached_cuadrantes);
-        if ($cached_key !== $cuadrantes_key) {
-            // Composition changed — invalidate cache
-            return null;
-        }
-    }
-
-    return array(
-        'relevancia' => $row['relevancia'],
-        'dominio' => $row['dominio_tematico'],
-        'framing_divergence' => $row['framing_divergence'] !== null ? (int)$row['framing_divergence'] : null,
-        'framing_evidence' => $row['framing_evidence'],
-        'resumen_neutral' => isset($row['resumen_neutral']) ? $row['resumen_neutral'] : null,
-        'anomalies' => array(),
-    );
+    return $salida;
 }

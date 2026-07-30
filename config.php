@@ -296,7 +296,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // Rate limiting
     'rss_rate_limit' => 1,
     'rss_timeout'    => 15,
-    // Ventana de lectura RSS (horas): 48h captura versiones tardías de un tema
-    // que con 24h caían fuera del cluster.
-    'rss_ventana_horas' => 48,
+    // Ventana de lectura RSS (horas): con un único escaneo diario, 36h da solape
+    // suficiente para no perder nada entre días sin arrastrar demasiado ruido viejo.
+    'rss_ventana_horas' => 36,
 );

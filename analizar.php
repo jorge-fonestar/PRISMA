@@ -203,6 +203,39 @@ foreach ($candidatos_raw as $row) {
     );
 }
 
+// ── Guard cross-día: no re-analizar una historia ya publicada hace pocos días ──
+// Con el escaneo diario, una historia que sigue caliente reaparece como fila nueva
+// del radar cada día; esto evita gastar un análisis en algo ya publicado.
+if ($specific_id === 0 && !empty($candidatos)) {
+    $dias_guard = isset($cfg['reanalisis_guard_dias']) ? (int)$cfg['reanalisis_guard_dias'] : 3;
+    $minid_guard = date('Y-m-d', strtotime("-{$dias_guard} days")) . '-000';
+    $prev = $db->prepare('SELECT titular_neutral FROM articulos WHERE id >= :minid');
+    $prev->execute(array(':minid' => $minid_guard));
+    $kw_previos = array();
+    foreach ($prev->fetchAll(PDO::FETCH_COLUMN) as $t) {
+        if ($t) $kw_previos[] = extraer_keywords($t);
+    }
+    if (!empty($kw_previos)) {
+        $antes = count($candidatos);
+        $candidatos = array_values(array_filter($candidatos, function ($c) use ($kw_previos) {
+            $kw = extraer_keywords($c['titulo_tema']);
+            foreach ($kw_previos as $kp) {
+                if (keywords_similarity($kw, $kp) >= 0.55) return false;
+            }
+            return true;
+        }));
+        $saltados = $antes - count($candidatos);
+        if ($saltados > 0) {
+            prisma_log("ANALYZE", "$saltados candidato(s) saltado(s): historia ya publicada en los últimos $dias_guard días.");
+        }
+    }
+}
+
+if (empty($candidatos)) {
+    prisma_log("ANALYZE", "No quedan candidatos tras el guard cross-día. Nada que analizar.");
+    exit(0);
+}
+
 // ── Triage Haiku (batch confirmation) ────────────────────────────────
 
 if ($specific_id > 0) {

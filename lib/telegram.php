@@ -139,8 +139,15 @@ function telegram_digest_enviar($fecha = null): bool {
     if (empty($cfg['telegram_bot_token']) || empty($cfg['telegram_chat_id'])) return false;
 
     if ($fecha === null) {
-        $tz = new DateTimeZone($cfg['timezone']);
-        $fecha = (new DateTime('now', $tz))->modify('-1 day')->format('Y-m-d');
+        // Con el escaneo diario, el digest reporta la última fecha escaneada
+        // (la pasada de esta madrugada, que cubre las ~36h de noticias previas).
+        require_once __DIR__ . '/../db.php';
+        $db = prisma_db();
+        $fecha = $db->query("SELECT MAX(fecha) FROM radar")->fetchColumn();
+        if (!$fecha) {
+            $tz = new DateTimeZone($cfg['timezone']);
+            $fecha = (new DateTime('now', $tz))->format('Y-m-d');
+        }
     }
 
     $texto = telegram_digest_construir($fecha);
