@@ -17,7 +17,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only'); }
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/common.php';
-require_once __DIR__ . '/lib/scoring.php';
+require_once __DIR__ . '/lib/curador.php';
 require_once __DIR__ . '/lib/anthropic.php';
 require_once __DIR__ . '/db.php';
 
