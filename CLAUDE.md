@@ -12,13 +12,17 @@ Detecta la polarización informativa (cómo medios de distinto signo cuentan la
 misma noticia, o qué callan) y genera análisis multipostura auditados contra 11
 axiomas ("Moral Core"). **PHP 7/8 + SQLite + API de Anthropic**, sin frameworks.
 
-Pipeline en dos fases:
-- **Fase 1 — `escanear.php`** (cron 4h, gratis): lee RSS de todo el espectro,
-  agrupa por tema (Jaccard ponderado titular+entradilla), puntúa polarización
-  (H-score v2) con un **gate Haiku** (batch) y llena la tabla `radar`.
-- **Fase 2 — `analizar.php`** (cron diario): toma los temas más polarizados,
-  triage Haiku → síntesis Sonnet → auditoría Moral Core, sobre la **Batches API**
-  (50% de coste). Publica en `articulos`.
+Pipeline en dos fases (ambas 1×/día, encadenadas de madrugada):
+- **Fase 1 — `escanear.php`** (cron diario 04:30 UTC, ~$0.10): lee RSS de todo el
+  espectro, **pre-agrupa** por similitud (Jaccard ponderado titular+entradilla) y
+  luego, en **una sola llamada Haiku** (`gate_haiku_agrupar_clasificar`), **fusiona**
+  los clusters que son la misma noticia —lo que el Jaccard no ve: "indulta"/"concede
+  el indulto", acentos, ruido— y **clasifica** cada grupo (relevancia, dominio,
+  framing_divergence con evidencia, resumen_neutral). Re-calcula el H-score v2 sobre
+  los grupos fusionados y llena `radar`.
+- **Fase 2 — `analizar.php`** (cron diario 05:00 UTC): toma los temas más polarizados
+  (con guard cross-día para no repetir historia ya publicada), triage Haiku → síntesis
+  Sonnet → auditoría Moral Core, sobre la **Batches API** (50% de coste). Publica en `articulos`.
 
 ## Dónde vive todo
 
@@ -68,9 +72,13 @@ ssh ea1jxe 'docker exec polarprisma php -r "\$d=new PDO(\"sqlite:/var/www/html/d
 
 ## Crons (Ofelia, en el compose; horas UTC)
 
-- `prisma-escanear` — `0 0 */4 * * *` — Fase 1.
-- `prisma-analizar` — `0 30 17 * * *` — Fase 2.
-- `prisma-digest` — `0 0 6 * * *` (08:00 Madrid en verano) — digest Telegram del día anterior.
+- `prisma-escanear` — `0 30 4 * * *` (04:30) — Fase 1.
+- `prisma-analizar` — `0 0 5 * * *` (05:00) — Fase 2.
+- `prisma-digest` — `0 0 6 * * *` (06:00, 08:00 Madrid en verano) — digest Telegram de lo escaneado esa madrugada.
+
+Los tres se encadenan cada madrugada. Al cambiar horarios/labels: editar el compose
+en el repo `serviyorch`, `git pull` en el server, `docker compose up -d` (recrea el
+contenedor con las labels nuevas) y **`docker restart ofelia`** para re-registrar.
 
 ## Modelos de IA (config.php)
 

@@ -124,7 +124,7 @@ page_header(
   <?php endif; ?>
 
   <h2>Cómo se detecta un silencio</h2>
-  <p>En cada escaneo (cada 4 horas) el radar agrupa los artículos de más de 28 fuentes de todo el
+  <p>En el escaneo diario el radar agrupa los artículos de más de 28 fuentes de todo el
   espectro en temas. Para cada tema se registra qué bloques ideológicos lo cubren (izquierda,
   centro, derecha, según la <a href="<?= $B ?>fuentes.php">matriz pública de fuentes</a>). Si un
   bloque no tiene ningún artículo en un tema que otros bloques sí cubren, la señal de silencio

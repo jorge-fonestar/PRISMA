@@ -98,6 +98,14 @@
 - **Ficha en dos zonas + confianza — HECHO (30-jul, #2 y parte de #3)**: "Lo que está
   documentado" (resumen + confianza mecánica Alta/Media/Baja por cobertura + silencio
   editorial) vs "Lecturas e interpretaciones" (posturas como lecturas legítimas).
+- **Rediseño a escaneo diario + fusión Haiku — HECHO (30-jul)**: se pasó de 6 escaneos/día
+  a **1** (cron 04:30/05:00/06:00 UTC). El clustering deja de depender de heurísticas
+  frágiles: tras el pre-agrupado Jaccard, **una llamada Haiku fusiona los fragmentos de la
+  misma noticia y clasifica** (`gate_haiku_agrupar_clasificar`); escanear.php re-calcula el
+  H-score sobre los grupos. Eliminados: dedup cross-día (`$upd_ayer`), `postmerge_clusters`
+  + trigramas. `analizar.php` gana guard cross-día (no re-analizar historia ya publicada).
+  Ventana RSS 48h→36h. Motivo: la fragmentación del indulto a Borràs (7 filas el 29-jul).
+  Validado: 38 clusters → 33 grupos (5 fusiones) en un escaneo real.
 
 ### Hoja de ruta activa (rescatada de la conversación de diseño)
 - **En curso**: #1 verificación factual con `web_search` en la síntesis (+ separar zona
@@ -108,9 +116,9 @@
   y #5 equilibrio del corpus (recuperar flanco izquierdo Público/InfoLibre/CTXT vía
   captura de portada; auditoría ejes×cuadrantes×ámbitos; ampliar fuentes).
 
-- **Cobertura de fuentes por tema — RESUELTO (25-jul)**: ventana de lectura RSS
-  a 48h (`rss_ventana_horas`) y clustering por **mejor match** (cada artículo al
-  cluster más similar, no al primero; `curador_seleccionar`). Validado: el caso
+- **Cobertura de fuentes por tema — RESUELTO (25-jul; superado por el rediseño del 30-jul)**:
+  clustering por **mejor match** en `curador_seleccionar` (se mantiene como pre-agrupado);
+  la fusión de fragmentos la hace ahora Haiku, no los trigramas. La ventana pasó a 36h. Validado: el caso
   "016" agrupa a El País correctamente sin que el ruido "España/Mundial" lo robe;
   en producción, cluster mayor de 9 fuentes (sin sobre-fusión). Nota: el caso
   histórico del 016 no se recupera retroactivamente (esa noticia ya supera las 48h).
