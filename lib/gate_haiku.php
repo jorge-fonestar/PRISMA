@@ -101,7 +101,11 @@ function gate_haiku_clasificar(array $clusters): array {
 
 4. FRAMING EVIDENCE (string o null): si framing_divergence ≥ 2 es OBLIGATORIO — cita breve (<25 palabras) que contraste el marco de un cuadrante frente a otro (p. ej. «izq: "recortes sociales"; der: "ajuste responsable"»). Si framing_divergence ≤ 1, puede ser null.
 
-5. RESUMEN NEUTRAL (string o null): resumen factual del tema en UNA frase, máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento. NO parafrasees el titular: debe APORTAR contexto o datos que el titular no dice (cifras, causa, actores implicados, consecuencia, qué está en juego), apoyándote en las entradillas. Si lo único disponible es reformular el titular, prefiere añadir el dato o matiz más informativo de las entradillas. REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, devuelve null (una fuente única no da para un resumen neutral).
+5. RESUMEN NEUTRAL (string o null): UNA frase (máximo 25 palabras, en español, sin adjetivación valorativa ni posicionamiento) que se mostrará JUSTO DEBAJO del titular, que el lector YA ha visto. Por eso NO puede repetir el titular.
+   - PROHIBIDO empezar reformulando el sujeto+verbo del titular. Ejemplo: si el titular es «El PIB creció un 0,7% en el segundo trimestre», NO escribas «El PIB español crece un 0,7%…»; escribe lo que el titular NO dice, p. ej. «Lo impulsan el consumo de los hogares y la inversión; el comercio exterior resta al avance.».
+   - Aporta el dato MÁS informativo que falta en el titular: cifra exacta, causa, consecuencia, trasfondo, quién reacciona o qué está en juego, tomándolo de las entradillas. Debe leerse como la SEGUNDA frase de la noticia, no como un eco de la primera.
+   - Si las entradillas no aportan nada más allá del titular, devuelve null (mejor nada que un eco).
+   - REGLA ESTRICTA: devuélvelo SOLO si el tema está cubierto por 2 o más bloques ideológicos distintos (izquierda/centro/derecha en titulares_por_cuadrante). Si solo lo cubre 1 bloque, null.
 
 Si contains_political_actor es true, el cluster referencia actores políticos o instituciones — calibra relevancia en consecuencia (tiende a "alta").
 
