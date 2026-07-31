@@ -156,6 +156,8 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 // Diario Red: 403 Forbidden (bot block) — removed until URL change
                 array('El Salto', 'https://www.elsaltodiario.com/general/feed',
                     'Cooperativa de trabajadores y lectores. 70% financiado por ~10.000 socios suscriptores. Publicidad limitada al 20% por estatutos. Sin accionistas externos.'),
+                array('Kaos en la Red', 'https://kaosenlared.net/feed/',
+                    'Medio digital de izquierda alternativa/anticapitalista, gestión colectiva sin ánimo de lucro. Añadido jul-2026 para compensar el flanco izquierdo (Público/CTXT sin RSS).'),
             ),
             'izquierda' => array(
                 array(
@@ -179,6 +181,8 @@ $GLOBALS['_PRISMA_CFG'] = array(
                     'ejes_cubiertos' => array(),
                 ),
                 array('La Marea', 'https://www.lamarea.com/feed/'),
+                array('Nueva Tribuna', 'https://www.nuevatribuna.es/rss/',
+                    'Diario digital progresista (Página 7 S.L.). Añadido jul-2026 para reforzar el flanco izquierdo tras la caída de Público e InfoLibre.'),
             ),
             'centro-izquierda' => array(
                 array('El País', 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada',
