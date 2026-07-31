@@ -86,10 +86,11 @@ function telegram_digest_construir(string $fecha, $umbral = null, $cap = null) {
     require_once __DIR__ . '/../db.php';
     $db = prisma_db();
 
-    $stmt = $db->prepare("SELECT id, titulo_tema, ambito, h_score, analizado, articulo_id, resumen_neutral
-        FROM radar
-        WHERE fecha = :fecha AND relevancia IN ('alta','media') AND h_score >= :umbral
-        ORDER BY h_score DESC, id DESC");
+    $stmt = $db->prepare("SELECT r.id, r.titulo_tema, r.ambito, r.h_score, r.analizado, r.articulo_id, r.resumen_neutral, a.titular_neutral
+        FROM radar r
+        LEFT JOIN articulos a ON r.articulo_id = a.id
+        WHERE r.fecha = :fecha AND r.relevancia IN ('alta','media') AND r.h_score >= :umbral
+        ORDER BY r.h_score DESC, r.id DESC");
     $stmt->execute(array(':fecha' => $fecha, ':umbral' => $umbral));
     $temas = $stmt->fetchAll();
     if (empty($temas)) return null;
@@ -109,9 +110,15 @@ function telegram_digest_construir(string $fecha, $umbral = null, $cap = null) {
         $marca = $analizada ? ' · 🔬 <i>análisis</i>' : ' · 🔹 <i>en radar</i>';
 
         $b  = telegram_semaforo($pct) . ' <b>' . $pct . '%</b>' . $marca . "\n";
-        $b .= '<a href="' . $link . '">' . $esc(trim($t['titulo_tema'])) . '</a>';
-        if (!empty($t['resumen_neutral'])) {
-            $b .= "\n<i>" . $esc(trim($t['resumen_neutral'])) . '</i>';
+        // Analizado: el titular neutral del análisis capta mejor el tema y la tensión,
+        // y evita el resumen que a veces repetía el titular. Sin analizar: titular + resumen.
+        if ($analizada && !empty($t['titular_neutral'])) {
+            $b .= '<a href="' . $link . '">' . $esc(trim($t['titular_neutral'])) . '</a>';
+        } else {
+            $b .= '<a href="' . $link . '">' . $esc(trim($t['titulo_tema'])) . '</a>';
+            if (!empty($t['resumen_neutral'])) {
+                $b .= "\n<i>" . $esc(trim($t['resumen_neutral'])) . '</i>';
+            }
         }
         $bloques[] = $b;
     }

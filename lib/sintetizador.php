@@ -37,6 +37,7 @@ La búsqueda web es CARA. Úsala SOLO si, al analizar el tema, se da alguno de e
 (a) las fuentes se CONTRADICEN en un dato concreto (una cifra, fecha, magnitud o autoría distinta para el mismo hecho), o
 (b) hay una cifra o dato llamativo y CENTRAL atribuido a UNA SOLA parte interesada (gobierno, partido, empresa) y presentado como hecho establecido.
 Si las fuentes coinciden en los hechos y solo difieren en la INTERPRETACIÓN o el encuadre, NO busques: no hay nada que contrastar. Deja "verificaciones" y "discrepancias" como listas vacías.
+NUNCA uses web_search para BUSCAR fuentes, medios o posturas que falten: la búsqueda es SOLO para verificar datos (casos a/b). Si un cuadrante o una postura no aparece en el contexto proporcionado, decláralo en "ausencias" — no lo busques en internet ni lo inventes.
 Cuando sí busques (máximo 2 búsquedas, solo lo esencial): prioriza fuentes primarias — instituciones españolas (ine.es, boe.es, dominios .gob.es), europeas (europa.eu, eurostat), luego organismos internacionales oficiales.
 - Verifica SOLO hechos comprobables, nunca opiniones ni interpretaciones.
 - Si un dato NO se confirma, o la fuente primaria lo contradice o matiza, NO lo presentes como hecho establecido: recógelo en "discrepancias".
