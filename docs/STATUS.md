@@ -129,6 +129,9 @@
   0% como **EFE**, que el widget viejo no captaba—, escribe `data/feed_alertas.json` (banner en el
   panel con la última comprobación) y avisa por Telegram al chat privado si `TELEGRAM_ADMIN_CHAT_ID`
   está configurado (nunca al canal público). Filtra feeds ya retirados (RTVE).
+  El chequeo también **sonda** los feeds caídos con `url_candidata` (EFE/Público/CTXT/InfoLibre) y
+  avisa (banner verde + Telegram) si uno vuelve, para reactivarlo a mano (no se reactiva solo).
+  El **Mapa** muestra por medio el estado del feed (RSS/con fallos/Portada/Sin RSS) con enlace clicable.
 - **EFE — RESUELTO (31-jul)**: no era arreglable desde aquí — su RSS está caído en el propio
   servidor de EFE (error 500 `wp_die` en todos los feeds de efe.com; `efeservicios` sirve HTML;
   API tras challenge anti-bots). Marcado **no_disponible** (categoría B): deja de dar errores y de
