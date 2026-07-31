@@ -129,8 +129,12 @@
   0% como **EFE**, que el widget viejo no captaba—, escribe `data/feed_alertas.json` (banner en el
   panel con la última comprobación) y avisa por Telegram al chat privado si `TELEGRAM_ADMIN_CHAT_ID`
   está configurado (nunca al canal público). Filtra feeds ya retirados (RTVE).
-- **PENDIENTE #5**: **arreglar el feed de EFE** (0% de 44 intentos — URL rota); captura de portada
-  para los C caídos; ámbito **global** muy flaco (5 fuentes, sin izquierda ni populista).
+- **EFE — RESUELTO (31-jul)**: no era arreglable desde aquí — su RSS está caído en el propio
+  servidor de EFE (error 500 `wp_die` en todos los feeds de efe.com; `efeservicios` sirve HTML;
+  API tras challenge anti-bots). Marcado **no_disponible** (categoría B): deja de dar errores y de
+  alertar, y queda transparente en la web. El rol de agencia en el centro lo cubre Europa Press.
+- **PENDIENTE #5**: captura de portada para los C caídos (Público/CTXT/InfoLibre y ahora EFE);
+  ámbito **global** muy flaco (5 fuentes, sin izquierda ni populista).
 - **#4 calibración del scoring — PENDIENTE (recordar al cerrar cada tema)**: harness grid-search
   precision@10/recall@10 + etiquetado desde el panel + botón "marcar trivial/falso positivo" que
   alimente el diccionario determinista.
