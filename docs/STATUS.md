@@ -136,6 +136,9 @@
   servidor de EFE (error 500 `wp_die` en todos los feeds de efe.com; `efeservicios` sirve HTML;
   API tras challenge anti-bots). Marcado **no_disponible** (categoría B): deja de dar errores y de
   alertar, y queda transparente en la web. El rol de agencia en el centro lo cubre Europa Press.
+- **Contacto por feeds caídos — EN CURSO (31-jul)**: email de consulta enviado a **EFE y CTXT**
+  (plantilla y registro en [comunicacion/EMAIL-FEEDS-CAIDOS.md](comunicacion/EMAIL-FEEDS-CAIDOS.md));
+  Público/InfoLibre pendientes. La sonda semanal avisará si alguno restablece el RSS.
 - **PENDIENTE #5**: captura de portada para los C caídos (Público/CTXT/InfoLibre y ahora EFE);
   ámbito **global** muy flaco (5 fuentes, sin izquierda ni populista).
 - **#4 calibración del scoring — PENDIENTE (recordar al cerrar cada tema)**: harness grid-search
