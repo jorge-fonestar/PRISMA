@@ -57,19 +57,22 @@ foreach (feed_health_alertas($dias) as $a) {
     );
 }
 
-// Solo alertar de fuentes que SIGUEN en la config (ignora feeds ya retirados, p.ej. RTVE)
+// Solo alertar de fuentes que SIGUEN en la config y se ESPERA que funcionen: se usa
+// la modalidad ACTUAL de la config (no la histórica de feed_health), de modo que un
+// feed marcado hoy como no_disponible (p.ej. EFE) deja de alertar de inmediato, y los
+// feeds ya retirados (RTVE) tampoco aparecen.
 require_once __DIR__ . '/lib/fuentes/normalizar.php';
-$en_config = array();
+$modalidad_actual = array();
 foreach ($cfg['fuentes'] as $amb => $cuads) {
     foreach ($cuads as $c => $medios) {
         foreach ($medios as $entrada) {
             $nf = rss_normalizar_fuente($entrada, $c, $amb);
-            $en_config[$nf['medio']] = true;
+            $modalidad_actual[$nf['medio']] = isset($nf['modalidad']) ? $nf['modalidad'] : 'rss_nativo';
         }
     }
 }
-$problemas = array_filter($problemas, function ($p) use ($en_config) {
-    return isset($en_config[$p['medio']]);
+$problemas = array_filter($problemas, function ($p) use ($modalidad_actual) {
+    return isset($modalidad_actual[$p['medio']]) && $modalidad_actual[$p['medio']] !== 'no_disponible';
 });
 
 // 3) Último mensaje de error de cada fuente problemática (para el detalle)

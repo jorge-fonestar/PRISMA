@@ -201,9 +201,18 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 ),
             ),
             'centro' => array(
-                // EFE: 429 rate limit — kept but expect sporadic failures
-                array('EFE', 'https://efe.com/feed/',
-                    'Agencia estatal española de noticias. Propiedad 100% de la SEPI (Sociedad Estatal de Participaciones Industriales). Financiación pública.'),
+                // EFE: RSS caído en su propio servidor (error 500 wp_die en TODOS los feeds
+                // de efe.com; efeservicios devuelve HTML; API tras challenge anti-bots.
+                // Verificado jul-2026). El rol de agencia en el centro lo cubre Europa Press.
+                array(
+                    'medio' => 'EFE',
+                    'url' => null,
+                    'modalidad' => 'no_disponible',
+                    'categoria_acceso' => 'B',
+                    'transparencia' => 'Agencia estatal española (100% SEPI). Su RSS está caído en el propio servidor de EFE (error 500 en todos los feeds, verificado jul-2026) y la API está tras un challenge anti-bots; sin feed accesible. Candidata a revisar cuando restablezcan la sindicación.',
+                    'perfil_editorial' => 'Agencia pública de referencia; sus teletipos alimentan a la prensa de todo el espectro.',
+                    'ejes_cubiertos' => array(),
+                ),
                 // RTVE descartado: sus RSS están congelados desde jun-2022 (verificado jul-2026)
                 array('Europa Press', 'https://www.europapress.es/rss/rss.aspx',
                     'Agencia de noticias privada fundada en 1957. Propiedad de la familia Martín de Cabiedes. Financiación por venta de servicios informativos a medios, empresas e instituciones públicas.'),
