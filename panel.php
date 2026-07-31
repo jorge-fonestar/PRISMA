@@ -643,12 +643,32 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
   }
   $fh_pct = $fh_total_fuentes > 0 ? round(100 * $fh_operativas / $fh_total_fuentes) : 0;
   $fh_color = $fh_pct > 90 ? '#4ade80' : ($fh_pct > 70 ? '#f2f24a' : '#ff4d6d');
+  // Estado del chequeo semanal (feed_check.php) — capta también fuentes al 0%
+  $fa_path = __DIR__ . '/data/feed_alertas.json';
+  $fa = file_exists($fa_path) ? (json_decode(file_get_contents($fa_path), true) ?: array()) : array();
+  $fa_problemas = isset($fa['problemas']) ? $fa['problemas'] : array();
+  $fa_gen = isset($fa['generado']) ? $fa['generado'] : null;
   ?>
   <div style="margin:1rem 0;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
     <strong style="color:<?= $fh_color ?>">Fuentes: <?= $fh_operativas ?>/<?= $fh_total_fuentes ?> operativas</strong>
     <?php if ($fh_total_fuentes === 0): ?>
       <p style="margin:0.5rem 0 0;font-size:0.82rem;color:#7a7a8a">Sin datos de salud. Ejecuta un escaneo para inicializar.</p>
     <?php endif; ?>
+
+    <?php if (!empty($fa_problemas)): ?>
+      <div style="margin:0.7rem 0 0;padding:0.7rem 0.9rem;border-left:3px solid #ff4d6d;background:rgba(255,77,109,0.08);border-radius:4px">
+        <strong style="color:#ff4d6d">⚠️ <?= count($fa_problemas) ?> fuente(s) con fallos recurrentes</strong>
+        <?php if ($fa_gen): ?><span style="font-size:0.75rem;color:#7a7a8a"> · comprobado <?= ph(date('d/m H:i', strtotime($fa_gen))) ?></span><?php endif; ?>
+        <ul style="margin:0.4rem 0 0;padding-left:1.2rem;font-size:0.85rem;color:#ccc">
+          <?php foreach ($fa_problemas as $pp): ?>
+            <li><strong><?= ph($pp['medio']) ?></strong> — <?= round($pp['tasa_exito']) ?>% éxito<?php if (!empty($pp['ultimo_error'])): ?> <span style="color:#999">(<?= ph(mb_substr($pp['ultimo_error'], 0, 60, 'UTF-8')) ?>)</span><?php endif; ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php elseif ($fa_gen): ?>
+      <p style="margin:0.5rem 0 0;font-size:0.82rem;color:#4ade80">✓ Todas las fuentes operativas sanas · comprobado <?= ph(date('d/m H:i', strtotime($fa_gen))) ?></p>
+    <?php endif; ?>
+
     <?php if (!empty($fh_alertas)): ?>
       <ul style="margin:0.5rem 0 0;padding-left:1.2rem;font-size:0.85rem;color:#999">
         <?php foreach (array_slice($fh_alertas, 0, 5) as $alerta): ?>

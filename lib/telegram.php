@@ -18,10 +18,12 @@
  *
  * @return bool true si Telegram aceptó el mensaje
  */
-function telegram_enviar(string $texto): bool {
+function telegram_enviar(string $texto, ?string $chat_override = null): bool {
     $cfg = prisma_cfg();
     $token = isset($cfg['telegram_bot_token']) ? $cfg['telegram_bot_token'] : '';
-    $chat  = isset($cfg['telegram_chat_id']) ? $cfg['telegram_chat_id'] : '';
+    $chat  = ($chat_override !== null && $chat_override !== '')
+        ? $chat_override
+        : (isset($cfg['telegram_chat_id']) ? $cfg['telegram_chat_id'] : '');
     if ($token === '' || $chat === '') return false;
 
     $payload = array(

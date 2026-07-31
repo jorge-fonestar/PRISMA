@@ -62,6 +62,9 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // digest_telegram.php.
     'telegram_bot_token'    => getenv('TELEGRAM_BOT_TOKEN') ?: '',
     'telegram_chat_id'      => getenv('TELEGRAM_CHAT_ID') ?: '',
+    // Chat privado para avisos de OPERACIÓN (salud de feeds), NUNCA el canal público.
+    // Opcional: si está vacío, los avisos solo aparecen en el panel.
+    'telegram_admin_chat_id' => getenv('TELEGRAM_ADMIN_CHAT_ID') ?: '',
     'telegram_digest_umbral' => 0.35, // polarización mínima para entrar en el digest
     'telegram_digest_cap'    => 10,   // máximo de líneas (el resto se resume)
 
