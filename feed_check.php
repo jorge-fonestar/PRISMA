@@ -57,6 +57,21 @@ foreach (feed_health_alertas($dias) as $a) {
     );
 }
 
+// Solo alertar de fuentes que SIGUEN en la config (ignora feeds ya retirados, p.ej. RTVE)
+require_once __DIR__ . '/lib/fuentes/normalizar.php';
+$en_config = array();
+foreach ($cfg['fuentes'] as $amb => $cuads) {
+    foreach ($cuads as $c => $medios) {
+        foreach ($medios as $entrada) {
+            $nf = rss_normalizar_fuente($entrada, $c, $amb);
+            $en_config[$nf['medio']] = true;
+        }
+    }
+}
+$problemas = array_filter($problemas, function ($p) use ($en_config) {
+    return isset($en_config[$p['medio']]);
+});
+
 // 3) Último mensaje de error de cada fuente problemática (para el detalle)
 $ldb = prisma_logger_db();
 foreach ($problemas as $medio => &$p) {
