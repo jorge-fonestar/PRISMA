@@ -25,6 +25,22 @@ require_once __DIR__ . '/lib/logger.php';
 require_once __DIR__ . '/lib/fuentes/feed_health.php';
 require_once __DIR__ . '/lib/telegram.php';
 
+/** Reprueba una URL de feed: true si responde 2xx con items RSS/Atom. */
+function feed_check_probe($url) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, array(
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; PolarPrismaBot/1.0; +https://polarprisma.org)',
+    ));
+    $body = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300 || !$body) return false;
+    return (strpos($body, '<item') !== false || strpos($body, '<entry') !== false);
+}
+
 $dry = in_array('--dry-run', $argv, true);
 $cfg = prisma_cfg();
 $dias = 7;
@@ -75,6 +91,23 @@ $problemas = array_filter($problemas, function ($p) use ($modalidad_actual) {
     return isset($modalidad_actual[$p['medio']]) && $modalidad_actual[$p['medio']] !== 'no_disponible';
 });
 
+// 2b) Sonda de recuperación: reprueba los feeds caídos que tengan url_candidata.
+//     Si uno vuelve a servir RSS, se avisa para reactivarlo A MANO (un cron editando
+//     la config sería frágil). Así "vuelve solo" a estar en el radar en un cambio de 1 línea.
+$recuperadas = array();
+foreach ($cfg['fuentes'] as $amb => $cuads) {
+    foreach ($cuads as $c => $medios) {
+        foreach ($medios as $entrada) {
+            if (!is_array($entrada) || !isset($entrada['medio'])) continue;
+            if (($entrada['modalidad'] ?? '') !== 'no_disponible') continue;
+            $cand = isset($entrada['url_candidata']) ? $entrada['url_candidata'] : null;
+            if ($cand && feed_check_probe($cand)) {
+                $recuperadas[] = array('medio' => $entrada['medio'], 'url' => $cand);
+            }
+        }
+    }
+}
+
 // 3) Último mensaje de error de cada fuente problemática (para el detalle)
 $ldb = prisma_logger_db();
 foreach ($problemas as $medio => &$p) {
@@ -88,10 +121,11 @@ $problemas = array_values($problemas);
 
 // 4) Persistir estado para el panel
 $estado = array(
-    'generado'  => date('c'),
-    'dias'      => $dias,
-    'umbral'    => $umbral_exito,
-    'problemas' => $problemas,
+    'generado'    => date('c'),
+    'dias'        => $dias,
+    'umbral'      => $umbral_exito,
+    'problemas'   => $problemas,
+    'recuperadas' => $recuperadas,
 );
 if (!$dry) {
     $dir = __DIR__ . '/data';
@@ -99,20 +133,29 @@ if (!$dry) {
     file_put_contents("$dir/feed_alertas.json", json_encode($estado, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 }
 
-if (empty($problemas)) {
+if (empty($problemas) && empty($recuperadas)) {
     prisma_log("FEEDCHK", "Todas las fuentes operativas sanas (ventana {$dias}d).");
     echo "OK: sin fuentes problemáticas.\n";
     exit(0);
 }
 
 // 5) Resumen + aviso
-$lineas = array();
-foreach ($problemas as $p) {
-    $det = $p['intentos'] ? " ({$p['intentos']} intentos)" : "";
-    $err = !empty($p['ultimo_error']) ? " — " . mb_substr($p['ultimo_error'], 0, 90, 'UTF-8') : "";
-    $lineas[] = sprintf("• %s: %d%% de éxito%s%s", $p['medio'], round($p['tasa_exito']), $det, $err);
+$secciones = array();
+if (!empty($problemas)) {
+    $lineas = array();
+    foreach ($problemas as $p) {
+        $det = $p['intentos'] ? " ({$p['intentos']} intentos)" : "";
+        $err = !empty($p['ultimo_error']) ? " — " . mb_substr($p['ultimo_error'], 0, 90, 'UTF-8') : "";
+        $lineas[] = sprintf("• %s: %d%% de éxito%s%s", $p['medio'], round($p['tasa_exito']), $det, $err);
+    }
+    $secciones[] = count($problemas) . " fuente(s) con fallos recurrentes (últimos {$dias} días):\n" . implode("\n", $lineas);
 }
-$resumen_txt = count($problemas) . " fuente(s) con fallos recurrentes (últimos {$dias} días):\n" . implode("\n", $lineas);
+if (!empty($recuperadas)) {
+    $lineas = array();
+    foreach ($recuperadas as $r) $lineas[] = "• {$r['medio']} → {$r['url']}";
+    $secciones[] = "✅ " . count($recuperadas) . " fuente(s) caída(s) parecen haber VUELTO — reactívalas en config:\n" . implode("\n", $lineas);
+}
+$resumen_txt = implode("\n\n", $secciones);
 prisma_log("FEEDCHK", str_replace("\n", " | ", $resumen_txt));
 echo $resumen_txt . "\n";
 

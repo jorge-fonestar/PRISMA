@@ -647,6 +647,7 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
   $fa_path = __DIR__ . '/data/feed_alertas.json';
   $fa = file_exists($fa_path) ? (json_decode(file_get_contents($fa_path), true) ?: array()) : array();
   $fa_problemas = isset($fa['problemas']) ? $fa['problemas'] : array();
+  $fa_recuperadas = isset($fa['recuperadas']) ? $fa['recuperadas'] : array();
   $fa_gen = isset($fa['generado']) ? $fa['generado'] : null;
   ?>
   <div style="margin:1rem 0;padding:1rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
@@ -665,7 +666,20 @@ $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' =>
           <?php endforeach; ?>
         </ul>
       </div>
-    <?php elseif ($fa_gen): ?>
+    <?php endif; ?>
+
+    <?php if (!empty($fa_recuperadas)): ?>
+      <div style="margin:0.7rem 0 0;padding:0.7rem 0.9rem;border-left:3px solid #4ade80;background:rgba(74,222,128,0.08);border-radius:4px">
+        <strong style="color:#4ade80">✅ <?= count($fa_recuperadas) ?> fuente(s) caída(s) parecen haber vuelto</strong>
+        <ul style="margin:0.4rem 0 0;padding-left:1.2rem;font-size:0.85rem;color:#ccc">
+          <?php foreach ($fa_recuperadas as $rr): ?>
+            <li><strong><?= ph($rr['medio']) ?></strong> — reactívala en config (<?= ph($rr['url']) ?>)</li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endif; ?>
+
+    <?php if (empty($fa_problemas) && empty($fa_recuperadas) && $fa_gen): ?>
       <p style="margin:0.5rem 0 0;font-size:0.82rem;color:#4ade80">✓ Todas las fuentes operativas sanas · comprobado <?= ph(date('d/m H:i', strtotime($fa_gen))) ?></p>
     <?php endif; ?>
 

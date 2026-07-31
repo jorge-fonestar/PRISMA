@@ -11,9 +11,14 @@ require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/curador.php';          // PRISMA_GRUPO_*, PRISMA_CUADRANTE_POS
 require_once __DIR__ . '/lib/fuentes/normalizar.php';
 require_once __DIR__ . '/lib/mapa_datos.php';
+require_once __DIR__ . '/lib/fuentes/feed_health.php';
 
 $cfg = prisma_cfg();
 $B = prisma_base();
+
+// Salud de cada feed (últimos 7 días) para indicar si va, falla o está caído.
+$fh_tasa = array();
+foreach (feed_health_resumen(7) as $r) $fh_tasa[$r['medio']] = (float)$r['tasa_exito'];
 
 $ambito_labels = array('españa' => 'España', 'europa' => 'Europa', 'global' => 'Global');
 $cuadrante_labels = array(
@@ -133,6 +138,22 @@ page_header(
             <?= PRISMA_MAPA_TIPOS[$d['tipo']] ?>
           </span>
           <?php endif; ?>
+          <?php
+            // Estado del feed: enlace + disponible / con fallos / caído
+            $mod  = isset($f['modalidad']) ? $f['modalidad'] : 'rss_nativo';
+            $furl = isset($f['url']) ? $f['url'] : null;
+            if ($mod === 'no_disponible') { $fb = 'Sin RSS'; $fbc = '#ff6b6b'; $fbl = null; }
+            elseif ($mod === 'captura_portada') { $fb = 'Portada'; $fbc = '#f2b84a'; $fbl = $furl; }
+            else {
+                $tasa = isset($fh_tasa[$f['medio']]) ? $fh_tasa[$f['medio']] : null;
+                if ($tasa !== null && $tasa < 60) { $fb = 'RSS con fallos'; $fbc = '#f2b84a'; }
+                else { $fb = 'RSS'; $fbc = '#4ade80'; }
+                $fbl = $furl;
+            }
+          ?>
+          <span style="font-family:Inter,Arial,sans-serif;font-size:0.7rem;letter-spacing:0.04em;color:<?= $fbc ?>;border:1px solid <?= $fbc ?>;border-radius:999px;padding:2px 10px" title="Estado del feed RSS (últimos 7 días)">
+            <?php if ($fbl): ?><a href="<?= htmlspecialchars($fbl) ?>" target="_blank" rel="noopener" style="color:<?= $fbc ?>;text-decoration:none"><?= $fb ?> ↗</a><?php else: ?><?= $fb ?><?php endif; ?>
+          </span>
         </div>
         <?php if ($d): ?>
         <div style="font-size:0.9rem;color:var(--text-muted);margin-top:0.35rem">

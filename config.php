@@ -166,6 +166,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 array(
                     'medio' => 'Público',
                     'url' => null,
+                    'url_candidata' => 'https://www.publico.es/rss/',
                     'modalidad' => 'no_disponible',
                     'categoria_acceso' => 'C',
                     'transparencia' => 'Medio sin RSS nativo (política editorial). Autorización pendiente de solicitud.',
@@ -177,6 +178,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 array(
                     'medio' => 'CTXT',
                     'url' => null,
+                    'url_candidata' => 'https://ctxt.es/es/rss.xml',
                     'modalidad' => 'no_disponible',
                     'categoria_acceso' => 'C',
                     'transparencia' => 'Feed RSS bloqueado a nivel de WAF (403 también con user-agent de navegador, verificado jul-2026). Candidato a la ronda de contacto con medios.',
@@ -193,6 +195,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 array(
                     'medio' => 'InfoLibre',
                     'url' => null,
+                    'url_candidata' => 'https://www.infolibre.es/rss/portada/',
                     'modalidad' => 'no_disponible',
                     'categoria_acceso' => 'C',
                     'transparencia' => 'RSS descontinuado (política editorial). Autorización pendiente de solicitud.',
@@ -207,6 +210,7 @@ $GLOBALS['_PRISMA_CFG'] = array(
                 array(
                     'medio' => 'EFE',
                     'url' => null,
+                    'url_candidata' => 'https://efe.com/feed/',   // el chequeo semanal la reprueba
                     'modalidad' => 'no_disponible',
                     'categoria_acceso' => 'B',
                     'transparencia' => 'Agencia estatal española (100% SEPI). Su RSS está caído en el propio servidor de EFE (error 500 en todos los feeds, verificado jul-2026) y la API está tras un challenge anti-bots; sin feed accesible. Candidata a revisar cuando restablezcan la sindicación.',
