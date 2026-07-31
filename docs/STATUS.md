@@ -117,10 +117,17 @@
   Pendiente OPCIONAL: microcitas [1][3] en el resumen factual (requiere numerar fuentes global).
 - **#6 prompt caching — HECHO**: system del sintetizador ahora estático y cacheado; coste de
   caché y de búsquedas web contabilizado en `anthropic_call`. El servidor fija id/ámbito/fecha.
-- **PENDIENTE (recordar al cerrar cada tema)**: #4 calibración del scoring
-  (grid-search precision@10/recall@10 + etiquetado desde panel + botón "marcar trivial")
-  y #5 equilibrio del corpus (recuperar flanco izquierdo Público/InfoLibre/CTXT vía
-  captura de portada; auditoría ejes×cuadrantes×ámbitos; ampliar fuentes).
+- **Digest de analizados — HECHO (31-jul)**: el digest muestra el `titular_neutral` del análisis
+  (capta la tensión) en vez del `resumen_neutral` que a veces repetía el titular. Sin analizar sigue
+  con titular + resumen. Además `web_search` ya NO se usa para buscar posturas que falten (solo verificar).
+- **#5 equilibrio del corpus — EN CURSO (31-jul)**: auditoría hecha (el flanco izquierdo ES tenía
+  3 feeds caídos: Público/CTXT/InfoLibre). Añadidos **Kaos en la Red** (izq-populista) y **Nueva
+  Tribuna** (izquierda), operativos (38 y 10 artículos). PENDIENTE: captura de portada para los C
+  caídos; ámbito **global** muy flaco (5 fuentes, sin izquierda ni populista); **EFE da error de
+  lectura**; convertir la auditoría en script permanente (matriz ejes×cuadrantes×ámbitos).
+- **#4 calibración del scoring — PENDIENTE (recordar al cerrar cada tema)**: harness grid-search
+  precision@10/recall@10 + etiquetado desde el panel + botón "marcar trivial/falso positivo" que
+  alimente el diccionario determinista.
 
 - **Cobertura de fuentes por tema — RESUELTO (25-jul; superado por el rediseño del 30-jul)**:
   clustering por **mejor match** en `curador_seleccionar` (se mantiene como pre-agrupado);
