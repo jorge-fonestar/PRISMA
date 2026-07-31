@@ -39,6 +39,12 @@ define('PRISMA_MAPA_MEDIOS', array(
         'info' => 'Nació en 2017 de la fusión del periódico Diagonal con una veintena de medios locales; funciona como red confederal con ediciones territoriales.',
         'tipo' => 'lectores', 'capacidad' => 1,
     ),
+    'Kaos en la Red' => array(
+        'propiedad' => 'Asociación cultural sin ánimo de lucro (colectivo autogestionado)',
+        'financiacion' => 'Donaciones y trabajo voluntario; ingreso mínimo por publicidad',
+        'info' => 'Proyecto contrainformativo anticapitalista en castellano y catalán activo desde hace ~19 años; se declara independiente de partidos, sindicatos y del Estado, elaborado por colaboradores voluntarios.',
+        'tipo' => 'fundacion', 'capacidad' => 1,
+    ),
     'Público' => array(
         'propiedad' => 'Display Connectors, S.L.',
         'financiacion' => 'Publicidad y socios',
@@ -62,6 +68,12 @@ define('PRISMA_MAPA_MEDIOS', array(
         'financiacion' => 'Socios suscriptores',
         'info' => 'La cooperativa nació del cierre de la edición en papel de Público (2012); edita también la revista de crisis climática Climática.',
         'tipo' => 'lectores', 'capacidad' => 1,
+    ),
+    'Nueva Tribuna' => array(
+        'propiedad' => 'Página 7 Comunicación, S.L.',
+        'financiacion' => 'Publicidad y aportaciones de lectores',
+        'info' => 'Diario digital progresista fundado en Madrid en 2008 (dirige Isabel García Caballero); sindica y comparte contenidos con el diario Público.',
+        'tipo' => 'inversor', 'capacidad' => 1,
     ),
     'El País' => array(
         'propiedad' => 'Grupo PRISA (cotiza; Amber Capital, Vivendi, Slim…)',

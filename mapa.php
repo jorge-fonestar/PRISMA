@@ -187,8 +187,9 @@ page_header(
     La Vanguardia (Godó), 20minutos (Henneo) y la gran excepción del otro lado: El País,
     cuyo dueño (PRISA) es el mayor grupo de prensa español.</li>
     <li><strong>A la izquierda del centro-izquierda no hay ningún gran grupo.</strong> El Salto,
-    elDiario.es, CTXT, La Marea, Público o InfoLibre funcionan con estructuras de socios,
-    cooperativas o pequeñas sociedades, entre uno y dos órdenes de magnitud por debajo. La prensa
+    Kaos en la Red, elDiario.es, La Marea, Nueva Tribuna, CTXT, Público o InfoLibre funcionan con
+    estructuras de socios, cooperativas, asociaciones sin ánimo de lucro o pequeñas sociedades, entre
+    uno y dos órdenes de magnitud por debajo. La prensa
     de masas de izquierdas desapareció con el franquismo, y cuando ese espacio se reconstruyó
     (2012-2015, tras la crisis) fue en digital y con el único capital disponible: los lectores.</li>
     <li><strong>En los polos, la asimetría no es de tamaño sino de modelo.</strong> OKDIARIO o
