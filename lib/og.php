@@ -155,9 +155,9 @@ function og_datos_radar($radar_id) {
 
 /** Triángulo-prisma con aristas del espectro (evoca el favicon). */
 function og_dibujar_prisma($im, $x, $yTop, $s) {
-    $apex = array($x + $s / 2, $yTop);
-    $bl   = array($x,          $yTop + $s * 0.84);
-    $br   = array($x + $s,     $yTop + $s * 0.84);
+    $apex = array((int)($x + $s / 2), (int)$yTop);
+    $bl   = array((int)$x,            (int)($yTop + $s * 0.84));
+    $br   = array((int)($x + $s),     (int)($yTop + $s * 0.84));
     imagesetthickness($im, 4);
     $izq = imagecolorallocate($im, ...og_rgb('#ff4d6d'));
     $der = imagecolorallocate($im, ...og_rgb('#a855f7'));
@@ -251,7 +251,7 @@ function og_render($d, $ruta) {
                 // × del silencio
                 $xc = imagecolorallocate($im, 90, 90, 108);
                 imagesetthickness($im, 3);
-                $cx = ($x0 + $x1) / 2; $cy = $barY + $barH / 2; $r = 9;
+                $cx = (int)(($x0 + $x1) / 2); $cy = (int)($barY + $barH / 2); $r = 9;
                 imageline($im, $cx - $r, $cy - $r, $cx + $r, $cy + $r, $xc);
                 imageline($im, $cx - $r, $cy + $r, $cx + $r, $cy - $r, $xc);
                 imagesetthickness($im, 1);
