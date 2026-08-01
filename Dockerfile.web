@@ -7,6 +7,18 @@ FROM php:8.2-apache
 
 # pdo_sqlite, sqlite3, curl y mbstring ya vienen en la imagen oficial.
 
+# GD (para las tarjetas sociales OG) + fuente DejaVu (Regular/Bold, con acentos y
+# símbolos). GD es una extensión PHP ligera; DejaVu es un paquete de fuente ~3 MB.
+# Las tarjetas se generan una vez y se cachean en /og/ — sin coste ni dependencias
+# de sistema pesadas (no librsvg/ImageMagick).
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        libfreetype6-dev libjpeg62-turbo-dev libpng-dev fonts-dejavu-core; \
+    docker-php-ext-configure gd --with-freetype --with-jpeg; \
+    docker-php-ext-install -j"$(nproc)" gd; \
+    rm -rf /var/lib/apt/lists/*
+
 COPY deploy/apache-hardening.conf /etc/apache2/conf-available/prisma-hardening.conf
 RUN a2enconf prisma-hardening \
     && sed -i 's/^ServerTokens .*/ServerTokens Prod/' /etc/apache2/conf-available/security.conf \

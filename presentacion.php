@@ -25,21 +25,21 @@ $B = prisma_base();
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Prisma — Rompe tu burbuja informativa. Recupera el criterio.">
+  <meta property="og:title" content="PolarPrisma — Rompe tu burbuja informativa. Recupera el criterio.">
   <meta property="og:description" content="Cada día, las noticias más relevantes vistas desde todas las posturas enfrentadas. Un servicio público contra la polarización.">
-  <meta property="og:url" content="https://prisma.example/">
-  <meta property="og:image" content="https://prisma.example/og-prisma.jpg">
+  <meta property="og:url" content="https://polarprisma.org/presentacion.php">
+  <meta property="og:image" content="https://polarprisma.org/og/default.png">
   <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="600">
-  <meta property="og:image:alt" content="Logo de Prisma: un prisma descomponiendo luz blanca en múltiples colores sobre fondo oscuro">
-  <meta property="og:site_name" content="Prisma">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="PolarPrisma — cartografía de la polarización informativa">
+  <meta property="og:site_name" content="PolarPrisma">
   <meta property="og:locale" content="es_ES">
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Prisma — Rompe tu burbuja informativa">
+  <meta name="twitter:title" content="PolarPrisma — Rompe tu burbuja informativa">
   <meta name="twitter:description" content="Las noticias más relevantes del día desde todas las posturas enfrentadas. Contra la polarización y las cámaras de eco.">
-  <meta name="twitter:image" content="https://prisma.example/og-prisma.jpg">
+  <meta name="twitter:image" content="https://polarprisma.org/og/default.png">
 
   <!-- Schema: Organization -->
   <script type="application/ld+json">

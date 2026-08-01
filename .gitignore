@@ -19,3 +19,7 @@ data/panel_bans.json
 output/
 rechazados/
 logs/
+
+# Tarjetas sociales (OG) generadas en el servidor (se crean con GD, no se versionan)
+og/
+data/feed_alertas.json

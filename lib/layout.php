@@ -120,6 +120,16 @@ function page_header($title, $description = '', $active_nav = '', $wide = false)
   <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Análisis" href="<?= prisma_base() ?>rss.php">
   <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Radar de polarización" href="<?= prisma_base() ?>rss.php?feed=radar">
   <?php if ($description): ?><meta name="description" content="<?= htmlspecialchars($description) ?>"><?php endif; ?>
+  <?php $og_site = rtrim(prisma_cfg()['site_url'] ?? 'https://polarprisma.org', '/'); ?>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PolarPrisma">
+  <meta property="og:title" content="<?= htmlspecialchars($title) ?> — PolarPrisma">
+  <meta property="og:description" content="<?= htmlspecialchars($description ?: 'Cartografía de la polarización informativa') ?>">
+  <meta property="og:image" content="<?= $og_site ?>/og/default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="<?= $og_site ?>/og/default.png">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0a0a12">
   <?= theme_head_script() ?>

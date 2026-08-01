@@ -89,6 +89,40 @@ $axiom_names = [
   <link rel="icon" type="image/svg+xml" href="<?= $B ?>favicon.svg">
   <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Análisis" href="<?= $B ?>rss.php">
   <link rel="alternate" type="application/rss+xml" title="PolarPrisma · Radar de polarización" href="<?= $B ?>rss.php?feed=radar">
+  <?php
+    // ── Tarjeta social (Open Graph) — URL ABSOLUTA con site_url ──
+    $site = rtrim(prisma_cfg()['site_url'] ?? 'https://polarprisma.org', '/');
+    if ($art) {
+        $og_title = $art['titular_neutral'];
+        $og_desc  = mb_substr($art['resumen'], 0, 200);
+        $og_img   = $site . '/og/' . rawurlencode($art['id']) . '.png';
+        $og_url   = $site . '/articulo.php?id=' . rawurlencode($art['id']);
+    } elseif ($radar) {
+        $og_title = $radar['titulo_tema'];
+        $og_desc  = !empty($radar['resumen_neutral']) ? $radar['resumen_neutral']
+                  : (!empty($radar['haiku_frase']) ? $radar['haiku_frase'] : 'Radar de polarización informativa');
+        $og_img   = $site . '/og/r' . (int)$radar['id'] . '.png';
+        $og_url   = $site . '/articulo.php?radar=' . (int)$radar['id'];
+    } else {
+        $og_title = 'PolarPrisma';
+        $og_desc  = 'Cartografía de la polarización informativa';
+        $og_img   = $site . '/og/default.png';
+        $og_url   = $site . '/';
+    }
+  ?>
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="PolarPrisma">
+  <meta property="og:title" content="<?= htmlspecialchars($og_title) ?>">
+  <meta property="og:description" content="<?= htmlspecialchars($og_desc) ?>">
+  <meta property="og:url" content="<?= htmlspecialchars($og_url) ?>">
+  <meta property="og:image" content="<?= htmlspecialchars($og_img) ?>">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tarjeta de PolarPrisma: <?= htmlspecialchars($og_title) ?>">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<?= htmlspecialchars($og_title) ?>">
+  <meta name="twitter:description" content="<?= htmlspecialchars($og_desc) ?>">
+  <meta name="twitter:image" content="<?= htmlspecialchars($og_img) ?>">
   <?php if ($art): ?>
   <meta name="description" content="<?= htmlspecialchars(mb_substr($art['resumen'], 0, 160)) ?>">
   <meta name="robots" content="index, follow">

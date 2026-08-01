@@ -76,6 +76,16 @@ function prisma_publicar(array $artifact): bool {
 
     prisma_log("PUB", "Publicado: {$data['id']}");
 
+    // Tarjeta social (OG) — se genera y cachea al publicar. Nunca debe romper la
+    // publicación: si GD/fuente no están o falla, se registra y sigue.
+    try {
+        require_once __DIR__ . '/og.php';
+        $og_ok = og_generar_articulo($data['id']);
+        prisma_log("OG", "Tarjeta " . ($og_ok ? "generada" : "no generada") . ": {$data['id']}");
+    } catch (\Throwable $e) {
+        prisma_log("OG", "Error generando tarjeta {$data['id']}: " . $e->getMessage());
+    }
+
     // Los avisos a Telegram se envían en el digest diario (digest_telegram.php),
     // no en cada publicación.
 
