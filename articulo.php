@@ -275,6 +275,14 @@ $axiom_names = [
       font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 700;
       color: var(--accent); letter-spacing: 0.1em;
     }
+    .pregunta-gemini {
+      display: inline-block; margin-top: 0.6rem;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.76rem;
+      color: var(--accent); text-decoration: none;
+      border: 1px solid var(--border-card); border-radius: 999px;
+      padding: 3px 12px; transition: background 0.15s ease;
+    }
+    .pregunta-gemini:hover { background: rgba(255,255,255,0.06); }
 
     /* Audit bar (compact, top of article) */
     .audit-bar {
@@ -639,7 +647,10 @@ $axiom_names = [
           <p class="section-label">Preguntas para pensar</p>
           <ol class="preguntas-list">
             <?php foreach ($art['preguntas'] as $pregunta): ?>
-              <li><?= htmlspecialchars($pregunta) ?></li>
+              <li>
+                <?= htmlspecialchars($pregunta) ?><br>
+                <a class="pregunta-gemini" href="https://www.google.com/search?q=<?= urlencode($pregunta) ?>" target="_blank" rel="noopener">✨ Dialogar con Gemini ↗</a>
+              </li>
             <?php endforeach; ?>
           </ol>
         <?php endif; ?>
