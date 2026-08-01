@@ -83,6 +83,14 @@
 
 ## Pendientes
 
+- **Tarjetas sociales (OG) — HECHO (1-ago)**: cada análisis genera su imagen 1200×630
+  (`lib/og.php`, GD) con prisma, titular, % semáforo, **franja del espectro cubrió/calló**
+  (el gancho visceral), veredicto y pie. Se genera al publicar (hook en `prisma_publicar`),
+  se cachea en `/og/<id>.png` (público; `.env`/`data/` siguen bloqueados), con endpoint
+  perezoso `og.php?id=…|radar=N`, backfill `og_backfill.php` y tarjeta `default.png` de
+  fallback. Meta og:/twitter: con URL absoluta en articulo/index/presentacion/layout.
+  **Requirió rebuild de imagen** (GD + fuente DejaVu en `Dockerfile.web`). Coste: 0 €.
+  Fuera de MVP (siguiente paso): variante 1080×1080 para Instagram y auto-publicación en redes.
 - **Recalcular el % en Fase 2 — HECHO (25-jul, opción A)**: el sintetizador
   devuelve `indice_polarizacion` (0-100, con rúbrica) con el texto completo; sustituye
   al estructural en las noticias analizadas (`radar_afinar_polarizacion`), que se
