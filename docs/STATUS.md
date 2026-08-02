@@ -90,7 +90,14 @@
   perezoso `og.php?id=…|radar=N`, backfill `og_backfill.php` y tarjeta `default.png` de
   fallback. Meta og:/twitter: con URL absoluta en articulo/index/presentacion/layout.
   **Requirió rebuild de imagen** (GD + fuente DejaVu en `Dockerfile.web`). Coste: 0 €.
-  Fuera de MVP (siguiente paso): variante 1080×1080 para Instagram y auto-publicación en redes.
+- **Variante cuadrada + marcador en la ficha — HECHO (2-ago)**: tarjeta **1080×1080** para Instagram
+  (`og.php?id=…&fmt=sq`, layout parametrizado por formato, backfill de ambas). Y en la ficha, las
+  barras de "Desglose de polarización" se sustituyen por el **marcador "quién contó · quién calló"**
+  (mismo lenguaje visual que las tarjetas, helper `render_marcador_silencios`), con chip de % =
+  divergencia (color semáforo). Nota: la divergencia se mide global (no por cuadrante), por eso los
+  colores = cuadrante y el chip = divergencia.
+- **PENDIENTE OG — autopublicación**: postear la tarjeta del análisis más polarizado a redes
+  (Telegram propio ya disponible; Bluesky/Mastodon gratis con credenciales; X requiere API de pago).
 - **Recalcular el % en Fase 2 — HECHO (25-jul, opción A)**: el sintetizador
   devuelve `indice_polarizacion` (0-100, con rúbrica) con el texto completo; sustituye
   al estructural en las noticias analizadas (`radar_afinar_polarizacion`), que se
