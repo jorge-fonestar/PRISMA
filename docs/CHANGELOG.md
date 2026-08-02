@@ -7,6 +7,33 @@
 
 ---
 
+## 2026-08-02 — El Observatorio, tarjetas para compartir y un radar renovado 🔭
+
+- **Nuevo: el Observatorio.** Un mapa de la agenda informativa: los grandes temas
+  de los que se está hablando, con el **tamaño** según cuánto se mencionan y un
+  **subrayado** que indica hacia qué lado del espectro se inclina la cobertura.
+  Pincha cualquier tema y verás **quién lo empuja** (izquierda, centro, derecha),
+  su **recorrido en el tiempo** y todas las noticias relacionadas.
+- **El Radar, como nueva portada.** "Hoy" y "Silencios" se han fundido dentro del
+  Radar con **botones de acceso rápido**: *Más polarizados*, *Analizados* y —nuevos—
+  **"Lo que no contó la izquierda"** y **"Lo que no contó la derecha"**, para ver de
+  un vistazo qué historias cubrió un bloque y calló el otro. Con una nueva portada
+  de bienvenida.
+- **Tarjetas para compartir.** Cada análisis genera automáticamente su **imagen para
+  redes** (formato normal y cuadrado para Instagram) con el titular, el % de
+  polarización y el mapa de quién contó y quién calló. Además, el análisis más
+  polarizado del día puede publicarse solo en el canal de Telegram.
+- **En la ficha, "quién contó / quién calló".** Cambiamos las barras técnicas por un
+  **marcador visual** —igual que el de las tarjetas— que muestra de un golpe qué
+  partes del espectro cubrieron la noticia y cuáles la ignoraron.
+- **"Dialogar con Gemini" en cada pregunta.** Junto a cada "pregunta para pensar"
+  tienes ahora un enlace para llevártela a una búsqueda y seguir explorándola por tu cuenta.
+- **Más voces y feeds vigilados.** Sumamos medios de izquierda (Kaos en la Red,
+  Nueva Tribuna) para compensar otros que dejaron de emitir su feed (Público, CTXT,
+  InfoLibre), y un **chequeo semanal automático** que avisa si una fuente se cae —y la
+  reincorpora sola cuando vuelve—. El mapa de medios muestra ahora el estado del feed
+  de cada uno.
+
 ## 2026-07-30 — Radar más limpio, noticias mejor explicadas y datos verificados 🧹
 
 - **Se acabaron las noticias repetidas.** Hasta ahora la misma noticia podía
