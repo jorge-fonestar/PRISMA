@@ -16,21 +16,23 @@ require_once __DIR__ . '/lib/og.php';
 
 $id    = isset($_GET['id']) ? trim($_GET['id']) : '';
 $radar = isset($_GET['radar']) ? (int)$_GET['radar'] : 0;
+$fmt   = (isset($_GET['fmt']) && $_GET['fmt'] === 'sq') ? 'sq' : 'og';   // og=1200x630, sq=1080x1080
+$suf   = og_sufijo($fmt);
 
 $ruta = null;
 
 if ($id !== '' && preg_match('/^\d{4}-\d{2}-\d{2}-\d{3}$/', $id)) {
-    $ruta = og_ruta($id);
-    if (!is_file($ruta)) og_generar_articulo($id);   // devuelve false si el id no existe
+    $ruta = og_ruta($id . $suf);
+    if (!is_file($ruta)) og_generar_articulo($id, $fmt);   // devuelve false si el id no existe
 } elseif ($radar > 0) {
-    $ruta = og_ruta('r' . $radar);
-    if (!is_file($ruta)) og_generar_radar($radar);
+    $ruta = og_ruta('r' . $radar . $suf);
+    if (!is_file($ruta)) og_generar_radar($radar, $fmt);
 }
 
 // Fallback a la tarjeta de marca.
 if (!$ruta || !is_file($ruta)) {
-    $ruta = og_ruta('default');
-    if (!is_file($ruta)) og_generar_default();
+    $ruta = og_ruta('default' . $suf);
+    if (!is_file($ruta)) og_generar_default($fmt);
 }
 
 if (!is_file($ruta)) {

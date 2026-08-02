@@ -16,17 +16,18 @@ require_once __DIR__ . '/lib/og.php';
 
 $force = in_array('--force', $argv, true);
 
-echo "Tarjeta de marca (default): " . (og_generar_default() ? "OK" : "FALLO") . "\n";
+echo "Tarjeta de marca (default): og " . (og_generar_default('og') ? "OK" : "FALLO")
+   . " · sq " . (og_generar_default('sq') ? "OK" : "FALLO") . "\n";
 
 $db = prisma_db();
 $ids = $db->query("SELECT id FROM articulos ORDER BY id DESC")->fetchAll(PDO::FETCH_COLUMN);
 
 $n = 0; $ok = 0;
 foreach ($ids as $id) {
-    if (!$force && is_file(og_ruta($id))) continue;
+    if (!$force && is_file(og_ruta($id)) && is_file(og_ruta($id . '-sq'))) continue;
     $n++;
-    $r = og_generar_articulo($id);
+    $r = og_generar_articulo($id, 'og') && og_generar_articulo($id, 'sq');
     if ($r) $ok++;
-    echo ($r ? "✓" : "✗") . " $id\n";
+    echo ($r ? "✓" : "✗") . " $id (og+sq)\n";
 }
-echo "== $ok/$n tarjetas generadas" . ($force ? " (--force)" : " (solo las que faltaban)") . " ==\n";
+echo "== $ok/$n artículos con ambas tarjetas" . ($force ? " (--force)" : " (solo los que faltaban)") . " ==\n";

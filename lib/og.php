@@ -1,14 +1,16 @@
 <?php
 /**
- * PolarPrisma — Tarjetas sociales (Open Graph), 1200×630, generadas con GD.
+ * PolarPrisma — Tarjetas sociales (Open Graph + cuadrada), generadas con GD.
  *
- * Cada análisis/tema se convierte en su propia imagen para compartir en
- * WhatsApp/Telegram/X/Bluesky. Se genera UNA vez y se cachea en /og/<clave>.png
- * (carpeta pública, no bloqueada por Apache). Sin dependencias externas: solo GD
- * y una fuente TTF del sistema (DejaVu, empaquetada en la imagen).
+ * Cada análisis/tema se convierte en su propia imagen para compartir. Se genera
+ * UNA vez y se cachea en /og/<clave>.png (carpeta pública, no bloqueada por Apache).
+ * Sin dependencias externas: solo GD y la fuente DejaVu (empaquetada en la imagen).
  *
- * Claves de caché: los artículos usan su id (og/2026-07-30-002.png); los temas
- * del radar usan "r<id>" (og/r1234.png). La marca de fallback es og/default.png.
+ * Dos formatos:
+ *   'og' → 1200×630 (Open Graph: WhatsApp/Telegram/X/Bluesky)   og/<id>.png
+ *   'sq' → 1080×1080 (cuadrada: Instagram)                      og/<id>-sq.png
+ *
+ * Claves: artículos = id; temas del radar = "r<id>"; marca = "default".
  */
 
 require_once __DIR__ . '/../db.php';
@@ -108,7 +110,6 @@ function og_datos_componer($d) {
     return $d;
 }
 
-/** Datos de un artículo publicado (con su fila de radar vinculada). */
 function og_datos_articulo($article_id) {
     $db = prisma_db();
     $st = $db->prepare('SELECT id, titular_neutral, veredicto, fuentes_total FROM articulos WHERE id = :id');
@@ -132,7 +133,6 @@ function og_datos_articulo($article_id) {
     ));
 }
 
-/** Datos de un tema del radar (sin analizar). */
 function og_datos_radar($radar_id) {
     $db = prisma_db();
     $r = $db->prepare('SELECT titulo_tema, h_score, h_silencio, haiku_frase, fuentes_json FROM radar WHERE id = :id');
@@ -149,6 +149,29 @@ function og_datos_radar($radar_id) {
         'n_fuentes'    => null,
         'analizado'    => false,
     ));
+}
+
+// ── Layout por formato ──────────────────────────────────────────────
+
+function og_layout($fmt) {
+    if ($fmt === 'sq') {
+        return array(
+            'w' => 1080, 'h' => 1080, 'm' => 84, 'accent' => 8,
+            'prism_s' => 52, 'prism_y' => 60, 'brand_sz' => 34, 'brand_by' => 108, 'sub_sz' => 15, 'sub_by' => 138,
+            'pct_sz' => 112, 'pct_by' => 176, 'pctlbl_sz' => 16, 'pctlbl_by' => 210,
+            'title_sz' => 54, 'title_lh' => 74, 'title_y' => 384, 'title_max' => 4,
+            'cap_sz' => 17, 'cap_y' => 720, 'bar_y' => 742, 'bar_h' => 72, 'bar_gap' => 12,
+            'lbl_sz' => 16, 'lbl_dy' => 34, 'verd_sz' => 19, 'verd_y' => 902, 'foot_sz' => 23, 'foot_by' => 1008,
+        );
+    }
+    return array(  // landscape Open Graph
+        'w' => 1200, 'h' => 630, 'm' => 72, 'accent' => 6,
+        'prism_s' => 38, 'prism_y' => 44, 'brand_sz' => 25, 'brand_by' => 76, 'sub_sz' => 13, 'sub_by' => 100,
+        'pct_sz' => 90, 'pct_by' => 118, 'pctlbl_sz' => 14, 'pctlbl_by' => 146,
+        'title_sz' => 40, 'title_lh' => 56, 'title_y' => 232, 'title_max' => 3,
+        'cap_sz' => 14, 'cap_y' => 424, 'bar_y' => 440, 'bar_h' => 48, 'bar_gap' => 8,
+        'lbl_sz' => 12, 'lbl_dy' => 26, 'verd_sz' => 14, 'verd_y' => 556, 'foot_sz' => 17, 'foot_by' => 588,
+    );
 }
 
 // ── Dibujo ──────────────────────────────────────────────────────────
@@ -169,76 +192,74 @@ function og_dibujar_prisma($im, $x, $yTop, $s) {
 }
 
 /**
- * Renderiza la tarjeta a un PNG. $d puede ser null → tarjeta de marca (default).
+ * Renderiza la tarjeta a un PNG con el layout $L. $d null → tarjeta de marca.
  * @return bool true si el PNG se escribió.
  */
-function og_render($d, $ruta) {
+function og_render($d, $ruta, $L = null) {
     if (!function_exists('imagecreatetruecolor') || !function_exists('imagettftext')) return false;
     if (!is_file(OG_FONT_BOLD) || !is_file(OG_FONT_REG)) return false;
+    if ($L === null) $L = og_layout('og');
     og_asegurar_dir();
 
-    $M = 72;
-    $im = imagecreatetruecolor(OG_W, OG_H);
+    $W = $L['w']; $H = $L['h']; $M = $L['m'];
+    $im = imagecreatetruecolor($W, $H);
 
     // Fondo: degradado oscuro vertical.
     $top = og_rgb('#0e0e16');
     $bot = og_rgb('#060609');
-    for ($y = 0; $y < OG_H; $y++) {
-        $c = og_mix($top, $bot, $y / OG_H);
-        $col = imagecolorallocate($im, $c[0], $c[1], $c[2]);
-        imageline($im, 0, $y, OG_W, $y, $col);
+    for ($y = 0; $y < $H; $y++) {
+        $c = og_mix($top, $bot, $y / $H);
+        imageline($im, 0, $y, $W, $y, imagecolorallocate($im, $c[0], $c[1], $c[2]));
     }
     $white = imagecolorallocate($im, 245, 245, 248);
     $muted = imagecolorallocate($im, 150, 150, 165);
     $faint = imagecolorallocate($im, 108, 108, 124);
     $panel = imagecolorallocate($im, 35, 35, 46);
 
-    // Barra de acento superior (degradado del espectro) — remate de marca.
+    // Barra de acento superior (degradado del espectro).
     $espectro = array('#ff4d6d', '#ff9e4d', '#f2f24a', '#4ade80', '#4dc3ff', '#a855f7');
-    $seg = OG_W / (count($espectro));
+    $seg = $W / count($espectro);
     for ($i = 0; $i < count($espectro); $i++) {
         $a = og_rgb($espectro[$i]);
         $b = og_rgb($espectro[min($i + 1, count($espectro) - 1)]);
         for ($x = 0; $x < $seg; $x++) {
             $c = og_mix($a, $b, $x / $seg);
-            $col = imagecolorallocate($im, $c[0], $c[1], $c[2]);
-            imageline($im, (int)($i * $seg + $x), 0, (int)($i * $seg + $x), 6, $col);
+            imageline($im, (int)($i * $seg + $x), 0, (int)($i * $seg + $x), $L['accent'], imagecolorallocate($im, $c[0], $c[1], $c[2]));
         }
     }
 
     // ── Header: prisma + marca ──
-    og_dibujar_prisma($im, $M, 44, 38);
-    imagettftext($im, 25, 0, $M + 56, 76, $white, OG_FONT_BOLD, 'PolarPrisma');
-    imagettftext($im, 13, 0, $M + 56, 100, $faint, OG_FONT_REG, 'Cartografía de la polarización informativa');
+    og_dibujar_prisma($im, $M, $L['prism_y'], $L['prism_s']);
+    $bx = $M + $L['prism_s'] + 18;
+    imagettftext($im, $L['brand_sz'], 0, $bx, $L['brand_by'], $white, OG_FONT_BOLD, 'PolarPrisma');
+    imagettftext($im, $L['sub_sz'], 0, $bx, $L['sub_by'], $faint, OG_FONT_REG, 'Cartografía de la polarización informativa');
 
     // ── % grande + semáforo (arriba derecha) ──
     if ($d !== null) {
         $pct = max(0, min(100, (int)$d['pct']));
         $sem = imagecolorallocate($im, ...og_rgb(og_semaforo_hex($pct)));
         $pctStr = $pct . '%';
-        $pw = og_txt_w(90, OG_FONT_BOLD, $pctStr);
-        imagettftext($im, 90, 0, OG_W - $M - $pw, 118, $sem, OG_FONT_BOLD, $pctStr);
+        $pw = og_txt_w($L['pct_sz'], OG_FONT_BOLD, $pctStr);
+        imagettftext($im, $L['pct_sz'], 0, $W - $M - $pw, $L['pct_by'], $sem, OG_FONT_BOLD, $pctStr);
         $lbl = 'de polarización';
-        $lw = og_txt_w(14, OG_FONT_REG, $lbl);
-        imagettftext($im, 14, 0, OG_W - $M - $lw, 146, $muted, OG_FONT_REG, $lbl);
+        $lw = og_txt_w($L['pctlbl_sz'], OG_FONT_REG, $lbl);
+        imagettftext($im, $L['pctlbl_sz'], 0, $W - $M - $lw, $L['pctlbl_by'], $muted, OG_FONT_REG, $lbl);
     }
 
-    // ── Título (máx 3 líneas, elipsis) ──
+    // ── Título (elipsis) ──
     $titulo = $d !== null ? $d['titulo'] : 'Cartografía de la polarización informativa';
-    $tSize = 40; $lh = 56; $yT = 232;
-    $lineas = og_wrap($titulo, $tSize, OG_FONT_BOLD, OG_W - 2 * $M, 3);
-    foreach ($lineas as $ln) {
-        imagettftext($im, $tSize, 0, $M, $yT, $white, OG_FONT_BOLD, $ln);
-        $yT += $lh;
+    $yT = $L['title_y'];
+    foreach (og_wrap($titulo, $L['title_sz'], OG_FONT_BOLD, $W - 2 * $M, $L['title_max']) as $ln) {
+        imagettftext($im, $L['title_sz'], 0, $M, $yT, $white, OG_FONT_BOLD, $ln);
+        $yT += $L['title_lh'];
     }
 
     if ($d !== null) {
         // ── Franja del espectro: quién cubrió (vivo) vs quién calló (× atenuado) ──
-        imagettftext($im, 14, 0, $M, 424, $muted, OG_FONT_BOLD, 'QUIÉN LO CONTÓ · QUIÉN CALLÓ');
-        $barY = 440; $barH = 48; $gap = 8;
+        imagettftext($im, $L['cap_sz'], 0, $M, $L['cap_y'], $muted, OG_FONT_BOLD, 'QUIÉN LO CONTÓ · QUIÉN CALLÓ');
+        $barY = $L['bar_y']; $barH = $L['bar_h']; $gap = $L['bar_gap'];
         $n = count(OG_ORDEN_CUADRANTES);
-        $totalW = OG_W - 2 * $M;
-        $sw = ($totalW - $gap * ($n - 1)) / $n;
+        $sw = (($W - 2 * $M) - $gap * ($n - 1)) / $n;
         for ($i = 0; $i < $n; $i++) {
             $cua = OG_ORDEN_CUADRANTES[$i];
             $x0 = (int)($M + $i * ($sw + $gap));
@@ -248,58 +269,57 @@ function og_render($d, $ruta) {
                 imagefilledrectangle($im, $x0, $barY, $x1, $barY + $barH, imagecolorallocate($im, $c[0], $c[1], $c[2]));
             } else {
                 imagefilledrectangle($im, $x0, $barY, $x1, $barY + $barH, $panel);
-                // × del silencio
                 $xc = imagecolorallocate($im, 90, 90, 108);
                 imagesetthickness($im, 3);
-                $cx = (int)(($x0 + $x1) / 2); $cy = (int)($barY + $barH / 2); $r = 9;
+                $cx = (int)(($x0 + $x1) / 2); $cy = (int)($barY + $barH / 2); $r = (int)round($barH * 0.19);
                 imageline($im, $cx - $r, $cy - $r, $cx + $r, $cy + $r, $xc);
                 imageline($im, $cx - $r, $cy + $r, $cx + $r, $cy - $r, $xc);
                 imagesetthickness($im, 1);
             }
         }
-        // Etiquetas del espectro
-        imagettftext($im, 12, 0, $M, $barY + $barH + 26, $faint, OG_FONT_REG, 'IZQUIERDA');
-        $cLbl = 'CENTRO';  $cw = og_txt_w(12, OG_FONT_REG, $cLbl);
-        imagettftext($im, 12, 0, (int)(OG_W / 2 - $cw / 2), $barY + $barH + 26, $faint, OG_FONT_REG, $cLbl);
-        $dLbl = 'DERECHA'; $dw = og_txt_w(12, OG_FONT_REG, $dLbl);
-        imagettftext($im, 12, 0, (int)(OG_W - $M - $dw), $barY + $barH + 26, $faint, OG_FONT_REG, $dLbl);
+        $ly = $barY + $barH + $L['lbl_dy'];
+        imagettftext($im, $L['lbl_sz'], 0, $M, $ly, $faint, OG_FONT_REG, 'IZQUIERDA');
+        $cLbl = 'CENTRO';  $cw = og_txt_w($L['lbl_sz'], OG_FONT_REG, $cLbl);
+        imagettftext($im, $L['lbl_sz'], 0, (int)($W / 2 - $cw / 2), $ly, $faint, OG_FONT_REG, $cLbl);
+        $dLbl = 'DERECHA'; $dw = og_txt_w($L['lbl_sz'], OG_FONT_REG, $dLbl);
+        imagettftext($im, $L['lbl_sz'], 0, (int)($W - $M - $dw), $ly, $faint, OG_FONT_REG, $dLbl);
     }
 
-    // ── Pie: haiku/tagline + url (+ veredicto en analizados) ──
-    $footY = 588;
+    // ── Pie: veredicto + haiku/tagline + url ──
     if ($d !== null && !empty($d['analizado']) && !empty($d['veredicto'])) {
         $vtxt = '✓ ' . $d['veredicto'];
         if (!empty($d['n_fuentes'])) $vtxt .= '  ·  ' . $d['n_fuentes'] . ' fuentes';
-        $vc = imagecolorallocate($im, ...og_rgb('#4ade80'));
-        imagettftext($im, 14, 0, $M, 556, $vc, OG_FONT_BOLD, $vtxt);
+        imagettftext($im, $L['verd_sz'], 0, $M, $L['verd_y'], imagecolorallocate($im, ...og_rgb('#4ade80')), OG_FONT_BOLD, $vtxt);
     }
-    $tagline = ($d !== null && !empty($d['haiku'])) ? $d['haiku'] : 'Lo que un lado calló';
-    $tagLines = og_wrap($tagline, 17, OG_FONT_REG, OG_W - 2 * $M - 240, 1);
-    $tag = isset($tagLines[0]) ? $tagLines[0] : '';
-    imagettftext($im, 17, 0, $M, $footY, $muted, OG_FONT_REG, $tag);
     $url = 'polarprisma.org';
-    $uw = og_txt_w(17, OG_FONT_BOLD, $url);
-    imagettftext($im, 17, 0, OG_W - $M - $uw, $footY, $white, OG_FONT_BOLD, $url);
+    $uw = og_txt_w($L['foot_sz'], OG_FONT_BOLD, $url);
+    $tagline = ($d !== null && !empty($d['haiku'])) ? $d['haiku'] : 'Lo que un lado calló';
+    $tagLines = og_wrap($tagline, $L['foot_sz'], OG_FONT_REG, $W - 2 * $M - $uw - 30, 1);
+    $tag = isset($tagLines[0]) ? $tagLines[0] : '';
+    imagettftext($im, $L['foot_sz'], 0, $M, $L['foot_by'], $muted, OG_FONT_REG, $tag);
+    imagettftext($im, $L['foot_sz'], 0, $W - $M - $uw, $L['foot_by'], $white, OG_FONT_BOLD, $url);
 
     $ok = imagepng($im, $ruta, 8);
     imagedestroy($im);
     return $ok && is_file($ruta);
 }
 
-// ── API pública ─────────────────────────────────────────────────────
+// ── API pública (soporta formato 'og' | 'sq') ───────────────────────
 
-function og_generar_articulo($article_id) {
+function og_sufijo($fmt) { return $fmt === 'sq' ? '-sq' : ''; }
+
+function og_generar_articulo($article_id, $fmt = 'og') {
     $d = og_datos_articulo($article_id);
     if (!$d) return false;
-    return og_render($d, og_ruta($article_id));
+    return og_render($d, og_ruta($article_id . og_sufijo($fmt)), og_layout($fmt));
 }
 
-function og_generar_radar($radar_id) {
+function og_generar_radar($radar_id, $fmt = 'og') {
     $d = og_datos_radar($radar_id);
     if (!$d) return false;
-    return og_render($d, og_ruta('r' . (int)$radar_id));
+    return og_render($d, og_ruta('r' . (int)$radar_id . og_sufijo($fmt)), og_layout($fmt));
 }
 
-function og_generar_default() {
-    return og_render(null, og_ruta('default'));
+function og_generar_default($fmt = 'og') {
+    return og_render(null, og_ruta('default' . og_sufijo($fmt)), og_layout($fmt));
 }
