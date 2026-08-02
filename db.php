@@ -77,6 +77,8 @@ function prisma_db(): PDO {
         // H-score de detección inicial (Fase 1), preservado cuando el análisis
         // profundo (Fase 2) revisa el índice de polarización y sobrescribe h_score.
         'h_score_estructural REAL',
+        // Observatorio: tema (hilo persistente) al que pertenece este cluster.
+        'tema_id INTEGER',
     );
     foreach ($v2_columns as $col) {
         try {
@@ -132,6 +134,20 @@ function prisma_db(): PDO {
         origen      TEXT,
         created_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
     )');
+
+    // ── Observatorio: temas persistentes (hilos de agenda) ──
+    // Un tema agrupa muchos clusters del radar a lo largo del tiempo. Anchos y
+    // legibles (docena larga), no eventos concretos. radar.tema_id enlaza cada cluster.
+    $pdo->exec('CREATE TABLE IF NOT EXISTS temas (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre      TEXT NOT NULL,
+        slug        TEXT NOT NULL UNIQUE,
+        descripcion TEXT,
+        activo      INTEGER DEFAULT 1,
+        last_seen   TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_radar_tema ON radar(tema_id)');
 
     return $pdo;
 }

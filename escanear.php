@@ -221,6 +221,14 @@ prisma_log("SCAN", sprintf("ESCANEO COMPLETO: %d temas en radar, %d candidatos a
     $total_radar, $total_candidatos));
 prisma_log("SCAN", "═══════════════════════════════════════════════");
 
+// Observatorio: asigna los clusters relevantes de hoy a sus temas (hilos de agenda).
+try {
+    require_once __DIR__ . '/lib/observatorio.php';
+    observatorio_asignar_dia($fecha);
+} catch (\Throwable $e) {
+    prisma_log("SCAN", "Observatorio: error asignando — " . $e->getMessage());
+}
+
 // Los avisos de Telegram van en el digest diario (digest_telegram.php, cron 06:00).
 
 exit(0);
