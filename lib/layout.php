@@ -23,6 +23,7 @@ function render_nav($active_nav = '', $overrides = array()) {
     $nav_items = array(
         ''             => array('Hoy', $B),
         'radar'        => array('Radar', $B . '?vista=radar'),
+        'observatorio' => array('Observatorio', $B . 'observatorio.php'),
         'silencios'    => array('Silencios', $B . 'silencios.php'),
         'mapa'         => array('Mapa', $B . 'mapa.php'),
         'presentacion' => array('¿Qué es PolarPrisma?', $B . 'presentacion.php'),
