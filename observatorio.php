@@ -24,7 +24,7 @@ foreach ($temas as $t) {
 if ($minm === null) $minm = 1;
 usort($items, function ($a, $b) { return $b['s']['menciones'] <=> $a['s']['menciones']; });
 
-page_header('Observatorio', 'El mapa de la agenda informativa: de qué se habla ahora, cuánto, y hacia qué lado se inclina.', true);
+page_header('Observatorio', 'El mapa de la agenda informativa: de qué se habla ahora, cuánto, y hacia qué lado se inclina.', 'observatorio', true);
 ?>
 
 <div class="page-top">

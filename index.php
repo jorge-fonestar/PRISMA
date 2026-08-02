@@ -14,17 +14,13 @@ $B = prisma_base();
 $cfg = prisma_cfg();
 $today = date('Y-m-d');
 
-// Vista: '' = Hoy (solo hoy, polarización ≥10%) | 'radar' = últimos 7 días, ≥50%.
-// Misma página y mismos filtros; solo cambian los valores por defecto.
+// La landing ('') y el deep-link ?vista=radar comparten página, filtros y valores
+// por defecto: "Más polarizados" (últimos 7 días, polarización ≥50%). Solo cambia
+// la cabecera (Hero en la landing, banner compacto en el deep-link).
 $vista = (isset($_GET['vista']) && $_GET['vista'] === 'radar') ? 'radar' : '';
 $def_hasta = $today;
-if ($vista === 'radar') {
-    $def_desde = date('Y-m-d', strtotime('-6 days'));
-    $def_polar = '50';
-} else {
-    $def_desde = $today;
-    $def_polar = '10';
-}
+$def_desde = date('Y-m-d', strtotime('-6 days'));
+$def_polar = '50';
 
 // Datos ligeros para el Hero de la landing (no se consultan en la vista radar).
 $n_hoy = 0; $n_analisis_hoy = 0;
@@ -239,18 +235,17 @@ if ($vista !== 'radar') {
     .preset.active { background: var(--accent); color: #0a0a12; border-color: var(--accent); }
     .preset-bar { scroll-margin-top: 5.5rem; }
 
-    /* Hero (landing) — dos columnas: texto a la izquierda, prisma a la derecha */
+    /* Hero (landing) — izquierda: icono+título+contexto; derecha: botones */
     .hero {
-      display: flex; align-items: center; gap: 3rem;
-      padding: 3.2rem 0 2.4rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 2.5rem;
+      padding: 3rem 0 2.4rem; border-bottom: 1px solid var(--border);
       margin-bottom: 1.6rem;
     }
-    .hero-content { flex: 1 1 auto; max-width: 620px; }
-    .hero-visual { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
-    .hero-visual svg { width: 100%; max-width: 360px; height: auto; }
+    .hero-main { flex: 1 1 auto; min-width: 0; }
+    .hero-head { display: flex; align-items: center; gap: 16px; margin-bottom: 1.1rem; }
+    .hero-icon { flex: 0 0 auto; width: 62px; height: 62px; }
     .hero-title {
-      font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.04;
-      margin: 0 0 0.42em; max-width: 15ch; color: var(--text);
+      margin: 0; font-size: clamp(1.9rem, 4.6vw, 3rem); line-height: 1.05; color: var(--text);
     }
     .hero-title em {
       font-style: italic;
@@ -259,36 +254,39 @@ if ($vista !== 'radar') {
     }
     .hero-sub {
       font-size: clamp(1rem, 2.1vw, 1.18rem); color: var(--text-muted);
-      line-height: 1.55; margin: 0 0 1.7rem;
+      line-height: 1.55; margin: 0; max-width: 64ch;
     }
-    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+    .hero-actions {
+      flex: 0 0 auto; display: flex; flex-direction: column; gap: 12px;
+      align-items: stretch; min-width: 220px;
+    }
     .hero-btn-primary {
-      padding: 12px 26px; border-radius: 8px;
+      padding: 12px 24px; border-radius: 8px; text-align: center;
       background: var(--accent); color: #0a0a12;
       font-family: 'Inter', Arial, sans-serif; font-size: 0.95rem; font-weight: 700;
       text-decoration: none; transition: opacity 0.15s;
     }
     .hero-btn-primary:hover { opacity: 0.85; }
     .hero-btn-ghost {
-      padding: 12px 18px; color: var(--text-muted);
+      padding: 12px 20px; border-radius: 8px; text-align: center;
+      border: 1px solid var(--border-card); color: var(--text-muted);
       font-family: 'Inter', Arial, sans-serif; font-size: 0.95rem; font-weight: 600;
-      text-decoration: none; transition: color 0.15s;
+      text-decoration: none; transition: all 0.15s;
     }
-    .hero-btn-ghost:hover { color: var(--text); }
+    .hero-btn-ghost:hover { border-color: var(--border-hover); color: var(--text); }
     .hero-stats {
-      margin: 1.7rem 0 0; font-family: 'Inter', Arial, sans-serif;
-      font-size: 0.86rem; color: var(--text-faint);
+      margin: 0.4rem 0 0; font-family: 'Inter', Arial, sans-serif;
+      font-size: 0.84rem; color: var(--text-faint); text-align: center;
     }
     .hero-stats strong { color: var(--text-muted); }
-    @media (max-width: 860px) {
-      .hero {
-        flex-direction: column-reverse; align-items: flex-start;
-        gap: 1.4rem; padding: 2.2rem 0 1.6rem;
-      }
-      .hero-content { max-width: none; }
-      .hero-visual { align-self: flex-start; }
-      .hero-visual svg { max-width: 280px; }
+    @media (max-width: 820px) {
+      .hero { flex-direction: column; align-items: stretch; gap: 1.5rem; padding: 2rem 0 1.6rem; }
+      .hero-sub { max-width: none; }
+      .hero-actions { flex-direction: row; flex-wrap: wrap; align-items: center; min-width: 0; }
+      .hero-actions .hero-btn-primary, .hero-actions .hero-btn-ghost { flex: 1 1 auto; }
+      .hero-stats { flex-basis: 100%; text-align: left; margin-top: 0.2rem; }
     }
+    @media (max-width: 460px) { .hero-head { gap: 12px; } .hero-icon { width: 48px; height: 48px; } }
 
     /* Stats bar */
     .stats-bar {
@@ -431,36 +429,34 @@ if ($vista !== 'radar') {
       <?php else: ?>
       <!-- Hero (landing) — versión C -->
       <section class="hero">
-        <div class="hero-content">
-          <h1 class="hero-title">Contra la polarización, <em>un mapa</em>.</h1>
+        <div class="hero-main">
+          <div class="hero-head">
+            <svg class="hero-icon" viewBox="0 0 66 66" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <line x1="4" y1="33" x2="28" y2="33" stroke="var(--text-muted)" stroke-width="2" opacity="0.5"/>
+              <polygon points="28,12 28,54 50,33" fill="none" stroke="url(#heroPrism)" stroke-width="2.4" stroke-linejoin="round"/>
+              <line x1="50" y1="33" x2="64" y2="17" stroke="#ff4d6d" stroke-width="2.2"/>
+              <line x1="50" y1="33" x2="64" y2="25" stroke="#ff9e4d" stroke-width="2.2"/>
+              <line x1="50" y1="33" x2="64" y2="33" stroke="#4ade80" stroke-width="2.2"/>
+              <line x1="50" y1="33" x2="64" y2="41" stroke="#4dc3ff" stroke-width="2.2"/>
+              <line x1="50" y1="33" x2="64" y2="49" stroke="#a855f7" stroke-width="2.2"/>
+              <defs><linearGradient id="heroPrism" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ff4d6d"/><stop offset="50%" stop-color="#4ade80"/><stop offset="100%" stop-color="#a855f7"/>
+              </linearGradient></defs>
+            </svg>
+            <h1 class="hero-title">Contra la polarización, <em>un mapa</em>.</h1>
+          </div>
           <p class="hero-sub">La misma noticia, contada por todos los lados —y lo que cada bando calla.
             PolarPrisma cartografía la polarización informativa noticia a noticia: sin editorial, sin
             algoritmo, sin cámaras de eco.</p>
-          <div class="hero-cta">
-            <a href="#preset-bar" class="hero-btn-primary">Ver el radar de hoy</a>
-            <a href="<?= $B ?>presentacion.php" class="hero-btn-ghost">Cómo funciona &rarr;</a>
-          </div>
+        </div>
+        <div class="hero-actions">
+          <a href="#preset-bar" class="hero-btn-primary">Ver el radar</a>
+          <a href="<?= $B ?>presentacion.php" class="hero-btn-ghost">Cómo funciona &rarr;</a>
           <?php if ($n_hoy > 0): ?>
-          <p class="hero-stats"><strong><?= $n_hoy ?></strong> tema<?= $n_hoy == 1 ? '' : 's' ?> en el radar de hoy<?php if ($n_analisis_hoy > 0): ?> · <strong><?= $n_analisis_hoy ?></strong> con análisis multipostura<?php endif; ?> · <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">avisos en Telegram &rarr;</a></p>
+          <p class="hero-stats"><strong><?= $n_hoy ?></strong> hoy<?php if ($n_analisis_hoy > 0): ?> · <strong><?= $n_analisis_hoy ?></strong> analizados<?php endif; ?> · <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">Telegram &rarr;</a></p>
           <?php else: ?>
           <p class="hero-stats"><a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">Recibe cada análisis en Telegram &rarr;</a></p>
           <?php endif; ?>
-        </div>
-        <div class="hero-visual">
-          <svg width="360" height="125" viewBox="0 0 300 104" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <line x1="0" y1="52" x2="104" y2="52" stroke="var(--text-muted)" stroke-width="2" opacity="0.55"/>
-            <polygon points="104,24 104,80 150,52" fill="none" stroke="url(#heroPrism)" stroke-width="2" stroke-linejoin="round"/>
-            <line x1="150" y1="52" x2="300" y2="14" stroke="#ff4d6d" stroke-width="2.4"/>
-            <line x1="150" y1="52" x2="300" y2="27" stroke="#ff9e4d" stroke-width="2.4"/>
-            <line x1="150" y1="52" x2="300" y2="40" stroke="#f2f24a" stroke-width="2.4"/>
-            <line x1="150" y1="52" x2="300" y2="52" stroke="#4ade80" stroke-width="2.4"/>
-            <line x1="150" y1="52" x2="300" y2="64" stroke="#4dc3ff" stroke-width="2.4"/>
-            <line x1="150" y1="52" x2="300" y2="77" stroke="#4d9eff" stroke-width="2.4"/>
-            <line x1="150" y1="52" x2="300" y2="90" stroke="#a855f7" stroke-width="2.4"/>
-            <defs><linearGradient id="heroPrism" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#ff4d6d"/><stop offset="50%" stop-color="#4ade80"/><stop offset="100%" stop-color="#a855f7"/>
-            </linearGradient></defs>
-          </svg>
         </div>
       </section>
       <?php endif; ?>
@@ -826,8 +822,8 @@ if ($vista !== 'radar') {
       if (e.key === 'Enter') loadResults(false);
     });
 
-    // Initial load — resalta el preset que corresponde a la vista de entrada
-    markPreset(<?= $vista === 'radar' ? "'polarizados'" : "'hoy'" ?>);
+    // Initial load — por defecto marca "Más polarizados"
+    markPreset('polarizados');
     loadResults(false);
   })();
   </script>
