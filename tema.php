@@ -12,7 +12,7 @@ $tema = $slug !== '' ? observatorio_tema_por_slug($slug) : null;
 
 if (!$tema) {
     http_response_code(404);
-    page_header('Tema no encontrado', '');
+    page_header('Tema no encontrado', '', 'observatorio');
     echo '<div class="page-top"><h1>Tema no encontrado</h1><p>Este hilo del Observatorio no existe o se ha fusionado con otro. <a href="' . $B . 'observatorio.php">Volver al Observatorio</a>.</p></div>';
     page_footer();
     exit;
@@ -38,7 +38,7 @@ function tema_fecha_corta($ymd) {
     return (int)date('j', $ts) . ' ' . $m[(int)date('n', $ts)];
 }
 
-page_header($tema['nombre'], $tema['descripcion'] ? $tema['descripcion'] : ('Recorrido del tema «' . $tema['nombre'] . '» en la agenda informativa.'));
+page_header($tema['nombre'], $tema['descripcion'] ? $tema['descripcion'] : ('Recorrido del tema «' . $tema['nombre'] . '» en la agenda informativa.'), 'observatorio');
 ?>
 
 <div class="page-top">

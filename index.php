@@ -239,14 +239,17 @@ if ($vista !== 'radar') {
     .preset.active { background: var(--accent); color: #0a0a12; border-color: var(--accent); }
     .preset-bar { scroll-margin-top: 5.5rem; }
 
-    /* Hero (landing) */
+    /* Hero (landing) — dos columnas: texto a la izquierda, prisma a la derecha */
     .hero {
+      display: flex; align-items: center; gap: 3rem;
       padding: 3.2rem 0 2.4rem; border-bottom: 1px solid var(--border);
       margin-bottom: 1.6rem;
     }
-    .hero-prism { margin-bottom: 1.3rem; }
+    .hero-content { flex: 1 1 auto; max-width: 620px; }
+    .hero-visual { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+    .hero-visual svg { width: 100%; max-width: 360px; height: auto; }
     .hero-title {
-      font-size: clamp(2.1rem, 6vw, 3.5rem); line-height: 1.04;
+      font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.04;
       margin: 0 0 0.42em; max-width: 15ch; color: var(--text);
     }
     .hero-title em {
@@ -255,8 +258,8 @@ if ($vista !== 'radar') {
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
     .hero-sub {
-      font-size: clamp(1rem, 2.1vw, 1.2rem); color: var(--text-muted);
-      max-width: 60ch; line-height: 1.55; margin: 0 0 1.7rem;
+      font-size: clamp(1rem, 2.1vw, 1.18rem); color: var(--text-muted);
+      line-height: 1.55; margin: 0 0 1.7rem;
     }
     .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
     .hero-btn-primary {
@@ -277,7 +280,15 @@ if ($vista !== 'radar') {
       font-size: 0.86rem; color: var(--text-faint);
     }
     .hero-stats strong { color: var(--text-muted); }
-    @media (max-width: 640px) { .hero { padding: 2rem 0 1.6rem; } }
+    @media (max-width: 860px) {
+      .hero {
+        flex-direction: column-reverse; align-items: flex-start;
+        gap: 1.4rem; padding: 2.2rem 0 1.6rem;
+      }
+      .hero-content { max-width: none; }
+      .hero-visual { align-self: flex-start; }
+      .hero-visual svg { max-width: 280px; }
+    }
 
     /* Stats bar */
     .stats-bar {
@@ -420,8 +431,23 @@ if ($vista !== 'radar') {
       <?php else: ?>
       <!-- Hero (landing) — versión C -->
       <section class="hero">
-        <div class="hero-prism">
-          <svg width="300" height="104" viewBox="0 0 300 104" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <div class="hero-content">
+          <h1 class="hero-title">Contra la polarización, <em>un mapa</em>.</h1>
+          <p class="hero-sub">La misma noticia, contada por todos los lados —y lo que cada bando calla.
+            PolarPrisma cartografía la polarización informativa noticia a noticia: sin editorial, sin
+            algoritmo, sin cámaras de eco.</p>
+          <div class="hero-cta">
+            <a href="#preset-bar" class="hero-btn-primary">Ver el radar de hoy</a>
+            <a href="<?= $B ?>presentacion.php" class="hero-btn-ghost">Cómo funciona &rarr;</a>
+          </div>
+          <?php if ($n_hoy > 0): ?>
+          <p class="hero-stats"><strong><?= $n_hoy ?></strong> tema<?= $n_hoy == 1 ? '' : 's' ?> en el radar de hoy<?php if ($n_analisis_hoy > 0): ?> · <strong><?= $n_analisis_hoy ?></strong> con análisis multipostura<?php endif; ?> · <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">avisos en Telegram &rarr;</a></p>
+          <?php else: ?>
+          <p class="hero-stats"><a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">Recibe cada análisis en Telegram &rarr;</a></p>
+          <?php endif; ?>
+        </div>
+        <div class="hero-visual">
+          <svg width="360" height="125" viewBox="0 0 300 104" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <line x1="0" y1="52" x2="104" y2="52" stroke="var(--text-muted)" stroke-width="2" opacity="0.55"/>
             <polygon points="104,24 104,80 150,52" fill="none" stroke="url(#heroPrism)" stroke-width="2" stroke-linejoin="round"/>
             <line x1="150" y1="52" x2="300" y2="14" stroke="#ff4d6d" stroke-width="2.4"/>
@@ -436,19 +462,6 @@ if ($vista !== 'radar') {
             </linearGradient></defs>
           </svg>
         </div>
-        <h1 class="hero-title">Contra la polarización, <em>un mapa</em>.</h1>
-        <p class="hero-sub">La misma noticia, contada por todos los lados —y lo que cada bando calla.
-          PolarPrisma cartografía la polarización informativa noticia a noticia: sin editorial, sin
-          algoritmo, sin cámaras de eco.</p>
-        <div class="hero-cta">
-          <a href="#preset-bar" class="hero-btn-primary">Ver el radar de hoy</a>
-          <a href="<?= $B ?>presentacion.php" class="hero-btn-ghost">Cómo funciona &rarr;</a>
-        </div>
-        <?php if ($n_hoy > 0): ?>
-        <p class="hero-stats"><strong><?= $n_hoy ?></strong> tema<?= $n_hoy == 1 ? '' : 's' ?> en el radar de hoy<?php if ($n_analisis_hoy > 0): ?> · <strong><?= $n_analisis_hoy ?></strong> con análisis multipostura<?php endif; ?> · <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">avisos en Telegram &rarr;</a></p>
-        <?php else: ?>
-        <p class="hero-stats"><a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">Recibe cada análisis en Telegram &rarr;</a></p>
-        <?php endif; ?>
       </section>
       <?php endif; ?>
 
