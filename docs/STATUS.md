@@ -83,6 +83,14 @@
 
 ## Pendientes
 
+- **Observatorio (MVP) — HECHO (2-ago)**: nueva capa de **temas persistentes** (hilos de agenda)
+  por encima del radar diario. `temas` + `radar.tema_id`; asignación por Haiku con **agrupación
+  fuerte** (temas anchos, sin casi-duplicados) + consolidación (`lib/observatorio.php`,
+  `observatorio_backfill.php`). Ventana `/observatorio.php` (temas por tamaño de menciones +
+  subrayado por lado ideológico) y ficha `/tema.php?slug=` (abanico ideológico, timeline, noticias).
+  Enganchado al escaneo diario. Backfill: 376 clusters → 18 temas. Coste ~$0.07. Pendiente Fase 2:
+  panel de curación (fusionar/renombrar), momento (subiendo/apagándose), tarjetas OG por tema.
+
 - **Tarjetas sociales (OG) — HECHO (1-ago)**: cada análisis genera su imagen 1200×630
   (`lib/og.php`, GD) con prisma, titular, % semáforo, **franja del espectro cubrió/calló**
   (el gancho visceral), veredicto y pie. Se genera al publicar (hook en `prisma_publicar`),
