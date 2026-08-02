@@ -509,22 +509,14 @@ $axiom_names = [
 
       <!-- Polarización informativa -->
       <?php if ($tension_data):
-        $td_sv = isset($tension_data['scoring_version']) ? $tension_data['scoring_version'] : 'v1';
-        $td_m1 = ($td_sv === 'v2' && $tension_data['h_cobertura_mutua'] !== null) ? (float)$tension_data['h_cobertura_mutua'] : (float)$tension_data['h_asimetria'];
-        $td_m2 = ($td_sv === 'v2' && $tension_data['h_framing'] !== null) ? (float)$tension_data['h_framing'] : (float)$tension_data['h_divergencia'];
-        $td_m3 = ($td_sv === 'v2' && $tension_data['h_silencio'] !== null) ? (float)$tension_data['h_silencio'] : (float)$tension_data['h_varianza'];
-      ?>
-        <div style="margin-bottom:2rem">
-          <p class="section-label" style="margin-bottom:0.8rem">Polarización informativa</p>
-          <?= render_barras_tension($td_m1, $td_m2, $td_m3, (float)$tension_data['h_score'], $td_sv) ?>
-          <?php if (!empty($tension_data['h_score_estructural']) && $art): ?>
-            <p style="font-size:0.82rem;color:var(--text-faint);margin-top:0.8rem;font-style:italic">
-              Índice revisado tras el análisis completo (<?= round($tension_data['h_score'] * 100) ?>%).
-              Detección inicial sobre titulares: <?= round($tension_data['h_score_estructural'] * 100) ?>%. Las barras muestran las señales estructurales de esa detección inicial.
-            </p>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
+        $nota_idx = '';
+        if (!empty($tension_data['h_score_estructural']) && $art) {
+            $nota_idx = '<p style="font-size:0.82rem;color:var(--text-faint);margin:0.8rem 0 0;font-style:italic">'
+                . 'Índice revisado tras el análisis completo (' . round($tension_data['h_score'] * 100) . '%). '
+                . 'Detección inicial sobre titulares: ' . round($tension_data['h_score_estructural'] * 100) . '%.</p>';
+        }
+        echo render_marcador_silencios($tension_data['fuentes_json'], (float)$tension_data['h_score'], $nota_idx);
+      endif; ?>
 
       <?php
         // ── Indicador de confianza mecánico (calculado por PHP, no por el modelo) ──
@@ -765,14 +757,8 @@ $axiom_names = [
         <?php endif; ?>
       </div>
 
-      <!-- Tension breakdown -->
-      <div style="margin-bottom:2rem">
-        <p class="section-label" style="margin-bottom:0.8rem">Desglose de polarización informativa</p>
-        <?php
-          $r_m3 = ($r_sv === 'v2' && $radar['h_silencio'] !== null) ? (float)$radar['h_silencio'] : (float)$radar['h_varianza'];
-        ?>
-        <?= render_barras_tension($r_m1, $r_m2, $r_m3, (float)$radar['h_score'], $r_sv) ?>
-      </div>
+      <!-- Marcador de silencios (mismo lenguaje visual que las tarjetas) -->
+      <?= render_marcador_silencios($radar['fuentes_json'], (float)$radar['h_score']) ?>
 
       <!-- Source list -->
       <p class="section-label">Fuentes detectadas</p>

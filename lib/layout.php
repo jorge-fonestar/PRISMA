@@ -379,3 +379,49 @@ function tension_frase_generica(float $asimetria, float $divergencia, $relevanci
 function cuadrante_color(string $cuadrante): string {
     return PRISMA_CUADRANTE_COLORES[$cuadrante] ?? 'var(--text-faint)';
 }
+
+/**
+ * Marcador "quién lo contó · quién calló": los 7 cuadrantes del espectro, con
+ * relleno de su color quien CUBRIÓ y atenuado con ✕ quien CALLÓ. Mismo lenguaje
+ * visual que las tarjetas sociales. El % (color semáforo) indica la divergencia.
+ *
+ * @param string|null $fuentes_json  fuentes_json del radar
+ * @param float       $h_score       0..1 (índice de polarización → chip de divergencia)
+ * @param string      $nota          HTML opcional que se añade dentro del bloque
+ */
+function render_marcador_silencios($fuentes_json, float $h_score = 0.0, string $nota = ''): string {
+    $fuentes = json_decode((string)$fuentes_json, true);
+    if (!is_array($fuentes)) $fuentes = array();
+    $cubiertos = array();
+    foreach ($fuentes as $f) {
+        if (!empty($f['cuadrante'])) $cubiertos[$f['cuadrante']] = true;
+    }
+    $orden = array_keys(PRISMA_CUADRANTE_COLORES); // izquierda → derecha (7)
+    $n_callaron = 0;
+    $segs = '';
+    foreach ($orden as $c) {
+        $etq = ucfirst(str_replace('-', ' ', $c));
+        if (!empty($cubiertos[$c])) {
+            $segs .= '<div title="' . htmlspecialchars($etq) . ' · cubrió" style="flex:1;height:40px;border-radius:5px;background:' . cuadrante_color($c) . '"></div>';
+        } else {
+            $n_callaron++;
+            $segs .= '<div title="' . htmlspecialchars($etq) . ' · calló" style="flex:1;height:40px;border-radius:5px;background:rgba(255,255,255,0.05);border:1px solid var(--border-card);display:flex;align-items:center;justify-content:center;color:#5a5a6a;font-size:0.95rem">&#10005;</div>';
+        }
+    }
+    $pct = (int)round($h_score * 100);
+    $sem = $pct >= 60 ? '#ff4d6d' : ($pct >= 45 ? '#ff9e4d' : '#f2f24a');
+
+    $h  = '<div style="margin-bottom:2rem">';
+    $h .= '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:0.7rem">';
+    $h .= '<p class="section-label" style="margin:0">Quién lo contó · quién calló</p>';
+    $h .= '<span title="Índice de polarización" style="font-family:\'Inter\',Arial,sans-serif;font-size:0.78rem;color:' . $sem . ';border:1px solid ' . $sem . ';border-radius:999px;padding:2px 11px">' . $pct . '% de divergencia</span>';
+    $h .= '</div>';
+    $h .= '<div style="display:flex;gap:6px">' . $segs . '</div>';
+    $h .= '<div style="display:flex;justify-content:space-between;margin-top:0.5rem;font-family:\'Inter\',Arial,sans-serif;font-size:0.72rem;letter-spacing:0.05em;color:var(--text-faint)"><span>IZQUIERDA</span><span>CENTRO</span><span>DERECHA</span></div>';
+    if ($n_callaron > 0) {
+        $h .= '<p style="margin:0.7rem 0 0;font-size:0.85rem;color:var(--text-muted)"><strong style="color:var(--text)">' . $n_callaron . '</strong> de 7 posiciones del espectro no cubrieron este tema.</p>';
+    }
+    if ($nota !== '') $h .= $nota;
+    $h .= '</div>';
+    return $h;
+}
