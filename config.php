@@ -65,6 +65,11 @@ $GLOBALS['_PRISMA_CFG'] = array(
     // Chat privado para avisos de OPERACIÓN (salud de feeds), NUNCA el canal público.
     // Opcional: si está vacío, los avisos solo aparecen en el panel.
     'telegram_admin_chat_id' => getenv('TELEGRAM_ADMIN_CHAT_ID') ?: '',
+    // Autopublicación: postea la tarjeta del análisis más polarizado del día al canal.
+    // DESACTIVADA por defecto: poner AUTOPOST_ENABLED=1 en el .env para activarla.
+    'autopost_enabled'  => (getenv('AUTOPOST_ENABLED') === '1'),
+    'autopost_umbral'   => 0.55,   // % mínimo de polarización para publicar
+    'autopost_telegram' => true,   // canal Telegram propio (usa telegram_chat_id)
     'telegram_digest_umbral' => 0.35, // polarización mínima para entrar en el digest
     'telegram_digest_cap'    => 10,   // máximo de líneas (el resto se resume)
 

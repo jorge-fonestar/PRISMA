@@ -53,6 +53,45 @@ function telegram_enviar(string $texto, ?string $chat_override = null): bool {
 }
 
 /**
+ * Envía una FOTO (por URL) con pie, al chat configurado o a $chat_override.
+ * Telegram descarga la imagen de la URL pública.
+ *
+ * @return bool true si Telegram aceptó el mensaje
+ */
+function telegram_enviar_foto(string $photo_url, string $caption, ?string $chat_override = null): bool {
+    $cfg = prisma_cfg();
+    $token = isset($cfg['telegram_bot_token']) ? $cfg['telegram_bot_token'] : '';
+    $chat  = ($chat_override !== null && $chat_override !== '')
+        ? $chat_override
+        : (isset($cfg['telegram_chat_id']) ? $cfg['telegram_chat_id'] : '');
+    if ($token === '' || $chat === '') return false;
+
+    $payload = array(
+        'chat_id'    => $chat,
+        'photo'      => $photo_url,
+        'caption'    => $caption,
+        'parse_mode' => 'HTML',
+    );
+    $ch = curl_init("https://api.telegram.org/bot{$token}/sendPhoto");
+    curl_setopt_array($ch, array(
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query($payload),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 20,
+    ));
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($err || $http_code !== 200) {
+        prisma_log("TG", "Fallo sendPhoto (HTTP $http_code): " . ($err ?: substr((string)$response, 0, 200)));
+        return false;
+    }
+    return true;
+}
+
+/**
  * Semáforo de polarización por porcentaje.
  */
 function telegram_semaforo(int $pct): string {
