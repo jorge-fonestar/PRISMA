@@ -96,8 +96,14 @@
   (mismo lenguaje visual que las tarjetas, helper `render_marcador_silencios`), con chip de % =
   divergencia (color semáforo). Nota: la divergencia se mide global (no por cuadrante), por eso los
   colores = cuadrante y el chip = divergencia.
-- **PENDIENTE OG — autopublicación**: postear la tarjeta del análisis más polarizado a redes
-  (Telegram propio ya disponible; Bluesky/Mastodon gratis con credenciales; X requiere API de pago).
+- **Autopublicación (Telegram) — HECHO (2-ago), DESACTIVADA por defecto**: `autopost.php` +
+  `lib/autopost.php` postean la tarjeta del análisis más polarizado del día al canal, con
+  salvaguardas — umbral (`autopost_umbral`=0.55), tope 1/día, **idempotencia** (ledger
+  `data/autopost_hechos.json`), y **dry-run**. Cron `prisma-autopost` 06:15 UTC (se auto-inhibe
+  salvo `AUTOPOST_ENABLED=1` en el `.env`). Dry-run verificado. Para activar: añadir
+  `AUTOPOST_ENABLED=1` al `.env` del servidor (se recoge al vuelo, sin reinicio).
+  Redes pendientes (elección del usuario: solo Telegram por ahora): Bluesky/Mastodon (gratis,
+  requieren credenciales) y X (API de pago) quedan para más adelante.
 - **Recalcular el % en Fase 2 — HECHO (25-jul, opción A)**: el sintetizador
   devuelve `indice_polarizacion` (0-100, con rúbrica) con el texto completo; sustituye
   al estructural en las noticias analizadas (`radar_afinar_polarizacion`), que se
