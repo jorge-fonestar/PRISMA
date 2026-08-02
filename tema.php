@@ -57,48 +57,69 @@ page_header($tema['nombre'], $tema['descripcion'] ? $tema['descripcion'] : ('Rec
 
 <div class="content">
 
-  <!-- Abanico ideológico: peso de menciones por cuadrante -->
+  <!-- Abanico ideológico: fuerza de menciones por cuadrante -->
   <h2>Quién lo empuja</h2>
-  <p style="color:var(--text-muted);font-size:0.92rem;margin-top:-0.4rem">Reparto de las menciones a lo largo de todo el espectro. Muestra qué cuadrantes impulsan el tema y cuáles apenas lo tocan.</p>
-  <div style="display:flex;height:52px;border-radius:8px;overflow:hidden;margin:1.2rem 0 0.4rem">
+  <p style="color:var(--text-muted);font-size:0.92rem;margin-top:-0.4rem">Fuerza con la que cada sector del espectro impulsa el tema. La altura de cada barra son sus menciones; donde no hay barra, ese sector apenas lo ha tocado.</p>
+  <?php $maxn = 1; foreach ($orden as $c) $maxn = max($maxn, $s['cuadrantes'][$c]); ?>
+  <div style="display:flex;align-items:flex-end;gap:6px;height:150px;margin:1.4rem 0 0">
     <?php foreach ($orden as $c):
         $n = $s['cuadrantes'][$c];
-        $w = 100 * $n / $total_menc;
-        if ($w <= 0) continue;
+        $hpct = $n > 0 ? round(10 + 90 * $n / $maxn) : 0;
     ?>
-      <div title="<?= htmlspecialchars($cuad_labels[$c]) ?>: <?= $n ?> menciones" style="width:<?= round($w, 2) ?>%;background:<?= cuadrante_color($c) ?>;min-width:2px"></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%" title="<?= htmlspecialchars($cuad_labels[$c]) ?>: <?= $n ?> menciones">
+        <span style="font-family:'Inter',Arial,sans-serif;font-size:0.74rem;font-weight:700;color:<?= $n > 0 ? cuadrante_color($c) : 'var(--text-faint)' ?>;margin-bottom:5px"><?= $n ?></span>
+        <?php if ($n > 0): ?>
+          <div style="width:100%;max-width:44px;height:<?= $hpct ?>%;min-height:6px;background:<?= cuadrante_color($c) ?>;border-radius:4px 4px 0 0"></div>
+        <?php endif; ?>
+      </div>
     <?php endforeach; ?>
   </div>
-  <div style="display:flex;justify-content:space-between;font-family:'Inter',Arial,sans-serif;font-size:0.72rem;letter-spacing:0.05em;color:var(--text-faint)">
-    <span>IZQUIERDA</span><span>CENTRO</span><span>DERECHA</span>
+  <div style="height:2px;background:var(--border-card);border-radius:2px"></div>
+  <div style="display:flex;gap:6px;margin-top:6px">
+    <?php foreach ($orden as $c): ?>
+      <span style="flex:1;min-width:0;text-align:center;font-family:'Inter',Arial,sans-serif;font-size:0.62rem;letter-spacing:0.01em;color:var(--text-faint);line-height:1.25"><?= htmlspecialchars($cuad_labels[$c]) ?></span>
+    <?php endforeach; ?>
   </div>
-  <p style="color:var(--text-faint);font-size:0.85rem;margin-top:0.8rem">
+  <p style="color:var(--text-faint);font-size:0.85rem;margin-top:1rem">
     Izquierda <strong style="color:var(--text-muted)"><?= $s['bloques']['izq'] ?></strong> ·
     Centro <strong style="color:var(--text-muted)"><?= $s['bloques']['centro'] ?></strong> ·
     Derecha <strong style="color:var(--text-muted)"><?= $s['bloques']['der'] ?></strong> menciones.
   </p>
 
-  <!-- Timeline de menciones -->
+  <!-- Timeline de menciones: tramos de ancho fijo (agrupa por bins, cabe en móvil) -->
   <?php if (count($tl) >= 2):
-      $maxd = max($tl);
-      // rango completo de fechas
-      $ini = new DateTime(array_key_first($tl));
-      $fin = new DateTime(array_key_last($tl));
+      $ini  = new DateTime(array_key_first($tl));
+      $fin  = new DateTime(array_key_last($tl));
+      $dias = (int)$ini->diff($fin)->days + 1;          // días totales del rango
+      $bins = max(2, min(20, $dias));                    // nº de barras (≤20 → cabe en móvil)
+      $buckets = array_fill(0, $bins, 0);
+      foreach ($tl as $ymd => $n) {
+          $off = (int)(new DateTime($ymd))->diff($ini)->days;   // offset en días desde el inicio
+          $bi  = (int)floor($off * $bins / $dias);
+          if ($bi >= $bins) $bi = $bins - 1;
+          if ($bi < 0) $bi = 0;
+          $buckets[$bi] += $n;
+      }
+      $maxb = max($buckets); if ($maxb < 1) $maxb = 1;
   ?>
-  <h2 style="margin-top:2.4rem">Recorrido en el tiempo</h2>
-  <p style="color:var(--text-muted);font-size:0.92rem;margin-top:-0.4rem">Menciones por día, desde que el tema aparece hasta hoy.</p>
-  <div style="display:flex;align-items:flex-end;gap:3px;height:110px;margin:1.2rem 0 0.4rem;overflow-x:auto">
-    <?php
-      $cur = clone $ini;
-      while ($cur <= $fin):
-        $k = $cur->format('Y-m-d');
-        $n = isset($tl[$k]) ? $tl[$k] : 0;
-        $h = $maxd > 0 ? round(6 + 100 * $n / $maxd) : 6;
+  <h2 style="margin-top:2.6rem">Recorrido en el tiempo</h2>
+  <p style="color:var(--text-muted);font-size:0.92rem;margin-top:-0.4rem">Menciones agrupadas por tramos, desde que el tema aparece hasta su última noticia.</p>
+  <div style="display:flex;align-items:flex-end;gap:4px;height:120px;margin:1.4rem 0 0">
+    <?php for ($i = 0; $i < $bins; $i++):
+        $n = $buckets[$i];
+        // rango de fechas que cubre este tramo (para el tooltip)
+        $d0 = (clone $ini)->modify('+' . (int)floor($i * $dias / $bins) . ' day');
+        $d1 = (clone $ini)->modify('+' . ((int)floor(($i + 1) * $dias / $bins) - 1) . ' day');
+        if ($d1 > $fin) $d1 = clone $fin;
+        $rango = tema_fecha_corta($d0->format('Y-m-d'));
+        if ($d1 > $d0) $rango .= ' – ' . tema_fecha_corta($d1->format('Y-m-d'));
+        $h = $n > 0 ? round(8 + 100 * $n / $maxb) : 3;
     ?>
-      <div title="<?= tema_fecha_corta($k) ?>: <?= $n ?>" style="flex:0 0 auto;width:10px;height:<?= $h ?>px;border-radius:2px 2px 0 0;background:<?= $n > 0 ? $lado_col : 'var(--border-card)' ?>;opacity:<?= $n > 0 ? 0.9 : 0.4 ?>"></div>
-    <?php $cur->modify('+1 day'); endwhile; ?>
+      <div title="<?= $rango ?>: <?= $n ?> menciones" style="flex:1;min-width:0;height:<?= $h ?>px;border-radius:3px 3px 0 0;background:<?= $n > 0 ? $lado_col : 'var(--border-card)' ?>;opacity:<?= $n > 0 ? 0.9 : 0.5 ?>"></div>
+    <?php endfor; ?>
   </div>
-  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-faint)">
+  <div style="height:2px;background:var(--border-card);border-radius:2px"></div>
+  <div style="display:flex;justify-content:space-between;font-family:'Inter',Arial,sans-serif;font-size:0.72rem;color:var(--text-faint);margin-top:6px">
     <span><?= tema_fecha_corta($ini->format('Y-m-d')) ?></span><span><?= tema_fecha_corta($fin->format('Y-m-d')) ?></span>
   </div>
   <?php endif; ?>

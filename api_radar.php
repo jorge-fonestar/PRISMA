@@ -63,6 +63,22 @@ if ($q !== '') {
     $params[':q'] = '%' . $q . '%';
 }
 
+// Silencio de bloque: temas que un lado cubrió pero el otro CALLÓ. Los cuadrantes
+// son constantes fijas (sin entrada del usuario), así que van directos al SQL.
+$silencio = (isset($_GET['silencio']) && in_array($_GET['silencio'], array('izq', 'der'), true)) ? $_GET['silencio'] : '';
+if ($silencio !== '') {
+    $IZQ = array('izquierda-populista', 'izquierda', 'centro-izquierda');
+    $DER = array('centro-derecha', 'derecha', 'derecha-populista');
+    $ausente  = ($silencio === 'izq') ? $IZQ : $DER;   // el bloque que NO lo contó
+    $presente = ($silencio === 'izq') ? $DER : $IZQ;   // el bloque opuesto, que SÍ lo contó
+    $ca = array();
+    foreach ($ausente as $c)  $ca[] = "r.fuentes_json NOT LIKE '%\"cuadrante\":\"$c\"%'";
+    $cp = array();
+    foreach ($presente as $c) $cp[] = "r.fuentes_json LIKE '%\"cuadrante\":\"$c\"%'";
+    $where[] = '(' . implode(' AND ', $ca) . ')';
+    $where[] = '(' . implode(' OR ', $cp) . ')';
+}
+
 $where_sql = implode(' AND ', $where);
 
 // Count total

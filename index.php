@@ -25,6 +25,19 @@ if ($vista === 'radar') {
     $def_desde = $today;
     $def_polar = '10';
 }
+
+// Datos ligeros para el Hero de la landing (no se consultan en la vista radar).
+$n_hoy = 0; $n_analisis_hoy = 0;
+if ($vista !== 'radar') {
+    try {
+        $st = prisma_db()->prepare("SELECT COUNT(*) FROM radar WHERE fecha = :d");
+        $st->execute(array(':d' => $today));
+        $n_hoy = (int)$st->fetchColumn();
+        $st2 = prisma_db()->prepare("SELECT COUNT(*) FROM radar WHERE fecha = :d AND articulo_id IS NOT NULL");
+        $st2->execute(array(':d' => $today));
+        $n_analisis_hoy = (int)$st2->fetchColumn();
+    } catch (Exception $e) { /* los contadores del hero son opcionales */ }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -214,6 +227,58 @@ if ($vista === 'radar') {
     }
     .btn-clear:hover { border-color: var(--border-hover); color: var(--text); }
 
+    /* Preset buttons */
+    .preset-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0.2rem 0 1.1rem; }
+    .preset {
+      padding: 6px 14px; border: 1px solid var(--border-card); border-radius: 999px;
+      background: var(--bg-card); color: var(--text-muted);
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .preset:hover { border-color: var(--border-hover); color: var(--text); }
+    .preset.active { background: var(--accent); color: #0a0a12; border-color: var(--accent); }
+    .preset-bar { scroll-margin-top: 5.5rem; }
+
+    /* Hero (landing) */
+    .hero {
+      padding: 3.2rem 0 2.4rem; border-bottom: 1px solid var(--border);
+      margin-bottom: 1.6rem;
+    }
+    .hero-prism { margin-bottom: 1.3rem; }
+    .hero-title {
+      font-size: clamp(2.1rem, 6vw, 3.5rem); line-height: 1.04;
+      margin: 0 0 0.42em; max-width: 15ch; color: var(--text);
+    }
+    .hero-title em {
+      font-style: italic;
+      background: linear-gradient(90deg, #ff4d6d, #ff9e4d, #f2f24a, #4ade80, #4dc3ff, #a855f7);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.1vw, 1.2rem); color: var(--text-muted);
+      max-width: 60ch; line-height: 1.55; margin: 0 0 1.7rem;
+    }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+    .hero-btn-primary {
+      padding: 12px 26px; border-radius: 8px;
+      background: var(--accent); color: #0a0a12;
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.95rem; font-weight: 700;
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .hero-btn-primary:hover { opacity: 0.85; }
+    .hero-btn-ghost {
+      padding: 12px 18px; color: var(--text-muted);
+      font-family: 'Inter', Arial, sans-serif; font-size: 0.95rem; font-weight: 600;
+      text-decoration: none; transition: color 0.15s;
+    }
+    .hero-btn-ghost:hover { color: var(--text); }
+    .hero-stats {
+      margin: 1.7rem 0 0; font-family: 'Inter', Arial, sans-serif;
+      font-size: 0.86rem; color: var(--text-faint);
+    }
+    .hero-stats strong { color: var(--text-muted); }
+    @media (max-width: 640px) { .hero { padding: 2rem 0 1.6rem; } }
+
     /* Stats bar */
     .stats-bar {
       display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
@@ -334,30 +399,66 @@ if ($vista === 'radar') {
   </style>
 </head>
 <body>
-  <?= render_nav($vista) ?>
+  <?= render_nav('') ?>
 
   <main id="main-content" role="main">
     <div class="container">
 
-      <!-- Banner -->
-      <div class="banner">
       <?php if ($vista === 'radar'): ?>
+      <!-- Banner compacto (deep-link ?vista=radar) -->
+      <div class="banner">
         <h1>Lo más polarizado de los <em>últimos 7 días</em>.</h1>
         <p>Los temas de la semana donde los bloques ideológicos más divergen al contar la misma
           historia (polarización &ge; 50%). El índice es una fórmula pública, no una decisión editorial.
           <a href="<?= $B ?>presentacion.php">Cómo se mide &rarr;</a>
         </p>
-      <?php else: ?>
-        <h1>Tu algoritmo te encierra. PolarPrisma te da el <em>contexto</em>.</h1>
-        <p>Las redes te muestran lo que ya crees. Aquí, cada noticia se analiza desde todas las posturas enfrentadas
-          y se audita contra 11 criterios de neutralidad. Sin editorial. Sin personalización. Sin decirte qué pensar.
-          <a href="<?= $B ?>presentacion.php">Cómo funciona &rarr;</a>
-        </p>
-      <?php endif; ?>
         <p style="font-family:Inter,Arial,sans-serif;font-size:0.82rem;margin-top:0.6rem">
           📣 Recibe cada nuevo análisis en tu móvil:
           <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener">únete al canal de Telegram</a>
         </p>
+      </div>
+      <?php else: ?>
+      <!-- Hero (landing) — versión C -->
+      <section class="hero">
+        <div class="hero-prism">
+          <svg width="300" height="104" viewBox="0 0 300 104" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <line x1="0" y1="52" x2="104" y2="52" stroke="var(--text-muted)" stroke-width="2" opacity="0.55"/>
+            <polygon points="104,24 104,80 150,52" fill="none" stroke="url(#heroPrism)" stroke-width="2" stroke-linejoin="round"/>
+            <line x1="150" y1="52" x2="300" y2="14" stroke="#ff4d6d" stroke-width="2.4"/>
+            <line x1="150" y1="52" x2="300" y2="27" stroke="#ff9e4d" stroke-width="2.4"/>
+            <line x1="150" y1="52" x2="300" y2="40" stroke="#f2f24a" stroke-width="2.4"/>
+            <line x1="150" y1="52" x2="300" y2="52" stroke="#4ade80" stroke-width="2.4"/>
+            <line x1="150" y1="52" x2="300" y2="64" stroke="#4dc3ff" stroke-width="2.4"/>
+            <line x1="150" y1="52" x2="300" y2="77" stroke="#4d9eff" stroke-width="2.4"/>
+            <line x1="150" y1="52" x2="300" y2="90" stroke="#a855f7" stroke-width="2.4"/>
+            <defs><linearGradient id="heroPrism" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ff4d6d"/><stop offset="50%" stop-color="#4ade80"/><stop offset="100%" stop-color="#a855f7"/>
+            </linearGradient></defs>
+          </svg>
+        </div>
+        <h1 class="hero-title">Contra la polarización, <em>un mapa</em>.</h1>
+        <p class="hero-sub">La misma noticia, contada por todos los lados —y lo que cada bando calla.
+          PolarPrisma cartografía la polarización informativa noticia a noticia: sin editorial, sin
+          algoritmo, sin cámaras de eco.</p>
+        <div class="hero-cta">
+          <a href="#preset-bar" class="hero-btn-primary">Ver el radar de hoy</a>
+          <a href="<?= $B ?>presentacion.php" class="hero-btn-ghost">Cómo funciona &rarr;</a>
+        </div>
+        <?php if ($n_hoy > 0): ?>
+        <p class="hero-stats"><strong><?= $n_hoy ?></strong> tema<?= $n_hoy == 1 ? '' : 's' ?> en el radar de hoy<?php if ($n_analisis_hoy > 0): ?> · <strong><?= $n_analisis_hoy ?></strong> con análisis multipostura<?php endif; ?> · <a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">avisos en Telegram &rarr;</a></p>
+        <?php else: ?>
+        <p class="hero-stats"><a href="https://t.me/prismanews_dev" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">Recibe cada análisis en Telegram &rarr;</a></p>
+        <?php endif; ?>
+      </section>
+      <?php endif; ?>
+
+      <!-- Presets -->
+      <div class="preset-bar" id="preset-bar">
+        <button class="preset" type="button" data-preset="hoy">Hoy</button>
+        <button class="preset" type="button" data-preset="polarizados">Más polarizados</button>
+        <button class="preset" type="button" data-preset="analizados">Analizados</button>
+        <button class="preset" type="button" data-preset="sil-izq" title="Temas que la derecha cubrió y la izquierda calló">Lo que no contó la izquierda</button>
+        <button class="preset" type="button" data-preset="sil-der" title="Temas que la izquierda cubrió y la derecha calló">Lo que no contó la derecha</button>
       </div>
 
       <!-- Collapsible Filters -->
@@ -402,6 +503,14 @@ if ($vista === 'radar') {
               <input type="checkbox" id="f-analizados">
               <span class="check-label">Solo analizados</span>
             </label>
+          </div>
+          <div class="filter-group">
+            <label for="f-silencio">Silencio de bloque</label>
+            <select id="f-silencio">
+              <option value="">— Sin filtro</option>
+              <option value="izq">Lo que no contó la izquierda</option>
+              <option value="der">Lo que no contó la derecha</option>
+            </select>
           </div>
           <div class="filter-group">
             <label for="f-orden">Ordenar por</label>
@@ -468,7 +577,9 @@ if ($vista === 'radar') {
     var $buscar = document.getElementById('f-buscar');
     var $polar = document.getElementById('f-polar');
     var $analizados = document.getElementById('f-analizados');
+    var $silencio = document.getElementById('f-silencio');
     var $orden = document.getElementById('f-orden');
+    var $presets = document.querySelectorAll('.preset');
 
     // Toggle filters panel
     var $toggle = document.getElementById('filters-toggle');
@@ -486,6 +597,7 @@ if ($vista === 'radar') {
         q: $buscar.value.trim(),
         polar_min: $polar.value,
         solo_analizados: $analizados.checked ? '1' : '0',
+        silencio: $silencio.value,
         orden: $orden.value
       };
     }
@@ -493,12 +605,52 @@ if ($vista === 'radar') {
     // Valores por defecto de la vista actual (Hoy o Radar 7 días)
     var DEF = <?= json_encode(array('desde' => $def_desde, 'hasta' => $def_hasta, 'polar' => $def_polar)) ?>;
 
+    // Fechas de referencia para los presets (calculadas en servidor)
+    var DATES = <?= json_encode(array('hoy' => $today, 'semana' => date('Y-m-d', strtotime('-6 days')))) ?>;
+
+    // Configuración de cada botón de preset
+    var PRESETS = {
+      'hoy':         { desde: DATES.hoy,    hasta: DATES.hoy, polar: '10', analizados: false, silencio: '',    orden: 'polarizacion' },
+      'polarizados': { desde: DATES.semana, hasta: DATES.hoy, polar: '50', analizados: false, silencio: '',    orden: 'polarizacion' },
+      'analizados':  { desde: DATES.semana, hasta: DATES.hoy, polar: '0',  analizados: true,  silencio: '',    orden: 'fecha' },
+      'sil-izq':     { desde: DATES.semana, hasta: DATES.hoy, polar: '0',  analizados: false, silencio: 'izq', orden: 'polarizacion' },
+      'sil-der':     { desde: DATES.semana, hasta: DATES.hoy, polar: '0',  analizados: false, silencio: 'der', orden: 'polarizacion' }
+    };
+
+    function markPreset(name) {
+      for (var i = 0; i < $presets.length; i++) {
+        $presets[i].classList.toggle('active', $presets[i].getAttribute('data-preset') === name);
+      }
+    }
+    function clearActivePreset() { markPreset(null); }
+
+    function setPreset(name) {
+      var p = PRESETS[name];
+      if (!p) return;
+      $desde.value = p.desde;
+      $hasta.value = p.hasta;
+      $buscar.value = '';
+      $polar.value = p.polar;
+      $analizados.checked = p.analizados;
+      $silencio.value = p.silencio;
+      $orden.value = p.orden;
+      markPreset(name);
+      loadResults(false);
+    }
+
+    for (var pi = 0; pi < $presets.length; pi++) {
+      $presets[pi].addEventListener('click', function() {
+        setPreset(this.getAttribute('data-preset'));
+      });
+    }
+
     function countActiveFilters() {
       var n = 0;
       if ($desde.value !== DEF.desde || $hasta.value !== DEF.hasta) n++;
       if ($buscar.value.trim() !== '') n++;
       if ($polar.value !== DEF.polar) n++;
       if ($analizados.checked) n++;
+      if ($silencio.value !== '') n++;
       if ($orden.value !== 'polarizacion') n++;
       return n;
     }
@@ -521,6 +673,7 @@ if ($vista === 'radar') {
       if (filters.q) parts.push('q=' + encodeURIComponent(filters.q));
       if (filters.polar_min !== '0') parts.push('polar_min=' + encodeURIComponent(filters.polar_min));
       if (filters.solo_analizados === '1') parts.push('solo_analizados=1');
+      if (filters.silencio) parts.push('silencio=' + encodeURIComponent(filters.silencio));
       parts.push('orden=' + encodeURIComponent(filters.orden));
       parts.push('offset=' + offset);
       parts.push('limit=10');
@@ -633,6 +786,7 @@ if ($vista === 'radar') {
 
     // Apply filters
     document.getElementById('btn-apply').addEventListener('click', function() {
+      clearActivePreset();
       loadResults(false);
     });
 
@@ -643,7 +797,9 @@ if ($vista === 'radar') {
       $buscar.value = '';
       $polar.value = DEF.polar;
       $analizados.checked = false;
+      $silencio.value = '';
       $orden.value = 'polarizacion';
+      clearActivePreset();
       loadResults(false);
     });
 
@@ -657,7 +813,8 @@ if ($vista === 'radar') {
       if (e.key === 'Enter') loadResults(false);
     });
 
-    // Initial load
+    // Initial load — resalta el preset que corresponde a la vista de entrada
+    markPreset(<?= $vista === 'radar' ? "'polarizados'" : "'hoy'" ?>);
     loadResults(false);
   })();
   </script>

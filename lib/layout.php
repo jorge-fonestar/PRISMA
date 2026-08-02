@@ -20,11 +20,11 @@ require_once __DIR__ . '/../db.php';
  */
 function render_nav($active_nav = '', $overrides = array()) {
     $B = prisma_base();
+    // "Hoy" y "Silencios" se han fundido dentro del Radar (presets + filtro de
+    // silencio de bloque). El Radar es ahora la entrada principal (la landing).
     $nav_items = array(
-        ''             => array('Hoy', $B),
-        'radar'        => array('Radar', $B . '?vista=radar'),
+        ''             => array('Radar', $B),
         'observatorio' => array('Observatorio', $B . 'observatorio.php'),
-        'silencios'    => array('Silencios', $B . 'silencios.php'),
         'mapa'         => array('Mapa', $B . 'mapa.php'),
         'presentacion' => array('¿Qué es PolarPrisma?', $B . 'presentacion.php'),
     );
@@ -72,8 +72,8 @@ function render_footer_grid() {
         . '<p>Servicio público de información neutral. Sin editorial, sin algoritmo, sin cámaras de eco.</p>'
         . '</div>'
         . '<div><h4>Secciones</h4><ul>'
-        . '<li><a href="' . $B . '">Hoy</a></li>'
-        . '<li><a href="' . $B . '?vista=radar">Radar (7 días)</a></li>'
+        . '<li><a href="' . $B . '">Radar de hoy</a></li>'
+        . '<li><a href="' . $B . '?vista=radar">Lo más polarizado (7 días)</a></li>'
         . '<li><a href="' . $B . 'silencios.php">Los silencios de la semana</a></li>'
         . '<li><a href="' . $B . 'mapa.php">Mapa ideológico y de financiación</a></li>'
         . '<li><a href="' . $B . 'archivo.php">Archivo</a></li>'
